@@ -18,8 +18,8 @@ category:           Web
 
 extra-source-files:
   CHANGELOG.md
-  README.md
   LICENSE
+  README.md
 
 library
   -- Modules included in this executable, other than Main.
@@ -30,7 +30,7 @@ library
   build-depends:
     , aeson
     , async
-    , base                     ^>=4.14.1.0
+    , base                ^>=4.14.1.0
     , blaze-html
     , blaze-markup
     , containers
@@ -38,10 +38,7 @@ library
     , directory
     , filepath
     , http-types
-    , mtl
     , neat-interpolation
-    , optparse-applicative
-    , parser-combinators
     , relude
     , stm
     , text

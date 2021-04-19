@@ -32,11 +32,10 @@
           };
       in
       {
-        # Built by `nix build .`
+        # Used by `nix build`
         defaultPackage = emaProject false;
 
-        # This is used by `nix develop .` to open a shell for use with
-        # `cabal`, `hlint` and `haskell-language-server`
+        # Used by `nix develop`
         devShell = emaProject true;
       });
 }
