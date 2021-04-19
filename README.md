@@ -32,6 +32,7 @@ Open in VSCode, and run the build task.
 
 pre-announce,
 - [ ] refactor and simplify
+- [ ] CLI UX (opts, logging, etc.)
 - [ ] examples
 - [ ] documentation ([howto](https://documentation.divio.com/))
 

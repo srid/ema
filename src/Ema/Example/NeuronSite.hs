@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 
--- An advanced example demonstrating how to build something like neuron
+-- | An advanced example demonstrating how to build something like neuron
 module Ema.Example.NeuronSite where
 
 {-

@@ -34,6 +34,21 @@ data Ema s r = Ema
     emaRenderRoute :: s -> r -> LByteString
   }
 
+-- | Pure version of @runEma@ that is independent of the world outside the program.
+--
+-- Due to purity, there is no model that varies over time. The render function
+-- can use any value from the closure.
+runEmaPure ::
+  forall r.
+  (IsRoute r, Show r) =>
+  -- | How to render a route
+  (r -> LByteString) ->
+  IO ()
+runEmaPure render = do
+  model <- Changing <$> newTVarIO () <*> newEmptyTMVarIO
+  let ema = Ema model (const render)
+  runEma ema
+
 -- | Run Ema live server
 --
 -- Continually observe the world, with a concomitant incremental update of the
@@ -126,6 +141,16 @@ runEma ema = do
         function refreshPage() {
           // The setTimeout is necessary, otherwise reload will hang forever (at
           // least on Brave browser)
+          // 
+          // The delayedRefresh trick (5000 and 2000) is for cases when the
+          // server hasn't reloaded fast enough, but the browser hangs forever
+          // in reload refresh state.
+          setTimeout(function() {
+            window.location.reload();
+          }, 5000);
+          setTimeout(function() {
+            window.location.reload();
+          }, 2000);
           setTimeout(function() {
             window.location.reload();
           }, 100);
@@ -155,18 +180,3 @@ runEma ema = do
         };
         </script>
         |]
-
--- | Pure version of @runEma@ that is independent of the world outside the program.
---
--- Due to purity, there is no model that varies over time. The render function
--- can use any value from the closure.
-runEmaPure ::
-  forall r.
-  (IsRoute r, Show r) =>
-  -- | How to render a route
-  (r -> LByteString) ->
-  IO ()
-runEmaPure render = do
-  model <- Changing <$> newTVarIO () <*> newEmptyTMVarIO
-  let ema = Ema model (const render)
-  runEma ema
