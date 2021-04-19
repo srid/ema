@@ -71,7 +71,8 @@ library
 
   other-modules:
     Ema.App
-    Ema.Example
+    Ema.Example.HelloWorld
+    Ema.Example.SimpleSite
     Ema.Layout
     Ema.Route
     Ema.Route.Slug

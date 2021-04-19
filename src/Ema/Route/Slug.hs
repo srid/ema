@@ -4,8 +4,7 @@ module Ema.Route.Slug where
 
 import qualified Data.Text as T
 
--- ---- [Slug] ----
-
+-- | An URL path is made of multiple slugs, separated by '/'
 newtype Slug = Slug {unSlug :: Text}
   deriving (Eq)
 

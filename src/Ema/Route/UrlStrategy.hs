@@ -9,7 +9,8 @@ import Ema.Route.Slug (Slug (unSlug))
 import System.FilePath (joinPath)
 
 data UrlStrategy
-  = UrlStrategy_FolderOnly
+  = -- | URLs always end with a slash, and correspond to index.html in that folder
+    UrlStrategy_FolderOnly
   | -- | Pretty URLs without ugly .html ext or slash-suffix
     UrlStrategy_HtmlOnlySansExt
   deriving (Eq, Show, Ord)

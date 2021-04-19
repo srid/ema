@@ -1,1 +1,1 @@
---warnings -T "Ema.Example.runSimpleSitePure"
+--warnings -T "Ema.Example.SimpleSite.main"
