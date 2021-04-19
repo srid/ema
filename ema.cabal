@@ -1,0 +1,83 @@
+cabal-version:      2.4
+name:               ema
+version:            0.1.0.0
+license:            AGPL-3.0-only
+copyright:          2020 Sridhar Ratnakumar
+maintainer:         srid@srid.ca
+author:             Sridhar Ratnakumar
+category:           Web
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+  LICENSE
+
+library
+  -- Modules included in this executable, other than Main.
+  -- other-modules:
+
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , aeson
+    , async
+    , base                     ^>=4.14.1.0
+    , blaze-html
+    , blaze-markup
+    , containers
+    , data-default
+    , directory
+    , filepath
+    , http-types
+    , mtl
+    , neat-interpolation
+    , optparse-applicative
+    , parser-combinators
+    , relude
+    , stm
+    , text
+    , time
+    , wai
+    , wai-app-static
+    , wai-websockets
+    , warp
+    , websockets
+
+  -- record-hasfield is included due to https://github.com/commercialhaskell/stackage/issues/4449
+  mixins:
+    base hiding (Prelude),
+    relude (Relude as Prelude, Relude.Container.One),
+    relude
+
+  ghc-options:
+    -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
+
+  default-extensions:
+    FlexibleContexts
+    FlexibleInstances
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    MultiWayIf
+    OverloadedStrings
+    ScopedTypeVariables
+    TupleSections
+    ViewPatterns
+
+  other-modules:
+    Ema.App
+    Ema.Example
+    Ema.Layout
+    Ema.Route
+
+  hs-source-dirs:     src
+  default-language:   Haskell2010
