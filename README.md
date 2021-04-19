@@ -23,7 +23,7 @@ Open in VSCode, and run the build task.
 ## TODO
 
 - [x] MVP
-- [ ] Implement hot reload, and ditch browser-sync
+- [x] Implement hot reload, and ditch browser-sync
   - [x] server to client refresh
   - [x] client to server reconnect (on ghcid reload, or accidental client disconnect)
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets

@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
+-- | TODO: Refactor this module
 module Ema.App where
 
 import Control.Concurrent.Async (race_)

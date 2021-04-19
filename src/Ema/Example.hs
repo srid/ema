@@ -62,31 +62,30 @@ timeC = do
 runSimpleSitePure :: IO ()
 runSimpleSitePure = do
   (model, runTimeC) <- timeC
-  race_ runTimeC (runEma $ ema model)
+  race_ runTimeC (runEma $ Ema model render)
   where
-    ema model =
-      Ema model $ \now r ->
-        Layout.tailwindSite (H.title "Simple Site") $
-          H.div ! A.class_ "container mx-auto" $ do
-            H.header ! A.class_ "text-4xl font-bold border-b-1" $ "Simple Site!"
-            case r of
-              PR_Index -> do
-                H.p ! A.style "color: red; text-3xl" $ "Checkout some profiles:"
-                forM_ ["Srid Ratna", "ema", "Great India"] $ \person ->
-                  H.li $
-                    routeElem (PR_Person person) $
-                      H.toMarkup person
-              PR_Person name -> do
-                H.header ! A.class_ "text-2xl" $ H.toMarkup $ "Profile of " <> name
-                H.div $ routeElem PR_Index "Go to Home"
-            H.footer ! A.class_ "border-t-1 p-2 text-center" $ do
-              "The current time is: "
-              H.pre ! A.class_ "text-4xl" $ do
-                let epoch = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" now
-                    colors = ["green", "purple", "red", "blue"]
-                    color = colors !! mod epoch (length colors)
-                    cls = "text-" <> color <> "-500"
-                H.span ! A.class_ cls $ H.toMarkup $ formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" now
+    render now r =
+      Layout.tailwindSite (H.title "Simple Site") $
+        H.div ! A.class_ "container mx-auto" $ do
+          H.header ! A.class_ "text-4xl font-bold border-b-1" $ "Simple Site!"
+          case r of
+            PR_Index -> do
+              H.p ! A.style "color: red; text-3xl" $ "Checkout some profiles:"
+              forM_ ["Srid Ratna", "ema", "Great India"] $ \person ->
+                H.li $
+                  routeElem (PR_Person person) $
+                    H.toMarkup person
+            PR_Person name -> do
+              H.header ! A.class_ "text-2xl" $ H.toMarkup $ "Profile of " <> name
+              H.div $ routeElem PR_Index "Go to Home"
+          H.footer ! A.class_ "border-t-1 p-2 text-center" $ do
+            "The current time is: "
+            H.pre ! A.class_ "text-4xl" $ do
+              let epoch = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" now
+                  colors = ["green", "purple", "red", "blue"]
+                  color = colors !! mod epoch (length colors)
+                  cls = "text-" <> color <> "-500"
+              H.span ! A.class_ cls $ H.toMarkup $ formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" now
     routeElem r w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r $ w
     routeHref r =
