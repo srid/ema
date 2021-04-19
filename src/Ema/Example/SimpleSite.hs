@@ -6,7 +6,6 @@ module Ema.Example.SimpleSite where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
-import Control.Concurrent.STM.TVar (swapTVar)
 import Data.List ((!!))
 import Data.Time
   ( UTCTime,
@@ -14,7 +13,8 @@ import Data.Time
     formatTime,
     getCurrentTime,
   )
-import Ema.App (Changing (Changing), Ema (Ema), runEma)
+import Ema.App (Ema (Ema), runEma)
+import qualified Ema.Changing as Changing
 import qualified Ema.Layout as Layout
 import Ema.Route (IsRoute (..))
 import Text.Blaze.Html5 ((!))
@@ -35,18 +35,15 @@ instance IsRoute Route where
     ["about"] -> Just About
     _ -> Nothing
 
-timeC :: IO (Changing UTCTime, IO ())
+timeC :: IO (Changing.Changing UTCTime, IO ())
 timeC = do
-  var <- newTVarIO =<< getCurrentTime
-  ch <- newEmptyTMVarIO
+  currentTime <- Changing.new =<< getCurrentTime
   let run = void $
         forever $ do
           now <- getCurrentTime
-          atomically $ do
-            void $ swapTVar var now
-            void $ tryPutTMVar ch ()
+          Changing.set currentTime now
           threadDelay $ 1 * 1000000
-  pure (Changing var ch, run)
+  pure (currentTime, run)
 
 main :: IO ()
 main = do

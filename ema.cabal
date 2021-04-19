@@ -71,12 +71,14 @@ library
 
   other-modules:
     Ema.App
+    Ema.Changing
     Ema.Example.HelloWorld
     Ema.Example.SimpleSite
     Ema.Layout
     Ema.Route
     Ema.Route.Slug
     Ema.Route.UrlStrategy
+    Ema.Server
 
   hs-source-dirs:     src
   default-language:   Haskell2010
