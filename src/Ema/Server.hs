@@ -19,17 +19,13 @@ import qualified Network.Wai.Handler.WebSockets as WaiWs
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
 
--- | Run Ema live server
---
--- Continually observe the world, with a concomitant incremental update of the
--- model so as to hot-reload the browser view.
-runEma ::
+runServerWithWebSocketHotReload ::
   forall model route.
   (Show route, IsRoute route) =>
   Changing model ->
   (model -> route -> LByteString) ->
   IO ()
-runEma model render = do
+runServerWithWebSocketHotReload model render = do
   let settings = Warp.setPort 8000 Warp.defaultSettings
   currentWsConn :: TVar (Maybe (route, WS.Connection)) <- newTVarIO Nothing
   -- bracket helps clean up after ghcid reboot
@@ -76,7 +72,6 @@ runEma model render = do
     -- WS.sendTextData conn ("reload" :: Text)
     -- WS.sendClose conn ("close" :: Text)
     httpApp req f = do
-      print $ Wai.pathInfo req
       let mr = fromSlug $ fromString . toString <$> Wai.pathInfo req
       (status, v) <- case mr of
         Nothing ->

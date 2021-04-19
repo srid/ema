@@ -7,7 +7,8 @@ module Ema.Changing where
 --
 -- one subscriber only (because of TMVar)
 
--- | TODO: Move this to new module, and rename?
+-- TODO: Rename to something more accurate?
+-- TODO: Support multiple observers (when supporting multiple websocket clients)
 data Changing a = Changing
   { -- | A value that changes over time
     changingCurrent :: TMVar a,

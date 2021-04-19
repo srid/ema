@@ -12,9 +12,9 @@ import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 
 data Ema s r = Ema
-  { -- | The state model of the app
+  { -- | The (ever-changing) state of the app
     emaModel :: Changing s,
-    -- | View function over app state and app route
+    -- | HTML view function over app state and app route
     emaRender :: s -> r -> LByteString
   }
 
@@ -46,4 +46,4 @@ runEma ema = do
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
   putStrLn "Launching Ema at http://localhost:3000"
-  Server.runEma (emaModel ema) (emaRender ema)
+  Server.runServerWithWebSocketHotReload (emaModel ema) (emaRender ema)
