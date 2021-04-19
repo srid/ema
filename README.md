@@ -29,12 +29,12 @@ Open in VSCode, and run the build task.
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [ ] Refactor, and consider multi-ws-client support
 
-features,
-
 pre-announce,
 - [ ] plan features, re: hakyll
 - [ ] CLI UX (opts, logging, etc.)
-- [ ] add common examples, including filesystem watcher
+- [ ] add common examples,
+  - filesystem watcher
+  - docs site (w/ sidebar and possibly even search)
 - [ ] documentation ([howto](https://documentation.divio.com/))
 
 doc notes,
