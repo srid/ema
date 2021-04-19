@@ -122,6 +122,14 @@ runEma ema = do
           });
         }
 
+        function refreshPage() {
+          // The setTimeout is necessary, otherwise reload will hang forever (at
+          // least on Brave browser)
+          setTimeout(function() {
+            window.location.reload();
+          }, 100);
+        };
+
         window.onpageshow = () => {
           console.log("ema: Opening ws conn");
           var ws = new WebSocket("ws://" + window.location.host);
@@ -130,7 +138,8 @@ runEma ema = do
             ws.send(document.location.pathname);
           };
           ws.onclose = () => {
-            console.log("ema: closed");
+            console.log("ema: closed; reloading..");
+            refreshPage();
           };
           ws.onmessage = evt => {
             // console.log(evt.data);

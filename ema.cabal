@@ -49,7 +49,6 @@ library
     , warp
     , websockets
 
-  -- record-hasfield is included due to https://github.com/commercialhaskell/stackage/issues/4449
   mixins:
     base hiding (Prelude),
     relude (Relude as Prelude, Relude.Container.One),

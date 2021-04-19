@@ -62,15 +62,16 @@ timeC = do
 runSimpleSitePure :: IO ()
 runSimpleSitePure = do
   (model, runTimeC) <- timeC
-  race_ runTimeC $
-    runEma $
+  race_ runTimeC (runEma $ ema model)
+  where
+    ema model =
       Ema model $ \now r ->
         Layout.tailwindSite (H.title "Simple Site") $
           H.div ! A.class_ "container mx-auto" $ do
             H.header ! A.class_ "text-4xl font-bold border-b-1" $ "Simple Site!"
             case r of
               PR_Index -> do
-                H.p ! A.style "color: red;" $ "Checkout some profiles:"
+                H.p ! A.style "color: red; text-3xl" $ "Checkout some profiles:"
                 forM_ ["Srid Ratna", "ema", "Great India"] $ \person ->
                   H.li $
                     routeElem (PR_Person person) $
@@ -86,7 +87,6 @@ runSimpleSitePure = do
                     color = colors !! mod epoch (length colors)
                     cls = "text-" <> color <> "-500"
                 H.span ! A.class_ cls $ H.toMarkup $ formatTime defaultTimeLocale "%Y/%m/%d %H:%M:%S" now
-  where
     routeElem r w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r $ w
     routeHref r =
