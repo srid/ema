@@ -102,7 +102,7 @@ mainWith :: [String] -> IO ()
 mainWith args = do
   folder <- case args of
     [path] -> canonicalizePath path
-    _ -> pure "/home/srid/KB"
+    _ -> canonicalizePath "src/Ema/Example/Diary"
   model <- Changing.new =<< diaryFrom folder
   race_
     (runEma $ Ema model render)
