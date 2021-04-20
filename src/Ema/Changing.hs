@@ -4,6 +4,7 @@
 module Ema.Changing where
 
 import qualified Data.Map.Strict as Map
+import Prelude hiding (modify)
 
 -- A mutable variable with change notification
 -- TODO: Rename to something more accurate?
@@ -28,9 +29,13 @@ get v =
 
 -- | Sets a new value; listeners from @subscribe@ are automatically notifed.
 set :: MonadIO m => Changing a -> a -> m ()
-set v val = do
+set v = modify v . const
+
+modify :: MonadIO m => Changing a -> (a -> a) -> m ()
+modify v f = do
   n <- atomically $ do
-    void $ swapTMVar (changingCurrent v) val
+    curr <- readTMVar (changingCurrent v)
+    void $ swapTMVar (changingCurrent v) (f curr)
     publish v
   when (n > 0) $
     putStrLn $ "pub: published; " <> show n <> " subscribers listening"
