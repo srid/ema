@@ -14,7 +14,7 @@ data Changing a = Changing
     changingSubscribers :: TMVar (Map Int (TMVar ()))
   }
 
-new :: MonadIO m => a -> m (Changing a)
+new :: forall a m. MonadIO m => a -> m (Changing a)
 new val = do
   Changing <$> newTMVarIO val <*> newTMVarIO mempty
 

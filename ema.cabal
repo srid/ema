@@ -39,7 +39,6 @@ library
     , blaze-markup
     , containers
     , data-default
-    , directory
     , filepath
     , http-types
     , neat-interpolation
@@ -54,7 +53,12 @@ library
     , websockets
   if flag(with-examples)
     build-depends:
-      time
+      , fsnotify
+      , filepattern
+      , directory
+      , time
+      , org-mode
+      , shower
 
   mixins:
     base hiding (Prelude),
