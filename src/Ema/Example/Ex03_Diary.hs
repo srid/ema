@@ -142,7 +142,7 @@ renderOrg _org@(Org.OrgFile meta doc) = do
 
 renderMeta :: Map Text Text -> H.Html
 renderMeta meta = do
-  H.table ! A.class_ "Metatable-auto" $ do
+  H.table ! A.class_ "table-auto" $ do
     let td cls = H.td ! A.class_ ("border px-4 py-2 " <> cls)
     forM_ (Map.toList meta) $ \(k, v) ->
       H.tr $ do

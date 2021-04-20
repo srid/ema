@@ -1,5 +1,7 @@
 # ema
 
+<img width="10%" src="./ema.svg">
+
 ema is a **WIP** next-gen Haskell static site generator that is *change-aware*. In addition to static site generation, it provides a live server that hot-reload's on code *or* data change[^1]. 
 
 The ultimate goal of ema is to make it possible to easily implement your own [neuron](https://neuron.zettel.page/), or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view, of your data, on desktop & mobile.
@@ -31,11 +33,13 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
 - [ ] Refactor Server.hs & Changing.hs
 
 pre-announce,
-- [ ] plan features, re: hakyll
+- [ ] plan features / messaging, re: hakyll
+  - Safer and simpler routes system
+  - Template system?
 - [ ] CLI UX (opts, logging, etc.)
 - [ ] add common examples,
-  - filesystem watcher
-  - docs site (w/ sidebar and possibly even search)
+  - [x] filesystem watcher
+  - [ ] docs site for self (w/ sidebar and possibly even search)
 - [ ] documentation ([howto](https://documentation.divio.com/))
 
 doc notes,
