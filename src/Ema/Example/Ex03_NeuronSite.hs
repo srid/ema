@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 -- | An advanced example demonstrating how to build something like neuron
-module Ema.Example.NeuronSite where
+module Ema.Example.Ex03_NeuronSite where
 
 {-
 type Zk = Map FilePath ()

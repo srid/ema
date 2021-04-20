@@ -73,8 +73,9 @@ library
   other-modules:
     Ema.App
     Ema.Changing
-    Ema.Example.HelloWorld
-    Ema.Example.SimpleSite
+    Ema.Example.Ex01_HelloWorld
+    Ema.Example.Ex02_Clock
+    Ema.Example.Ex03_NeuronSite
     Ema.Layout
     Ema.Route
     Ema.Route.Slug

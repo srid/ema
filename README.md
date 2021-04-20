@@ -18,7 +18,7 @@ main = do
 
 ## Hacking
 
-Open in VSCode, and run the build task.
+Open in VSCode, and run the build task. This runs the clock example; change `./.ghcid` to run a different example.
 
 ## TODO
 

@@ -4,7 +4,7 @@
 --
 -- A site with one route (index) that displays content generated from pure
 -- values.
-module Ema.Example.HelloWorld where
+module Ema.Example.Ex01_HelloWorld where
 
 import Ema.App (runEmaPure)
 
