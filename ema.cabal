@@ -9,7 +9,7 @@ category:           Web
 
 flag with-examples
   description: Include examples and their dependencies
-  default: True
+  default:     True
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -26,8 +26,9 @@ extra-source-files:
   README.md
 
 data-files:
-  if flag(with-examples)
-    src/Ema/Example/Diary/*.org
+  flag(with-examples)
+  if
+  src/Ema/Example/Diary/*.org
 
 library
   -- Modules included in this executable, other than Main.
@@ -55,14 +56,15 @@ library
     , wai-websockets
     , warp
     , websockets
+
   if flag(with-examples)
     build-depends:
-      , fsnotify
-      , filepattern
       , directory
-      , time
+      , filepattern
+      , fsnotify
       , org-mode
       , shower
+      , time
 
   mixins:
     base hiding (Prelude),
@@ -85,13 +87,14 @@ library
     ViewPatterns
 
   other-modules:
+    Data.LVar
     Ema.App
-    Ema.Changing
     Ema.Layout
     Ema.Route
     Ema.Route.Slug
     Ema.Route.UrlStrategy
     Ema.Server
+
   if flag(with-examples)
     other-modules:
       Ema.Example.Ex01_HelloWorld

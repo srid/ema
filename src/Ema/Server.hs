@@ -6,9 +6,9 @@ module Ema.Server where
 
 import Control.Concurrent.Async (race_)
 import Control.Exception (try)
+import Data.LVar (LVar)
+import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Changing (Changing)
-import qualified Ema.Changing as Changing
 import Ema.Route (IsRoute (..))
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
@@ -21,7 +21,7 @@ import qualified Network.WebSockets as WS
 runServerWithWebSocketHotReload ::
   forall model route.
   (Show route, IsRoute route) =>
-  Changing model ->
+  LVar model ->
   (model -> route -> LByteString) ->
   IO ()
 runServerWithWebSocketHotReload model render = do
@@ -36,25 +36,25 @@ runServerWithWebSocketHotReload model render = do
         pathInfo <- pathInfoFromWsMsg <$> WS.receiveData @Text conn
         let r :: route = fromMaybe (error "invalid route from ws") $ routeFromPathInfo pathInfo
         log $ "Browser at route: " <> show r
-        (subId, send) <- Changing.subscribe model $ \subId (val :: model) -> do
+        (subId, send) <- LVar.listen model $ \subId (val :: model) -> do
           try (WS.sendTextData conn $ routeHtml val r) >>= \case
             Right () -> pure ()
             Left (err :: ConnectionException) -> do
               log $ "ws:send:: " <> show err
-              Changing.unsubscribe model subId
+              LVar.ignore model subId
         let recv = do
               try (WS.receiveDataMessage conn) >>= \case
                 Right (_ :: WS.DataMessage) -> recv
                 Left (err :: ConnectionException) -> do
                   log $ "ws:recv:: " <> show err
-                  Changing.unsubscribe model subId
+                  LVar.ignore model subId
         race_ recv send
     httpApp req f = do
       (status, v) <- case routeFromPathInfo (Wai.pathInfo req) of
         Nothing ->
           pure (H.status404, "No route")
         Just r -> do
-          val <- Changing.get model
+          val <- LVar.get model
           pure (H.status200, routeHtml val r)
       f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
     routeFromPathInfo =

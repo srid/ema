@@ -30,7 +30,8 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
   - [x] client to server reconnect (on ghcid reload, or accidental client disconnect)
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [x] Multi-websocket-client support
-- [ ] Refactor Server.hs & Changing.hs
+- [ ] Refactor Server.hs
+- [ ] Publish Data.LVar to Hackage
 
 pre-announce,
 - [ ] plan features / messaging, re: hakyll

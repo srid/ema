@@ -9,6 +9,7 @@ module Ema.Example.Ex03_Diary where
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
 import Control.Exception (finally)
+import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
 import Data.Org (OrgFile)
 import qualified Data.Org as Org
@@ -16,7 +17,6 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time (Day, defaultTimeLocale, parseTimeM)
 import Ema.App (Ema (..), runEma)
-import qualified Ema.Changing as Changing
 import qualified Ema.Layout as Layout
 import Ema.Route
 import qualified Shower
@@ -71,7 +71,7 @@ diaryFrom folder = do
   fs <- getDirectoryFiles folder (one "*.org")
   Map.fromList . catMaybes <$> forM fs (parseDailyNote . (folder </>))
 
-watchAndUpdateDiary :: FilePath -> Changing.Changing Diary -> IO ()
+watchAndUpdateDiary :: FilePath -> LVar.LVar Diary -> IO ()
 watchAndUpdateDiary folder model = do
   putStrLn $ "Watching .org files in " <> folder
   withManager $ \mgr -> do
@@ -82,11 +82,11 @@ watchAndUpdateDiary folder model = do
               Nothing -> pure ()
               Just (day, org) -> do
                 putStrLn $ "Update: " <> show day
-                Changing.modify model $ Map.insert day org
+                LVar.modify model $ Map.insert day org
           deleteFile fp = do
             whenJust (parseDailyNoteFilepath fp) $ \day -> do
               putStrLn $ "Delete: " <> show day
-              Changing.modify model $ Map.delete day
+              LVar.modify model $ Map.delete day
       case event of
         Added fp _ isDir -> unless isDir $ updateFile fp
         Modified fp _ isDir -> unless isDir $ updateFile fp
@@ -103,7 +103,7 @@ mainWith args = do
   folder <- case args of
     [path] -> canonicalizePath path
     _ -> canonicalizePath "src/Ema/Example/Diary"
-  model <- Changing.new =<< diaryFrom folder
+  model <- LVar.new =<< diaryFrom folder
   race_
     (runEma $ Ema model render)
     (watchAndUpdateDiary folder model)

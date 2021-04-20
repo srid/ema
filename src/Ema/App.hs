@@ -3,17 +3,17 @@
 
 module Ema.App where
 
-import Ema.Changing
-  ( Changing,
+import Data.LVar
+  ( LVar,
   )
-import qualified Ema.Changing as Changing
+import qualified Data.LVar as LVar
 import Ema.Route (IsRoute (..))
 import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 
 data Ema s r = Ema
   { -- | The (ever-changing) state of the app
-    emaModel :: Changing s,
+    emaModel :: LVar s,
     -- | HTML view function over app state and app route
     emaRender :: s -> r -> LByteString
   }
@@ -29,7 +29,7 @@ runEmaPure ::
   (r -> LByteString) ->
   IO ()
 runEmaPure render = do
-  emptyModel <- Changing.empty
+  emptyModel <- LVar.empty
   runEma $ Ema emptyModel (const render)
 
 -- | Run Ema live server

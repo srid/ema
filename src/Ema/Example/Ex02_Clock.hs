@@ -10,6 +10,7 @@ module Ema.Example.Ex02_Clock where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
+import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time
   ( UTCTime,
@@ -18,7 +19,6 @@ import Data.Time
     getCurrentTime,
   )
 import Ema.App (Ema (Ema), runEma)
-import qualified Ema.Changing as Changing
 import qualified Ema.Layout as Layout
 import Ema.Route (IsRoute (..))
 import Text.Blaze.Html5 ((!))
@@ -39,15 +39,15 @@ instance IsRoute Route where
     ["time"] -> Just OnlyTime
     _ -> Nothing
 
-changeTime :: Changing.Changing UTCTime -> IO ()
+changeTime :: LVar.LVar UTCTime -> IO ()
 changeTime model = do
   forever $ do
     threadDelay $ 1 * 1000000
-    Changing.set model =<< getCurrentTime
+    LVar.set model =<< getCurrentTime
 
 main :: IO ()
 main = do
-  model <- Changing.new =<< getCurrentTime
+  model <- LVar.new =<< getCurrentTime
   race_
     (changeTime model)
     (runEma $ Ema model render)
