@@ -86,11 +86,13 @@ library
     TupleSections
     ViewPatterns
 
-  other-modules:
+  exposed-modules:
     Data.LVar
     Ema.App
     Ema.Layout
     Ema.Route
+
+  other-modules:
     Ema.Route.Slug
     Ema.Route.UrlStrategy
     Ema.Server
