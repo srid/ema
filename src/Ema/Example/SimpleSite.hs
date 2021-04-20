@@ -38,11 +38,10 @@ instance IsRoute Route where
 timeC :: IO (Changing.Changing UTCTime, IO ())
 timeC = do
   currentTime <- Changing.new =<< getCurrentTime
-  let run = void $
+  let run =
         forever $ do
-          now <- getCurrentTime
-          Changing.set currentTime now
           threadDelay $ 1 * 1000000
+          Changing.set currentTime =<< getCurrentTime
   pure (currentTime, run)
 
 main :: IO ()

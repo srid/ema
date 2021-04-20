@@ -27,7 +27,8 @@ Open in VSCode, and run the build task.
   - [x] server to client refresh
   - [x] client to server reconnect (on ghcid reload, or accidental client disconnect)
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
-- [ ] Refactor, and consider multi-ws-client support
+- [x] Multi-websocket-client support
+- [ ] Refactor Server.hs & Changing.hs
 
 pre-announce,
 - [ ] plan features, re: hakyll

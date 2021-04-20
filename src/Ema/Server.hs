@@ -5,7 +5,6 @@
 module Ema.Server where
 
 import Control.Concurrent.Async (race_)
-import Control.Concurrent.STM.TVar (swapTVar)
 import Control.Exception (try)
 import qualified Data.Text as T
 import Ema.Changing (Changing)
@@ -27,66 +26,53 @@ runServerWithWebSocketHotReload ::
   IO ()
 runServerWithWebSocketHotReload model render = do
   let settings = Warp.setPort 8000 Warp.defaultSettings
-  currentWsConn :: TVar (Maybe (route, WS.Connection)) <- newTVarIO Nothing
-  -- bracket helps clean up after ghcid reboot
-  race_ (notifyWsClient currentWsConn) $
-    Warp.runSettings settings $ WaiWs.websocketsOr WS.defaultConnectionOptions (wsApp currentWsConn) httpApp
+  Warp.runSettings settings $ WaiWs.websocketsOr WS.defaultConnectionOptions wsApp httpApp
   where
-    notifyWsClient currentWsConn = do
-      let log s = putTextLn $ " :: " <> s
-          ch = Changing.changingUpdated model
-      forever $ do
-        -- FIXME: 100% cpu usage if currentWsConn is nothing?
-        -- Just spawn this thread on demand, when conn comes in.
-        readTVarIO currentWsConn >>= \case
-          Nothing -> pure ()
-          Just (r, conn) -> do
-            atomically $ takeTMVar ch
-            log $ "Sending new HTML for: " <> show r
-            s <- routeBS r
-            try (WS.sendTextData conn s) >>= \case
-              Right () -> pure ()
-              Left (err :: ConnectionException) ->
-                log $ "notify:: " <> show err
-
-    wsApp currentWsConn pendingConn = do
+    wsApp pendingConn = do
       let log s = putTextLn $ " :: " <> s
       log "ws connected"
       conn :: WS.Connection <- WS.acceptRequest pendingConn
       WS.withPingThread conn 30 (pure ()) $ do
-        watchingRoute :: Text <- WS.receiveData conn
-        let pathInfo = filter (/= "") $ T.splitOn "/" $ T.drop 1 watchingRoute
-            r :: route = fromMaybe (error "invalid route from ws") $ fromSlug $ fromString . toString <$> pathInfo
-        log $ "Browser loaded: " <> show pathInfo <> " => " <> show r
-        -- NOTE: only one active client is supported for hot-reload; not
-        -- bothering with client management for now, because that will require
-        -- broadcast TChan.
-        void $ atomically $ swapTVar currentWsConn $ Just (r, conn)
-        let loop = do
+        pathInfo <- pathInfoFromWsMsg <$> WS.receiveData @Text conn
+        let r :: route = fromMaybe (error "invalid route from ws") $ routeFromPathInfo pathInfo
+        log $ "Browser at route: " <> show r
+        (subId, send) <- Changing.subscribe @IO model $ \subId (val :: model) -> do
+          try (WS.sendTextData conn $ routeHtml val r) >>= \case
+            Right () -> pure ()
+            Left (err :: ConnectionException) -> do
+              log $ "ws:send:: " <> show err
+              Changing.unsubscribe model subId
+        let recv = do
               try (WS.receiveDataMessage conn) >>= \case
-                Right (_ :: WS.DataMessage) -> loop
+                Right (_ :: WS.DataMessage) -> recv
                 Left (err :: ConnectionException) -> do
-                  log $ "wsApp:: " <> show err
-                  void $ atomically $ swapTVar currentWsConn Nothing
-        loop
-    -- WS.sendTextData conn ("reload" :: Text)
-    -- WS.sendClose conn ("close" :: Text)
+                  log $ "ws:recv:: " <> show err
+                  Changing.unsubscribe model subId
+        race_ recv send
     httpApp req f = do
-      let mr = fromSlug $ fromString . toString <$> Wai.pathInfo req
-      (status, v) <- case mr of
+      (status, v) <- case routeFromPathInfo (Wai.pathInfo req) of
         Nothing ->
           pure (H.status404, "No route")
         Just r -> do
-          (H.status200,) <$> routeBS r
+          val <- Changing.get model
+          pure (H.status200, routeHtml val r)
       f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
-    routeBS :: route -> IO LByteString
-    routeBS r = do
-      s <- Changing.get model
-      pure $ render s r <> wsClientShim
-    -- TODO: Auto reconnect when server reloads
-    wsClientShim =
-      encodeUtf8
-        [text|
+    routeFromPathInfo =
+      fromSlug . fmap (fromString . toString)
+    routeHtml :: model -> route -> LByteString
+    routeHtml m r = do
+      render m r <> wsClientShim
+
+-- | Return equivalent of WAI's @pathInfo@, from the raw path string the browser strings us.
+pathInfoFromWsMsg :: Text -> [Text]
+pathInfoFromWsMsg =
+  filter (/= "") . T.splitOn "/" . T.drop 1
+
+-- Browser-side JavaScript code for interacting with the Haskell server
+wsClientShim :: LByteString
+wsClientShim =
+  encodeUtf8
+    [text|
         <script>
         // https://stackoverflow.com/a/47614491/55246
         function setInnerHtml(elm, html) {
@@ -145,4 +131,4 @@ runServerWithWebSocketHotReload model render = do
           window.onpagehide = evt => { ws.close(); };
         };
         </script>
-        |]
+    |]
