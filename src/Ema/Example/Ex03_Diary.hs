@@ -8,20 +8,27 @@ module Ema.Example.Ex03_Diary where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
+import Control.Exception (finally)
 import qualified Data.Map.Strict as Map
 import Data.Org (OrgFile)
 import qualified Data.Org as Org
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import Data.Time
+import Data.Time (Day, defaultTimeLocale, parseTimeM)
 import Ema.App (Ema (..), runEma)
 import qualified Ema.Changing as Changing
 import qualified Ema.Layout as Layout
 import Ema.Route
 import qualified Shower
+import System.Directory (canonicalizePath)
+import System.Environment (getArgs)
 import System.FSNotify
+  ( Event (..),
+    watchDir,
+    withManager,
+  )
 import System.FilePath (takeFileName, (</>))
-import System.FilePattern.Directory
+import System.FilePattern.Directory (getDirectoryFiles)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -34,73 +41,87 @@ data Route
 instance IsRoute Route where
   toSlug = \case
     Index -> mempty
-    OnDay day -> ["day", show day]
+    OnDay day -> one $ show day
   fromSlug = \case
     [] -> Just Index
-    ["day", s] -> OnDay <$> parseDay (toString $ unSlug s)
+    [s] -> OnDay <$> parseDay (toString $ unSlug s)
     _ -> Nothing
 
 parseDay :: String -> Maybe Day
 parseDay =
   parseTimeM False defaultTimeLocale "%Y-%m-%d"
 
+parseDailyNote :: FilePath -> IO (Maybe (Day, OrgFile))
+parseDailyNote f =
+  case parseDailyNoteFilepath f of
+    Nothing -> pure Nothing
+    Just day -> do
+      s <- readFileText f
+      pure $ (day,) <$> Org.org s
+
+parseDailyNoteFilepath :: FilePath -> Maybe Day
+parseDailyNoteFilepath f =
+  parseDay . toString =<< T.stripSuffix ".org" (toText $ takeFileName f)
+
 type Diary = Map Day OrgFile
 
-watchDairyFolder :: FilePath -> Changing.Changing Diary -> IO ()
-watchDairyFolder folder model = do
+diaryFrom :: FilePath -> IO Diary
+diaryFrom folder = do
   putStrLn $ "Loading .org files from " <> folder
   fs <- getDirectoryFiles folder (one "*.org")
-  let parseDailyNote f =
-        case parseDailyNoteFilepath f of
-          Nothing -> pure Nothing
-          Just day -> do
-            s <- readFileText $ folder </> f
-            pure $ (day,) <$> Org.org s
-      parseDailyNoteFilepath f =
-        parseDay . toString =<< T.stripSuffix ".org" (toText f)
+  Map.fromList . catMaybes <$> forM fs (parseDailyNote . (folder </>))
 
-  -- Initial model
-  model0 <- Map.fromList . catMaybes <$> forM fs parseDailyNote
-  Changing.set model model0
-  -- Watch for changes
+watchAndUpdateDiary :: FilePath -> Changing.Changing Diary -> IO ()
+watchAndUpdateDiary folder model = do
+  putStrLn $ "Watching .org files in " <> folder
   withManager $ \mgr -> do
-    void $
-      watchDir mgr folder (const True) $ \event -> do
-        let updateFile (takeFileName -> fp) = do
-              parseDailyNote fp >>= \case
-                Nothing -> pure ()
-                Just (day, org) -> do
-                  putStrLn $ "Update: " <> show day
-                  Changing.modify model $ Map.insert day org
-            deleteFile (takeFileName -> fp) = do
-              whenJust (parseDailyNoteFilepath fp) $ \day -> do
-                putStrLn $ "Delete: " <> show day
-                Changing.modify model $ Map.delete day
-        case event of
-          Added fp _ isDir -> unless isDir $ updateFile fp
-          Modified fp _ isDir -> unless isDir $ updateFile fp
-          Removed fp _ isDir -> unless isDir $ deleteFile fp
-          Unknown fp _ _ -> updateFile fp
-    putStrLn $ "Watching .org files in " <> folder
+    stop <- watchDir mgr folder (const True) $ \event -> do
+      print event
+      let updateFile fp = do
+            parseDailyNote fp >>= \case
+              Nothing -> pure ()
+              Just (day, org) -> do
+                putStrLn $ "Update: " <> show day
+                Changing.modify model $ Map.insert day org
+          deleteFile fp = do
+            whenJust (parseDailyNoteFilepath fp) $ \day -> do
+              putStrLn $ "Delete: " <> show day
+              Changing.modify model $ Map.delete day
+      case event of
+        Added fp _ isDir -> unless isDir $ updateFile fp
+        Modified fp _ isDir -> unless isDir $ updateFile fp
+        Removed fp _ isDir -> unless isDir $ deleteFile fp
+        Unknown fp _ _ -> updateFile fp
     threadDelay maxBound
+      `finally` stop
 
 main :: IO ()
-main = do
-  model <- Changing.new @Diary mempty
+main = mainWith . drop 1 =<< getArgs
+
+mainWith :: [String] -> IO ()
+mainWith args = do
+  folder <- case args of
+    [path] -> canonicalizePath path
+    _ -> pure "/home/srid/KB"
+  model <- Changing.new =<< diaryFrom folder
   race_
     (runEma $ Ema model render)
-    (watchDairyFolder "/home/srid/KB" model)
+    (watchAndUpdateDiary folder model)
   where
     render (diary :: Diary) (r :: Route) =
-      Layout.tailwindSite (H.title "Diary") $
+      Layout.tailwindSite (H.title "My Diary") $
         H.div ! A.class_ "container mx-auto" $ do
+          let heading =
+                H.header
+                  ! A.class_ "text-4xl my-2 py-2 font-bold text-center bg-purple-50 shadow"
           case r of
             Index -> do
-              H.header "Daily notes"
+              heading "My Diary"
               H.div ! A.class_ "" $
-                forM_ (Map.keys diary) $ \day ->
-                  H.li $ routeElem (OnDay day) $ "Day " >> H.toMarkup @Text (show day)
+                forM_ (sortOn Down $ Map.keys diary) $ \day ->
+                  H.li $ routeElem (OnDay day) $ H.toMarkup @Text (show day)
             OnDay day -> do
+              heading $ show day
               routeElem Index "Back to Index"
               maybe "not found" renderOrg (Map.lookup day diary)
     routeElem r w =
@@ -116,8 +137,7 @@ renderOrg _org@(Org.OrgFile meta doc) = do
     renderMeta meta
   heading "Doc"
   -- Debug dump
-  -- H.div ! A.class_ "border-t-2 mt-8 bg-gray-100 text-xs" $ do
-  --  H.pre $ H.toMarkup (Shower.shower org)
+  -- H.pre $ H.toMarkup (Shower.shower org)
   renderOrgDoc doc
 
 renderMeta :: Map Text Text -> H.Html
@@ -143,13 +163,23 @@ renderSection (Org.Section heading tags doc) = do
   H.li $ do
     forM_ heading $ \s ->
       renderWords s >> " "
-    forM_ tags $ \tag ->
-      H.span ! A.class_ "border-1 p-2 bg-gray-200 rounded" $ H.toMarkup tag
+    forM_ tags renderTag
     renderOrgDoc doc
+
+renderTag :: Text -> H.Html
+renderTag tag =
+  H.span
+    ! A.class_ "border-1 p-0.5 bg-purple-200 font-bold rounded"
+    ! A.title "Tag"
+    $ H.toMarkup tag
 
 renderWords :: Org.Words -> H.Markup
 renderWords ws = do
   let s = Org.prettyWords ws
   if s `Set.member` Set.fromList ["TODO", "DONE"]
-    then H.span ! A.class_ "border-1 p-0.5 bg-gray-600 text-white" $ H.toMarkup s
+    then
+      H.span
+        ! A.class_ "border-1 p-0.5 bg-gray-600 text-white"
+        ! A.title "Keyword"
+        $ H.toMarkup s
     else H.toMarkup s
