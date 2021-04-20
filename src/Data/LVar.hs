@@ -77,7 +77,8 @@ modify v f = do
 -- | Listen to changes to the @LVar@, as they are set by @set@ or @modify@
 --
 -- Returns a @ListenerId@ that can be used to stop listening later (via
--- @ignore@), as well as an IO action that starts the listener.
+-- @ignore@), as well as an IO action that starts the listener. You must run the
+-- IO action to actually begin the listening process.
 listen ::
   MonadIO m =>
   LVar a ->
@@ -90,18 +91,29 @@ listen v f = do
     notify <- newEmptyTMVar
     void $ swapTMVar (lvarListeners v) $ Map.insert nextIdx notify subs
     pure (nextIdx, notify)
-  let runSubscription =
-        forever $ do
-          val :: a <- atomically $ do
-            takeTMVar notify
-            readTMVar (lvarCurrent v)
+  let runListener = do
+        mval :: Maybe a <- atomically $ do
+          isListening v idx >>= \case
+            False ->
+              -- Stop listening, because @ignore@ had just removed this
+              -- listener.
+              pure Nothing
+            True -> do
+              takeTMVar notify
+              Just <$> readTMVar (lvarCurrent v)
+        whenJust mval $ \val -> do
           liftIO $ void $ f idx val
-  pure (idx, runSubscription)
+          runListener
+  pure (idx, runListener)
+  where
+    isListening :: LVar a -> ListenerId -> STM Bool
+    isListening v' lId = do
+      Map.member lId <$> readTMVar (lvarListeners v')
 
 -- | Stop listening to the @LVar@
 ignore :: MonadIO m => LVar a -> ListenerId -> m ()
-ignore v subId = do
+ignore v lId = do
   atomically $ do
     subs <- readTMVar $ lvarListeners v
-    whenJust (Map.lookup subId subs) $ \_sub -> do
-      void $ swapTMVar (lvarListeners v) $ Map.delete subId subs
+    whenJust (Map.lookup lId subs) $ \_sub -> do
+      void $ swapTMVar (lvarListeners v) $ Map.delete lId subs
