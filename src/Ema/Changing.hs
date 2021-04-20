@@ -3,10 +3,10 @@
 
 module Ema.Changing where
 
--- A mutable variable with change notification
--- TODO: Rename to something more accurate?
 import qualified Data.Map.Strict as Map
 
+-- A mutable variable with change notification
+-- TODO: Rename to something more accurate?
 data Changing a = Changing
   { -- | A value that changes over time
     changingCurrent :: TMVar a,
@@ -26,42 +26,39 @@ get :: MonadIO m => Changing a -> m a
 get v =
   atomically $ readTMVar $ changingCurrent v
 
+-- | Sets a new value; listeners from @subscribe@ are automatically notifed.
 set :: MonadIO m => Changing a -> a -> m ()
 set v val = do
   n <- atomically $ do
     void $ swapTMVar (changingCurrent v) val
     publish v
   when (n > 0) $
-    putStrLn $ "pub: sent to " <> show n <> " subscribers"
+    putStrLn $ "pub: published; " <> show n <> " subscribers listening"
+  where
+    publish :: Changing a -> STM Int
+    publish v' = do
+      subs <- readTMVar $ changingSubscribers v'
+      forM_ (Map.elems subs) $ \subVar -> do
+        tryPutTMVar subVar ()
+      pure $ Map.size subs
 
-publish :: Changing a -> STM Int
-publish v = do
-  subs <- readTMVar $ changingSubscribers v
-  forM_ (Map.elems subs) $ \subVar -> do
-    tryPutTMVar subVar ()
-  pure $ Map.size subs
-
--- | Subscribes to new values as they are set.
+-- | Subscribes to new values as they are set by @set@.
 subscribe :: MonadIO m => Changing a -> (Int -> a -> IO b) -> m (Int, IO ())
 subscribe v f = do
-  putStrLn "sub"
   (idx, notify) <- atomically $ do
     subs <- readTMVar $ changingSubscribers v
-    let nextIdx = maybe 0 (succ . fst) $ Map.lookupMax subs
+    let nextIdx = maybe 1 (succ . fst) $ Map.lookupMax subs
     notify <- newEmptyTMVar
     void $ swapTMVar (changingSubscribers v) $ Map.insert nextIdx notify subs
     pure (nextIdx, notify)
-  putStrLn $ "sub[" <> show idx <> "]: created notify"
-  pure
-    ( idx,
-      void $
+  let runSubscription =
         forever $ do
           val :: a <- atomically $ do
             takeTMVar notify
             readTMVar (changingCurrent v)
-          putStrLn $ "sub[" <> show idx <> "]: calling f"
-          liftIO $ f idx val
-    )
+          putStrLn $ "sub[" <> show idx <> "]: sending"
+          liftIO $ void $ f idx val
+  pure (idx, runSubscription)
 
 unsubscribe :: MonadIO m => Changing a -> Int -> m ()
 unsubscribe v subId = do

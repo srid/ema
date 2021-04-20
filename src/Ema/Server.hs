@@ -36,7 +36,7 @@ runServerWithWebSocketHotReload model render = do
         pathInfo <- pathInfoFromWsMsg <$> WS.receiveData @Text conn
         let r :: route = fromMaybe (error "invalid route from ws") $ routeFromPathInfo pathInfo
         log $ "Browser at route: " <> show r
-        (subId, send) <- Changing.subscribe @IO model $ \subId (val :: model) -> do
+        (subId, send) <- Changing.subscribe model $ \subId (val :: model) -> do
           try (WS.sendTextData conn $ routeHtml val r) >>= \case
             Right () -> pure ()
             Left (err :: ConnectionException) -> do
@@ -63,7 +63,8 @@ runServerWithWebSocketHotReload model render = do
     routeHtml m r = do
       render m r <> wsClientShim
 
--- | Return equivalent of WAI's @pathInfo@, from the raw path string the browser strings us.
+-- | Return the equivalent of WAI's @pathInfo@, from the raw path string
+-- (`document.location.pathname`) the browser sends us.
 pathInfoFromWsMsg :: Text -> [Text]
 pathInfoFromWsMsg =
   filter (/= "") . T.splitOn "/" . T.drop 1
@@ -116,16 +117,13 @@ wsClientShim =
             ws.send(document.location.pathname);
           };
           ws.onclose = () => {
+            // TODO: Display a message box on page during disconnected state.
             console.log("ema: closed; reloading..");
             refreshPage();
           };
           ws.onmessage = evt => {
-            // console.log(evt.data);
             console.log("ema: Resetting HTML body")
             setInnerHtml(document.documentElement, evt.data);
-            // document.documentElement.innerHTML = evt.data;
-            // ws.close();
-            // history.go(0);
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
