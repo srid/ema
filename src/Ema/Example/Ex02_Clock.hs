@@ -18,7 +18,7 @@ import Data.Time
     formatTime,
     getCurrentTime,
   )
-import Ema.App (Ema (Ema), runEma)
+import Ema.App (runEma)
 import qualified Ema.Layout as Layout
 import Ema.Route (IsRoute (..))
 import Text.Blaze.Html5 ((!))
@@ -50,7 +50,7 @@ main = do
   model <- LVar.new =<< getCurrentTime
   race_
     (changeTime model)
-    (runEma $ Ema model render)
+    (runEma model render)
   where
     render (now :: UTCTime) r =
       Layout.tailwindSite (H.title "Clock") $

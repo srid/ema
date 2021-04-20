@@ -1,36 +1,31 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Ema.App where
-
-import Data.LVar
-  ( LVar,
+module Ema.App
+  ( runEma,
+    runEmaPure,
   )
+where
+
+import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import Ema.Route (IsRoute (..))
 import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
-
-data Ema s r = Ema
-  { -- | The (ever-changing) state of the app
-    emaModel :: LVar s,
-    -- | HTML view function over app state and app route
-    emaRender :: s -> r -> LByteString
-  }
 
 -- | Pure version of @runEma@ (i.e with no model).
 --
 -- Due to purity, there is no impure state, and thus no time-varying model. The
 -- render function consequently takes only the route as argument.
 runEmaPure ::
-  forall r.
-  (IsRoute r, Show r) =>
+  forall route.
+  (IsRoute route, Show route) =>
   -- | How to render a route
-  (r -> LByteString) ->
+  (route -> LByteString) ->
   IO ()
 runEmaPure render = do
   emptyModel <- LVar.empty
-  runEma $ Ema emptyModel (const render)
+  runEma emptyModel (const render)
 
 -- | Run Ema live server
 --
@@ -39,11 +34,14 @@ runEmaPure render = do
 runEma ::
   forall model route.
   (Show route, IsRoute route) =>
-  Ema model route ->
+  -- | Your site model
+  LVar model ->
+  -- | Your site render function
+  (model -> route -> LByteString) ->
   IO ()
-runEma ema = do
+runEma model render = do
   -- TODO: Use a logging library, in place of managing buffering and using putStrLn
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
   putStrLn "Launching Ema at http://localhost:8000"
-  Server.runServerWithWebSocketHotReload (emaModel ema) (emaRender ema)
+  Server.runServerWithWebSocketHotReload model render

@@ -16,7 +16,7 @@ import qualified Data.Org as Org
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time (Day, defaultTimeLocale, parseTimeM)
-import Ema.App (Ema (..), runEma)
+import Ema.App (runEma)
 import qualified Ema.Layout as Layout
 import Ema.Route
 import qualified Shower
@@ -105,7 +105,7 @@ mainWith args = do
     _ -> canonicalizePath "src/Ema/Example/Diary"
   model <- LVar.new =<< diaryFrom folder
   race_
-    (runEma $ Ema model render)
+    (runEma model render)
     (watchAndUpdateDiary folder model)
   where
     render (diary :: Diary) (r :: Route) =
