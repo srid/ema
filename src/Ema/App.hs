@@ -45,5 +45,5 @@ runEma ema = do
   -- TODO: Use a logging library, in place of managing buffering and using putStrLn
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
-  putStrLn "Launching Ema at http://localhost:3000"
+  putStrLn "Launching Ema at http://localhost:8000"
   Server.runServerWithWebSocketHotReload (emaModel ema) (emaRender ema)
