@@ -7,6 +7,10 @@ maintainer:         srid@srid.ca
 author:             Sridhar Ratnakumar
 category:           Web
 
+flag with-examples
+  description: Include examples and their dependencies
+  default: True
+
 -- A short (one-line) description of the package.
 -- synopsis:
 
@@ -43,12 +47,14 @@ library
     , safe-exceptions
     , stm
     , text
-    , time
     , wai
     , wai-app-static
     , wai-websockets
     , warp
     , websockets
+  if flag(with-examples)
+    build-depends:
+      time
 
   mixins:
     base hiding (Prelude),
@@ -73,14 +79,16 @@ library
   other-modules:
     Ema.App
     Ema.Changing
-    Ema.Example.Ex01_HelloWorld
-    Ema.Example.Ex02_Clock
-    Ema.Example.Ex03_NeuronSite
     Ema.Layout
     Ema.Route
     Ema.Route.Slug
     Ema.Route.UrlStrategy
     Ema.Server
+  if flag(with-examples)
+    other-modules:
+      Ema.Example.Ex01_HelloWorld
+      Ema.Example.Ex02_Clock
+      Ema.Example.Ex03_Diary
 
   hs-source-dirs:     src
   default-language:   Haskell2010

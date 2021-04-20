@@ -1,7 +1,10 @@
 {-# LANGUAGE TypeApplications #-}
 
 -- | An advanced example demonstrating how to build something like neuron
-module Ema.Example.Ex03_NeuronSite where
+--
+-- Create a nice a looking website with calendar view and outlines out of your
+-- daily notes written in org-mode format.
+module Ema.Example.Ex03_Diary where
 
 {-
 type Zk = Map FilePath ()
