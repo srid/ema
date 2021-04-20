@@ -1,0 +1,8 @@
+#+mood: 5
+
+* From today, I'll record my daily thoughts in org-mode
+** TODO Soon, this will also become my task manager!
+* Things to study
+** Richard Dawkins' The Selfish Gene :book:
+* Things to explore
+** [[https://radicle.xyz/][Radicle for git]] :decentralized:
