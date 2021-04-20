@@ -31,17 +31,18 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [x] Multi-websocket-client support
 - [ ] Refactor Server.hs
-- [ ] Publish Data.LVar to Hackage
+- [ ] Static site generation mode
+- [ ] add common examples,
+  - [x] filesystem watcher
+  - [ ] docs site for self (w/ sidebar and possibly even search)
 
 pre-announce,
 - [ ] plan features / messaging, re: hakyll
   - Safer and simpler routes system
   - Template system?
 - [ ] CLI UX (opts, logging, etc.)
-- [ ] add common examples,
-  - [x] filesystem watcher
-  - [ ] docs site for self (w/ sidebar and possibly even search)
 - [ ] documentation ([howto](https://documentation.divio.com/))
+- [ ] Publish Data.LVar to Hackage
 
 doc notes,
 - use async:race to avoid ghcid ghosts

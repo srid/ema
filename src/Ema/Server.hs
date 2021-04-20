@@ -21,11 +21,12 @@ import qualified Network.WebSockets as WS
 runServerWithWebSocketHotReload ::
   forall model route.
   (Show route, IsRoute route) =>
+  Int ->
   LVar model ->
   (model -> route -> LByteString) ->
   IO ()
-runServerWithWebSocketHotReload model render = do
-  let settings = Warp.setPort 8000 Warp.defaultSettings
+runServerWithWebSocketHotReload port model render = do
+  let settings = Warp.setPort port Warp.defaultSettings
   Warp.runSettings settings $ WaiWs.websocketsOr WS.defaultConnectionOptions wsApp httpApp
   where
     wsApp pendingConn = do
