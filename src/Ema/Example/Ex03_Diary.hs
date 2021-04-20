@@ -81,10 +81,42 @@ main = do
               routeElem Index "Back to Index"
               case Map.lookup day diary of
                 Nothing -> "not found"
-                Just org ->
-                  H.pre ! A.class_ "" $ do
-                    H.toMarkup (Shower.shower org)
+                Just org -> do
+                  renderOrg org
+                  H.div ! A.class_ "border-t-2 mt-8 bg-gray-100 text-xs" $ do
+                    H.pre $ H.toMarkup (Shower.shower org)
     routeElem r w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r $ w
     routeHref r =
       A.href (fromString . toString $ routeUrl r)
+
+renderOrg :: OrgFile -> H.Html
+renderOrg (Org.OrgFile meta doc) = do
+  let heading = H.header ! A.class_ "text-2xl my-2 font-bold"
+  heading "Meta"
+  H.table ! A.class_ "Metatable-auto" $ do
+    let td cls = H.td ! A.class_ ("border px-4 py-2 " <> cls)
+    forM_ (Map.toList meta) $ \(k, v) ->
+      H.tr $ do
+        td "font-bold" $ H.toMarkup k
+        td "font-mono" $ H.toMarkup v
+  heading "Doc"
+  renderOrgDoc doc
+
+renderOrgDoc :: Org.OrgDoc -> H.Html
+renderOrgDoc (Org.OrgDoc blocks sections) = do
+  H.ul ! A.class_ "list-disc ml-8" $ do
+    whenNotNull blocks $ \_ -> do
+      H.header ! A.class_ "text-2xl font-bold" $ "Blocks"
+      H.pre $ H.toMarkup (Shower.shower blocks)
+    whenNotNull sections $ \_ -> do
+      forM_ sections renderSection
+
+renderSection :: Org.Section -> H.Html
+renderSection (Org.Section heading tags doc) = do
+  H.li $ do
+    forM_ heading $ \s ->
+      H.toMarkup (Org.prettyWords s) >> " "
+    forM_ tags $ \tag ->
+      H.span ! A.class_ "border-1 p-2 bg-gray-200 rounded" $ H.toMarkup tag
+    renderOrgDoc doc
