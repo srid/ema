@@ -1,6 +1,8 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
+-- | @LVar@ is like @Control.Concurrent.STM.TVar@ but with a capability for
+-- listening to its changes.
 module Data.LVar
   ( -- * Types
     LVar,
@@ -24,8 +26,8 @@ where
 import qualified Data.Map.Strict as Map
 import Prelude hiding (empty, get, modify)
 
--- A mutable variable with change notification
--- TODO: Rename to something more accurate?
+-- A mutable variable, changes (@set@, @modify@) to which can be listened
+-- (@listen@, @ignore@) to from multiple threads.
 data LVar a = LVar
   { -- | A value that changes over time
     lvarCurrent :: TMVar a,
@@ -35,10 +37,13 @@ data LVar a = LVar
 
 type ListenerId = Int
 
+-- | Create a new @LVar@ with the given initial value
 new :: forall a m. MonadIO m => a -> m (LVar a)
 new val = do
   LVar <$> newTMVarIO val <*> newTMVarIO mempty
 
+-- | Like @new@, but there is no initial value. A @get@ will block until an
+-- initial value is set using @set@ or @modify@
 empty :: MonadIO m => m (LVar a)
 empty =
   LVar <$> newEmptyTMVarIO <*> newTMVarIO mempty
@@ -52,22 +57,22 @@ get v =
 set :: MonadIO m => LVar a -> a -> m ()
 set v = modify v . const
 
--- | Modify the @LVar@ value
+-- | Modify the @LVar@ value; listeners from @listen@ are automatically
+-- notified.
+--
+-- Returns the number of listeners notified.
 modify :: MonadIO m => LVar a -> (a -> a) -> m ()
 modify v f = do
-  n <- atomically $ do
+  atomically $ do
     curr <- readTMVar (lvarCurrent v)
     void $ swapTMVar (lvarCurrent v) (f curr)
     notifyListeners v
-  when (n > 0) $
-    putStrLn $ "pub: published; " <> show n <> " subscribers listening"
   where
-    notifyListeners :: LVar a -> STM Int
+    notifyListeners :: LVar a -> STM ()
     notifyListeners v' = do
       subs <- readTMVar $ lvarListeners v'
       forM_ (Map.elems subs) $ \subVar -> do
         tryPutTMVar subVar ()
-      pure $ Map.size subs
 
 -- | Listen to changes to the @LVar@, as they are set by @set@ or @modify@
 --
@@ -90,14 +95,12 @@ listen v f = do
           val :: a <- atomically $ do
             takeTMVar notify
             readTMVar (lvarCurrent v)
-          putStrLn $ "sub[" <> show idx <> "]: sending"
           liftIO $ void $ f idx val
   pure (idx, runSubscription)
 
 -- | Stop listening to the @LVar@
 ignore :: MonadIO m => LVar a -> ListenerId -> m ()
 ignore v subId = do
-  putStrLn $ "unsub - " <> show subId
   atomically $ do
     subs <- readTMVar $ lvarListeners v
     whenJust (Map.lookup subId subs) $ \_sub -> do

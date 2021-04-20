@@ -38,15 +38,16 @@ runServerWithWebSocketHotReload model render = do
         log $ "Browser at route: " <> show r
         (subId, send) <- LVar.listen model $ \subId (val :: model) -> do
           try (WS.sendTextData conn $ routeHtml val r) >>= \case
-            Right () -> pure ()
+            Right () -> do
+              log $ "ws:send::sent HTML for route " <> show r
             Left (err :: ConnectionException) -> do
-              log $ "ws:send:: " <> show err
+              log $ "ws:send::error " <> show err
               LVar.ignore model subId
         let recv = do
               try (WS.receiveDataMessage conn) >>= \case
                 Right (_ :: WS.DataMessage) -> recv
                 Left (err :: ConnectionException) -> do
-                  log $ "ws:recv:: " <> show err
+                  log $ "ws:recv::error " <> show err
                   LVar.ignore model subId
         race_ recv send
     httpApp req f = do
