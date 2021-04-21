@@ -4,7 +4,6 @@
 -- | TODO: Refactor this module
 module Ema.Server where
 
-import Control.Concurrent.Async (race_)
 import Control.Exception (try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
@@ -30,27 +29,28 @@ runServerWithWebSocketHotReload port model render = do
   Warp.runSettings settings $ WaiWs.websocketsOr WS.defaultConnectionOptions wsApp httpApp
   where
     wsApp pendingConn = do
-      let log s = putTextLn $ " :: " <> s
-      log "ws connected"
       conn :: WS.Connection <- WS.acceptRequest pendingConn
       WS.withPingThread conn 30 (pure ()) $ do
-        pathInfo <- pathInfoFromWsMsg <$> WS.receiveData @Text conn
-        let r :: route = fromMaybe (error "invalid route from ws") $ routeFromPathInfo pathInfo
-        log $ "Browser at route: " <> show r
-        (subId, send) <- LVar.listen model $ \subId (val :: model) -> do
-          try (WS.sendTextData conn $ routeHtml val r) >>= \case
-            Right () -> do
-              log $ "ws:send::sent HTML for route " <> show r
-            Left (err :: ConnectionException) -> do
-              log $ "ws:send::error " <> show err
-              LVar.ignore model subId
-        let recv = do
-              try (WS.receiveDataMessage conn) >>= \case
-                Right (_ :: WS.DataMessage) -> recv
-                Left (err :: ConnectionException) -> do
-                  log $ "ws:recv::error " <> show err
-                  LVar.ignore model subId
-        race_ recv send
+        subId <- LVar.addListener model
+        let log s = putTextLn $ "[" <> show subId <> "] :: " <> s
+        log "ws connected"
+        let loop = do
+              msg <- WS.receiveData conn
+              let r :: route =
+                    msg
+                      & pathInfoFromWsMsg
+                      & routeFromPathInfo
+                      & fromMaybe (error "invalid route from ws")
+              log $ "Browser requests next HTML for: " <> show r
+              val <- LVar.listenNext model subId
+              WS.sendTextData conn $ routeHtml val r
+              log $ "Sent HTML for " <> show r
+              loop
+        try loop >>= \case
+          Right () -> pure ()
+          Left (err :: ConnectionException) -> do
+            log $ "ws:error " <> show err
+            LVar.removeListener model subId
     httpApp req f = do
       (status, v) <- case routeFromPathInfo (Wai.pathInfo req) of
         Nothing ->
@@ -114,9 +114,16 @@ wsClientShim =
         window.onpageshow = () => {
           console.log("ema: Opening ws conn");
           var ws = new WebSocket("ws://" + window.location.host);
+
+          // Call this, then the server will send update *once*. Call again for
+          // continus monitoring.
+          function watchRoute() {
+            ws.send(document.location.pathname);
+          };
+
           ws.onopen = () => {
             console.log("ema: Observing server for changes");
-            ws.send(document.location.pathname);
+            watchRoute();
           };
           ws.onclose = () => {
             // TODO: Display a message box on page during disconnected state.
@@ -126,6 +133,7 @@ wsClientShim =
           ws.onmessage = evt => {
             console.log("ema: Resetting HTML body")
             setInnerHtml(document.documentElement, evt.data);
+            watchRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };

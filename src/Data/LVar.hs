@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -18,16 +19,18 @@ module Data.LVar
     modify,
 
     -- * Listening to a LVar
-    listen,
-    ignore,
+    addListener,
+    listenNext,
+    removeListener,
   )
 where
 
+import Control.Exception (throw)
 import qualified Data.Map.Strict as Map
 import Prelude hiding (empty, get, modify)
 
 -- A mutable variable, changes (@set@, @modify@) to which can be listened
--- (@listen@, @ignore@) to from multiple threads.
+-- (@addListener@, @removeListener@) to from multiple threads.
 data LVar a = LVar
   { -- | A value that changes over time
     lvarCurrent :: TMVar a,
@@ -80,45 +83,44 @@ notifyListeners v' = do
   forM_ (Map.elems subs) $ \subVar -> do
     tryPutTMVar subVar ()
 
--- | Listen to changes to the @LVar@, as they are set by @set@ or @modify@
+data ListenerDead = ListenerDead
+  deriving (Exception, Show)
+
+-- | Create a listener for changes to the @LVar@, as they are set by @set@ or @modify@
 --
 -- Returns a @ListenerId@ that can be used to stop listening later (via
--- @ignore@), as well as an IO action that starts the listener. You must run the
--- IO action to actually begin the listening process.
-listen ::
+-- @removeListener@)
+addListener ::
   MonadIO m =>
   LVar a ->
-  (ListenerId -> a -> IO b) ->
-  m (ListenerId, IO ())
-listen v f = do
-  (idx, notify) <- atomically $ do
+  m ListenerId
+addListener v = do
+  atomically $ do
     subs <- readTMVar $ lvarListeners v
     let nextIdx = maybe 1 (succ . fst) $ Map.lookupMax subs
     notify <- newEmptyTMVar
     void $ swapTMVar (lvarListeners v) $ Map.insert nextIdx notify subs
-    pure (nextIdx, notify)
-  let runListener = do
-        mval :: Maybe a <- atomically $ do
-          isListening v idx >>= \case
-            False ->
-              -- Stop listening, because @ignore@ had just removed this
-              -- listener.
-              pure Nothing
-            True -> do
-              takeTMVar notify
-              Just <$> readTMVar (lvarCurrent v)
-        whenJust mval $ \val -> do
-          liftIO $ void $ f idx val
-          runListener
-  pure (idx, runListener)
+    pure nextIdx
+
+-- | Listen for the next value update (since the last @listenNext@ or @addListener@)
+listenNext :: MonadIO m => LVar a -> ListenerId -> m a
+listenNext v idx = do
+  atomically $ do
+    lookupListener v idx >>= \case
+      Nothing ->
+        -- XXX: can we avoid this?
+        throw ListenerDead
+      Just listenVar -> do
+        takeTMVar listenVar
+        readTMVar (lvarCurrent v)
   where
-    isListening :: LVar a -> ListenerId -> STM Bool
-    isListening v' lId = do
-      Map.member lId <$> readTMVar (lvarListeners v')
+    lookupListener :: LVar a -> ListenerId -> STM (Maybe (TMVar ()))
+    lookupListener v' lId = do
+      Map.lookup lId <$> readTMVar (lvarListeners v')
 
 -- | Stop listening to the @LVar@
-ignore :: MonadIO m => LVar a -> ListenerId -> m ()
-ignore v lId = do
+removeListener :: MonadIO m => LVar a -> ListenerId -> m ()
+removeListener v lId = do
   atomically $ do
     subs <- readTMVar $ lvarListeners v
     whenJust (Map.lookup lId subs) $ \_sub -> do
