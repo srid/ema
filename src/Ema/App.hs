@@ -14,6 +14,7 @@ import qualified Data.LVar as LVar
 import Ema.Route (IsRoute (..))
 import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
+import System.Environment (lookupEnv)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -69,6 +70,6 @@ runEmaWith model render = do
   -- TODO: Use a logging library, in place of managing buffering and using putStrLn
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
-  let port = 8000
+  port <- fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
   putStrLn $ "Launching Ema at http://localhost:" <> show port
   Server.runServerWithWebSocketHotReload port model render
