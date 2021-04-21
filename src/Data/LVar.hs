@@ -98,7 +98,12 @@ addListener v = do
   atomically $ do
     subs <- readTMVar $ lvarListeners v
     let nextIdx = maybe 1 (succ . fst) $ Map.lookupMax subs
-    notify <- newEmptyTMVar
+    notify <-
+      tryReadTMVar (lvarCurrent v) >>= \case
+        Nothing -> newEmptyTMVar
+        -- As a value is already available, send that as first notification.
+        -- FIXME: This may not be desirable; due to unnececessary DOM replacement by websocket client.
+        Just _ -> newTMVar ()
     void $ swapTMVar (lvarListeners v) $ Map.insert nextIdx notify subs
     pure nextIdx
 

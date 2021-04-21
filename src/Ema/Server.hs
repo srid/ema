@@ -128,10 +128,6 @@ wsClientShim =
             if(is[i])
               document.getElementById('ema-message').innerText = messages[i]
           };
-          console.log(document);
-          console.log(document.getElementById("ema-indicator"));
-          console.log(document.getElementById("ema-indicator").style);
-          console.log(document.getElementById("ema-indicator").style.display);
           document.getElementById("ema-indicator").style.display = "block";
         };
         window.connected    = () => setIndicators(true,  false, false, false)
