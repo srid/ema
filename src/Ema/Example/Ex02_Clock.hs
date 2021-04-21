@@ -18,7 +18,7 @@ import Data.Time
     getCurrentTime,
   )
 import Ema.App (runEma)
-import qualified Ema.Layout as Layout
+import qualified Ema.Helper.Tailwind as Tailwind
 import Ema.Route (IsRoute (..))
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -49,28 +49,30 @@ main = do
   flip runEma render $ \model -> do
     LVar.set model =<< getCurrentTime
     changeTime model
+
+render :: UTCTime -> Route -> LByteString
+render now r =
+  Tailwind.layout (H.title "Clock") $
+    H.div ! A.class_ "container mx-auto" $ do
+      H.div ! A.class_ "border-t-1 p-2 text-center" $ do
+        "The current time is: "
+        H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
+          H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do
+            let fmt = case r of
+                  Index -> "%Y/%m/%d %H:%M:%S"
+                  OnlyTime -> "%H:%M:%S"
+            H.toMarkup $ formatTime defaultTimeLocale fmt now
+      H.div ! A.class_ "mt-4 text-center" $ do
+        case r of
+          Index -> do
+            routeElem OnlyTime "Hide day?"
+          OnlyTime -> do
+            routeElem Index "Show day?"
   where
-    render (now :: UTCTime) r =
-      Layout.tailwindSite (H.title "Clock") $
-        H.div ! A.class_ "container mx-auto" $ do
-          H.div ! A.class_ "border-t-1 p-2 text-center" $ do
-            "The current time is: "
-            H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
-              H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do
-                let fmt = case r of
-                      Index -> "%Y/%m/%d %H:%M:%S"
-                      OnlyTime -> "%H:%M:%S"
-                H.toMarkup $ formatTime defaultTimeLocale fmt now
-          H.div ! A.class_ "mt-4 text-center" $ do
-            case r of
-              Index -> do
-                routeElem OnlyTime "Hide day?"
-              OnlyTime -> do
-                routeElem Index "Show day?"
-    routeElem r w =
-      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r $ w
-    routeHref r =
-      A.href (fromString . toString $ routeUrl r)
+    routeElem r' w =
+      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
+    routeHref r' =
+      A.href (fromString . toString $ routeUrl r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]

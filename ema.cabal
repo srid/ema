@@ -89,7 +89,7 @@ library
   exposed-modules:
     Data.LVar
     Ema.App
-    Ema.Layout
+    Ema.Helper.Tailwind
     Ema.Route
 
   other-modules:

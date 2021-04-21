@@ -16,7 +16,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time (Day, defaultTimeLocale, parseTimeM)
 import Ema.App (runEma)
-import qualified Ema.Layout as Layout
+import qualified Ema.Helper.Tailwind as Tailwind
 import Ema.Route
 import qualified Shower
 import System.Directory (canonicalizePath)
@@ -110,7 +110,7 @@ mainWith folder = do
 
 render :: Diary -> Route -> LByteString
 render diary r = do
-  Layout.tailwindSite (H.title "My Diary") $
+  Tailwind.layout (H.title "My Diary") $
     H.div ! A.class_ "container mx-auto" $ do
       let heading =
             H.header
