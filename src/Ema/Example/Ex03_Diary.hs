@@ -7,7 +7,6 @@
 module Ema.Example.Ex03_Diary where
 
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (race_)
 import Control.Exception (finally)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
@@ -96,17 +95,17 @@ watchAndUpdateDiary folder model = do
       `finally` stop
 
 main :: IO ()
-main = mainWith . drop 1 =<< getArgs
+main = do
+  folder <-
+    getArgs >>= \case
+      [_, path] -> canonicalizePath path
+      _ -> canonicalizePath "src/Ema/Example/Diary"
+  mainWith folder
 
-mainWith :: [String] -> IO ()
-mainWith args = do
-  folder <- case args of
-    [path] -> canonicalizePath path
-    _ -> canonicalizePath "src/Ema/Example/Diary"
-  model <- LVar.new =<< diaryFrom folder
-  race_
-    (runEma model render)
-    (watchAndUpdateDiary folder model)
+mainWith :: FilePath -> IO ()
+mainWith folder = do
+  model0 <- diaryFrom folder
+  runEma model0 (watchAndUpdateDiary folder) render
   where
     render (diary :: Diary) (r :: Route) =
       Layout.tailwindSite (H.title "My Diary") $

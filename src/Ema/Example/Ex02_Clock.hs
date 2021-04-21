@@ -9,7 +9,6 @@
 module Ema.Example.Ex02_Clock where
 
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (race_)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time
@@ -47,10 +46,8 @@ changeTime model = do
 
 main :: IO ()
 main = do
-  model <- LVar.new =<< getCurrentTime
-  race_
-    (changeTime model)
-    (runEma model render)
+  model0 <- getCurrentTime
+  runEma model0 changeTime render
   where
     render (now :: UTCTime) r =
       Layout.tailwindSite (H.title "Clock") $
