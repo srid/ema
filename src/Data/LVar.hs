@@ -55,7 +55,13 @@ get v =
 
 -- | Set the @LVar@ value; listeners from @listen@ are automatically notifed.
 set :: MonadIO m => LVar a -> a -> m ()
-set v = modify v . const
+set v val = do
+  atomically $ do
+    let var = lvarCurrent v
+    isEmptyTMVar var >>= \case
+      True -> putTMVar var val
+      False -> void $ swapTMVar var val
+    notifyListeners v
 
 -- | Modify the @LVar@ value; listeners from @listen@ are automatically
 -- notified.
@@ -67,12 +73,12 @@ modify v f = do
     curr <- readTMVar (lvarCurrent v)
     void $ swapTMVar (lvarCurrent v) (f curr)
     notifyListeners v
-  where
-    notifyListeners :: LVar a -> STM ()
-    notifyListeners v' = do
-      subs <- readTMVar $ lvarListeners v'
-      forM_ (Map.elems subs) $ \subVar -> do
-        tryPutTMVar subVar ()
+
+notifyListeners :: LVar a -> STM ()
+notifyListeners v' = do
+  subs <- readTMVar $ lvarListeners v'
+  forM_ (Map.elems subs) $ \subVar -> do
+    tryPutTMVar subVar ()
 
 -- | Listen to changes to the @LVar@, as they are set by @set@ or @modify@
 --
