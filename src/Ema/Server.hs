@@ -111,12 +111,12 @@ wsClientShim =
           }, 100);
         };
 
-        window.onpageshow = () => {
+        function init() {
           console.log("ema: Opening ws conn");
           var ws = new WebSocket("ws://" + window.location.host);
 
           // Call this, then the server will send update *once*. Call again for
-          // continus monitoring.
+          // continous monitoring.
           function watchRoute() {
             ws.send(document.location.pathname);
           };
@@ -127,8 +127,9 @@ wsClientShim =
           };
           ws.onclose = () => {
             // TODO: Display a message box on page during disconnected state.
-            console.log("ema: closed; reloading..");
-            refreshPage();
+            console.log("ema: closed; reconnecting ..");
+            setTimeout(init, 1000);
+            // refreshPage();
           };
           ws.onmessage = evt => {
             console.log("ema: Resetting HTML body")
@@ -138,5 +139,7 @@ wsClientShim =
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
         };
+        
+        window.onpageshow = init;
         </script>
     |]
