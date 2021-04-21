@@ -63,7 +63,7 @@ runServerWithWebSocketHotReload port model render = do
       fromSlug . fmap (fromString . toString)
     routeHtml :: model -> route -> LByteString
     routeHtml m r = do
-      render m r <> wsClientShim
+      render m r <> emaStatusHtml <> wsClientShim
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
@@ -76,7 +76,7 @@ wsClientShim :: LByteString
 wsClientShim =
   encodeUtf8
     [text|
-        <script>
+        <script type="module">
         // https://stackoverflow.com/a/47614491/55246
         function setInnerHtml(elm, html) {
           elm.innerHTML = html;
@@ -89,6 +89,7 @@ wsClientShim =
           });
         }
 
+        // Unused, right now.
         function refreshPage() {
           // The setTimeout is necessary, otherwise reload will hang forever (at
           // least on Brave browser)
@@ -111,24 +112,59 @@ wsClientShim =
           }, 100);
         };
 
-        window.onpageshow = () => {
+        // Ema Status indicator
+        const messages = {
+          connected: "Connected",
+          reloading: "Reloading",
+          connecting: "Connecting to the server",
+          disconnected: "Disconnected - try reloading the window"
+        };
+        function setIndicators(connected, reloading, connecting, disconnected) {
+          const is = { connected, reloading, connecting, disconnected }
+
+          for (const i in is) {
+            document.getElementById(`ema-$${i}`).style.display =
+              is[i] ? "block" : "none"
+            if(is[i])
+              document.getElementById('ema-message').innerText = messages[i]
+          };
+          console.log(document);
+          console.log(document.getElementById("ema-indicator"));
+          console.log(document.getElementById("ema-indicator").style);
+          console.log(document.getElementById("ema-indicator").style.display);
+          document.getElementById("ema-indicator").style.display = "block";
+        };
+        window.connected    = () => setIndicators(true,  false, false, false)
+        window.reloading    = () => setIndicators(false, true,  false, false)
+        window.connecting   = () => setIndicators(false, false, true,  false)
+        window.disconnected = () => setIndicators(false, false, false, true)
+        window.hideIndicator = () => {
+          document.getElementById("ema-indicator").style.display = "none";
+        };
+
+        // WebSocket logic
+        function init() {
           console.log("ema: Opening ws conn");
+          window.connecting();
           var ws = new WebSocket("ws://" + window.location.host);
 
           // Call this, then the server will send update *once*. Call again for
-          // continus monitoring.
+          // continous monitoring.
           function watchRoute() {
             ws.send(document.location.pathname);
           };
 
           ws.onopen = () => {
+            // window.connected();
+            window.hideIndicator();
             console.log("ema: Observing server for changes");
             watchRoute();
           };
           ws.onclose = () => {
-            // TODO: Display a message box on page during disconnected state.
-            console.log("ema: closed; reloading..");
-            refreshPage();
+            console.log("ema: closed; reconnecting ..");
+            window.reloading();
+            setTimeout(init, 1000);
+            // refreshPage();
           };
           ws.onmessage = evt => {
             console.log("ema: Resetting HTML body")
@@ -138,5 +174,53 @@ wsClientShim =
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
         };
+        
+        window.onpageshow = init;
         </script>
     |]
+
+emaStatusHtml :: LByteString
+emaStatusHtml =
+  encodeUtf8
+    [text|
+      <div class="absolute top-0 left-0 p-2" style="display: none;" id="ema-indicator">
+        <div
+          class="
+            flex overflow-hidden items-center p-2 text-xs gap-2
+            h-8 border-2 border-gray-200 bg-white rounded-full shadow-lg
+            transition-[width,height] duration-500 ease-in-out w-8 hover:w-full
+          "
+          id="ema-status"
+          title="Ema Status"
+        >
+          <div
+            hidden
+            class="bg-green-600 w-3 h-3 rounded-full flex-none"
+            id="ema-connected"
+          ></div>
+          <div
+            hidden
+            class="
+              animate-spin bg-gradient-to-r from-blue-300 to-blue-600
+              w-3 h-3 rounded-full flex-none
+            "
+            id="ema-reloading"
+          ></div>
+          <div
+            hidden
+            class="bg-yellow-500 w-3 h-3 rounded-full flex-none"
+            id="ema-connecting"
+          >
+            <div
+              class="animate-ping bg-yellow-500 w-3 h-3 rounded-full flex-none"
+            ></div>
+          </div>
+          <div
+            hidden
+            class="bg-red-500 w-3 h-3 rounded-full flex-none"
+            id="ema-disconnected"
+          ></div>
+          <p class="whitespace-nowrap" id="ema-message"></p>
+        </div>
+      </div>
+  |]
