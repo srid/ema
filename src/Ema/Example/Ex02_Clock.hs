@@ -46,8 +46,9 @@ changeTime model = do
 
 main :: IO ()
 main = do
-  model0 <- getCurrentTime
-  runEma model0 changeTime render
+  flip runEma render $ \model -> do
+    LVar.set model =<< getCurrentTime
+    changeTime model
   where
     render (now :: UTCTime) r =
       Layout.tailwindSite (H.title "Clock") $

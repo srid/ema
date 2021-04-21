@@ -38,17 +38,16 @@ runEmaPure render = do
 runEma ::
   forall model route.
   (Show route, IsRoute route) =>
-  -- | The initial model loaded during program start
-  model ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
+  -- This IO action must set the initial model value in the very beginning.
   (LVar model -> IO ()) ->
   (model -> route -> LByteString) ->
   IO ()
-runEma model0 updateModel render = do
-  model <- LVar.new model0
+runEma runModel render = do
+  model <- LVar.empty
   race_
+    (runModel model)
     (runEmaWith model render)
-    (updateModel model)
 
 -- | Run Ema live dev server
 runEmaWith ::
@@ -70,6 +69,9 @@ runEmaWith model render = do
   -- TODO: Use a logging library, in place of managing buffering and using putStrLn
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
+  putStrLn "Waiting for initial site model ..."
+  putStrLn "  stuck here? set a model value using `LVar.set`"
+  void $ LVar.get model
   port <- fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
   putStrLn $ "Launching Ema at http://localhost:" <> show port
   Server.runServerWithWebSocketHotReload port model render

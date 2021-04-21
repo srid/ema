@@ -104,29 +104,32 @@ main = do
 
 mainWith :: FilePath -> IO ()
 mainWith folder = do
-  model0 <- diaryFrom folder
-  runEma model0 (watchAndUpdateDiary folder) render
+  flip runEma render $ \model -> do
+    LVar.set model =<< diaryFrom folder
+    watchAndUpdateDiary folder model
+
+render :: Diary -> Route -> LByteString
+render diary r = do
+  Layout.tailwindSite (H.title "My Diary") $
+    H.div ! A.class_ "container mx-auto" $ do
+      let heading =
+            H.header
+              ! A.class_ "text-4xl my-2 py-2 font-bold text-center bg-purple-50 shadow"
+      case r of
+        Index -> do
+          heading "My Diary"
+          H.div ! A.class_ "" $
+            forM_ (sortOn Down $ Map.keys diary) $ \day ->
+              H.li $ routeElem (OnDay day) $ H.toMarkup @Text (show day)
+        OnDay day -> do
+          heading $ show day
+          routeElem Index "Back to Index"
+          maybe "not found" renderOrg (Map.lookup day diary)
   where
-    render (diary :: Diary) (r :: Route) =
-      Layout.tailwindSite (H.title "My Diary") $
-        H.div ! A.class_ "container mx-auto" $ do
-          let heading =
-                H.header
-                  ! A.class_ "text-4xl my-2 py-2 font-bold text-center bg-purple-50 shadow"
-          case r of
-            Index -> do
-              heading "My Diary"
-              H.div ! A.class_ "" $
-                forM_ (sortOn Down $ Map.keys diary) $ \day ->
-                  H.li $ routeElem (OnDay day) $ H.toMarkup @Text (show day)
-            OnDay day -> do
-              heading $ show day
-              routeElem Index "Back to Index"
-              maybe "not found" renderOrg (Map.lookup day diary)
-    routeElem r w =
-      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r $ w
-    routeHref r =
-      A.href (fromString . toString $ routeUrl r)
+    routeElem r' w =
+      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
+    routeHref r' =
+      A.href (fromString . toString $ routeUrl r')
 
 renderOrg :: OrgFile -> H.Html
 renderOrg _org@(Org.OrgFile meta doc) = do
