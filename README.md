@@ -28,7 +28,7 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
   - [x] client to server reconnect (on ghcid reload, or accidental client disconnect)
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [x] Multi-websocket-client support
-- [ ] Static site generation mode
+- [x] Static site generation mode
 - [ ] add common examples,
   - [x] filesystem watcher
   - [ ] docs site for self (w/ sidebar and possibly even search)
