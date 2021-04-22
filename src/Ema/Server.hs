@@ -34,7 +34,7 @@ runServerWithWebSocketHotReload port model render = do
       WS.withPingThread conn 30 (pure ()) $ do
         subId <- LVar.addListener model
         let log s = putTextLn $ "[" <> show subId <> "] :: " <> s
-        log "ws connected"
+        log "ws:connected"
         let askClientForRoute = do
               msg :: Text <- WS.receiveData conn
               pure $
@@ -43,14 +43,28 @@ runServerWithWebSocketHotReload port model render = do
                   & routeFromPathInfo
                   & fromMaybe (error "invalid route from ws")
             loop = do
+              -- Notice that we @askClientForRoute@ in succession twice here.
+              -- The first route will be the route the client intends to observe
+              -- for changes on. The second route, *if* it is sent, indicates
+              -- that the client wants to *switch* to that route. This proecess
+              -- repeats ad infinitum: i.e., the third route is for observing
+              -- changes, the fourth route is for switching to, and so on.
               watchingRoute <- askClientForRoute
               log $ "[Watch]: <~~ " <> show watchingRoute
+              -- Listen *until* either we get a new value, or the client requests
+              -- to switch to a new route.
               race (LVar.listenNext model subId) askClientForRoute >>= \case
                 Left newHtml -> do
+                  -- The page the user is currently viewing has changed. Send
+                  -- the new HTML to them.
                   WS.sendTextData conn $ routeHtml newHtml watchingRoute
                   log $ "[Watch]: ~~> " <> show watchingRoute
                   loop
                 Right nextRoute -> do
+                  -- The user clicked on a route link; send them the HTML for
+                  -- that route this time, ignoring what we are watching
+                  -- currently (we expect the user to initiate a watch route
+                  -- request immediately following this).
                   log $ "[Switch]: <~~ " <> show nextRoute
                   html <- LVar.get model
                   WS.sendTextData conn $ routeHtml html nextRoute
