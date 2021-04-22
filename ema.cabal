@@ -44,6 +44,7 @@ library
     , blaze-markup
     , containers
     , data-default
+    , directory
     , filepath
     , http-types
     , neat-interpolation
@@ -60,7 +61,6 @@ library
 
   if flag(with-examples)
     build-depends:
-      , directory
       , filepattern
       , fsnotify
       , org-mode
