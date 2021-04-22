@@ -35,31 +35,26 @@ runServerWithWebSocketHotReload port model render = do
         subId <- LVar.addListener model
         let log s = putTextLn $ "[" <> show subId <> "] :: " <> s
         log "ws connected"
-        let loop = do
-              msg <- WS.receiveData conn
-              let r :: route =
-                    msg
-                      & pathInfoFromWsMsg
-                      & routeFromPathInfo
-                      & fromMaybe (error "invalid route from ws")
-              log $ "!!!: Browser requests next HTML for: " <> show r
-              eVal <- race (LVar.listenNext model subId) $ do
-                msg2 :: Text <- WS.receiveData conn
-                pure $
-                  msg2
-                    & pathInfoFromWsMsg
-                    & routeFromPathInfo
-                    & fromMaybe (error "invalid route from ws")
-              case eVal of
-                Left val -> do
-                  WS.sendTextData conn $ routeHtml val r
-                  log $ "!!!: Sent HTML for " <> show r
+        let askClientForRoute = do
+              msg :: Text <- WS.receiveData conn
+              pure $
+                msg
+                  & pathInfoFromWsMsg
+                  & routeFromPathInfo
+                  & fromMaybe (error "invalid route from ws")
+            loop = do
+              initialRoute <- askClientForRoute
+              log $ "[Init]: Route requested: " <> show initialRoute
+              race (LVar.listenNext model subId) askClientForRoute >>= \case
+                Left initialHtml -> do
+                  WS.sendTextData conn $ routeHtml initialHtml initialRoute
+                  log $ "[Init]: HTML sent: " <> show initialRoute
                   loop
-                Right routeToSwitch -> do
-                  log $ "~~>: request to switch"
-                  val <- LVar.get model
-                  WS.sendTextData conn $ routeHtml val routeToSwitch
-                  log $ "~~>: Sent HTML for " <> show routeToSwitch
+                Right nextRoute -> do
+                  log $ "[Next]: Route requested: " <> show nextRoute
+                  nextHtml <- LVar.get model
+                  WS.sendTextData conn $ routeHtml nextHtml nextRoute
+                  log $ "[Next]: HTML sent: " <> show nextRoute
                   loop
         try loop >>= \case
           Right () -> pure ()
