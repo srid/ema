@@ -39,14 +39,16 @@ library
   build-depends:
     , aeson
     , async
-    , base                ^>=4.14.1.0
+    , base                  ^>=4.14.1.0
     , blaze-html
     , blaze-markup
     , containers
     , data-default
+    , directory
     , filepath
     , http-types
     , neat-interpolation
+    , optparse-applicative
     , relude
     , safe-exceptions
     , stm
@@ -59,7 +61,6 @@ library
 
   if flag(with-examples)
     build-depends:
-      , directory
       , filepattern
       , fsnotify
       , org-mode
@@ -88,11 +89,15 @@ library
 
   exposed-modules:
     Data.LVar
-    Ema.App
+    Ema
+    Ema.CLI
     Ema.Helper.Tailwind
-    Ema.Route
 
   other-modules:
+    Ema.App
+    Ema.Class
+    Ema.Generate
+    Ema.Route
     Ema.Route.Slug
     Ema.Route.UrlStrategy
     Ema.Server

@@ -9,7 +9,7 @@ import Control.Exception (try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Route (IsRoute (..))
+import Ema.Class
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
 import qualified Network.Wai as Wai
@@ -20,7 +20,7 @@ import qualified Network.WebSockets as WS
 
 runServerWithWebSocketHotReload ::
   forall model route.
-  (Show route, IsRoute route) =>
+  (Ema model route, Show route) =>
   Int ->
   LVar model ->
   (model -> route -> LByteString) ->
@@ -88,7 +88,7 @@ runServerWithWebSocketHotReload port model render = do
     renderWithEmaHtmlShims m r =
       render m r <> emaStatusHtml
     routeFromPathInfo =
-      fromSlug . fmap (fromString . toString)
+      decodeRoute @model . fmap (fromString . toString)
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.

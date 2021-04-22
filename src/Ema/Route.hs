@@ -1,8 +1,8 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Ema.Route
-  ( IsRoute (..),
-    routeUrl,
+  ( routeUrl,
     routeFile,
     Slug (unSlug),
     UrlStrategy (..),
@@ -10,6 +10,7 @@ module Ema.Route
 where
 
 import Data.Default (def)
+import Ema.Class
 import Ema.Route.Slug (Slug (unSlug))
 import Ema.Route.UrlStrategy
   ( UrlStrategy (..),
@@ -17,30 +18,10 @@ import Ema.Route.UrlStrategy
     slugUrlWithStrategy,
   )
 
-class IsRoute r where
-  -- | Determine the route for the given URL slug
-  fromSlug :: [Slug] -> Maybe r
-
-  -- | The URL slug to use for a given route.
-  toSlug :: r -> [Slug]
-
-  -- | Linking strategy to use
-  urlStrategy :: r -> UrlStrategy
-  urlStrategy = def
-
--- | Relative URL to use in "href"
-routeUrl :: IsRoute r => r -> Text
+routeUrl :: forall a r. Ema a r => r -> Text
 routeUrl r =
-  slugUrlWithStrategy (urlStrategy r) (toSlug r)
+  slugUrlWithStrategy def (encodeRoute @a r)
 
--- | Relative file path to .html file correspondong to this route.
-routeFile :: IsRoute r => r -> FilePath
+routeFile :: forall a r. Ema a r => r -> FilePath
 routeFile r =
-  slugFileWithStrategy (urlStrategy r) (toSlug r)
-
--- The unit route is used for sites that have a single route, i.e. index.html.
-instance IsRoute () where
-  fromSlug = \case
-    [] -> Just ()
-    _ -> Nothing
-  toSlug () = []
+  slugFileWithStrategy def (encodeRoute @a r)

@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | A very simple site with routes, but based on dynamically changing values
 --
@@ -11,15 +12,9 @@ module Ema.Example.Ex02_Clock where
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
-import Data.Time
-  ( UTCTime,
-    defaultTimeLocale,
-    formatTime,
-    getCurrentTime,
-  )
-import Ema.App (runEma)
+import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
+import Ema (Ema (..), routeUrl, runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
-import Ema.Route (IsRoute (..), routeUrl)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -27,34 +22,31 @@ import qualified Text.Blaze.Html5.Attributes as A
 data Route
   = Index
   | OnlyTime
-  deriving (Show)
+  deriving (Show, Enum, Bounded)
 
-instance IsRoute Route where
-  toSlug = \case
+instance Ema UTCTime Route where
+  encodeRoute = \case
     Index -> mempty
     OnlyTime -> one "time"
-  fromSlug = \case
+  decodeRoute = \case
     [] -> Just Index
     ["time"] -> Just OnlyTime
     _ -> Nothing
-
-changeTime :: LVar.LVar UTCTime -> IO ()
-changeTime model = do
-  forever $ do
-    threadDelay $ 1 * 1000000
-    LVar.set model =<< getCurrentTime
+  modelRoutes _ =
+    [minBound .. maxBound]
 
 main :: IO ()
 main = do
-  flip runEma render $ \model -> do
-    LVar.set model =<< getCurrentTime
-    changeTime model
+  runEma render $ \model ->
+    forever $ do
+      LVar.set model =<< getCurrentTime
+      threadDelay $ 1 * 1000000
 
 render :: UTCTime -> Route -> LByteString
 render now r =
   Tailwind.layout (H.title "Clock") $
     H.div ! A.class_ "container mx-auto" $ do
-      H.div ! A.class_ "border-t-1 p-2 text-center" $ do
+      H.div ! A.class_ "border-t-1 p-2 tex{-# OPTIONS_GHC -fno-warn-orphans #-}t-center" $ do
         "The current time is: "
         H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
           H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do

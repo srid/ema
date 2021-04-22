@@ -11,9 +11,9 @@ The simplest ema app looks like this:
 ```haskell
 main :: IO ()
 main = do
-  let name :: Text = "Srid"
-  runEmaPure $ \() ->
-    encodeUtf8 $ "<b>Hello,</b> " <> name
+  let name :: Text = "Ema"
+  runEmaPure $
+    encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 
 ## Hacking
@@ -28,7 +28,7 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
   - [x] client to server reconnect (on ghcid reload, or accidental client disconnect)
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [x] Multi-websocket-client support
-- [ ] Static site generation mode
+- [x] Static site generation mode
 - [ ] add common examples,
   - [x] filesystem watcher
   - [ ] docs site for self (w/ sidebar and possibly even search)
@@ -40,6 +40,8 @@ pre-announce,
 - [ ] documentation ([howto](https://documentation.divio.com/))
 
 doc notes,
+- hot reload fast, morphdom
+  - html templates + tailwind for fast style feedback
 - use async:race to avoid ghcid ghosts
 - at most one ws client supported right now
 - tailwind + blaze-html layout (BlazeWind?) for no-frills getting started
