@@ -112,11 +112,8 @@ wsClientShim =
           return temp.content.firstChild;
         };
 
+        // Unlike setInnerHtml, this patches the Dom in place
         function setHtml(elm, html) {
-          patchInnerHtml(elm, html);
-        };
-
-        function patchInnerHtml(elm, html) {
           var htmlElem = htmlToElem(html);
           morphdom(elm, html);
         };
@@ -202,13 +199,20 @@ wsClientShim =
             window.hideIndicator();
             watchCurrentRoute();
           };
+
           ws.onclose = () => {
-            console.log("ema: closed; reconnecting ..");
+            console.log("ema: reconnecting ..");
             window.removeEventListener(`click`, handleRouteClicks);
             window.reloading();
-            // Reconnect after 1s, which is typical time it takes for ghcid to reboot.
-            // Then, retry in another 1s. Ideally we need an exponential retry logic.
-            setTimeout(init, 1000);
+            // Reconnect after as small a time is possible, then retry again. 
+            // ghcid can take 1s or more to reboot. So ideally we need an
+            // exponential retry logic.
+            // 
+            // Note that a slow delay (200ms) may often cause websocket
+            // connection error (ghcid hasn't rebooted yet), which cannot be
+            // avoided as it is impossible to trap this error and handle it.
+            // You'll see a big ugly error in the console.
+            setTimeout(init, 200);
           };
 
           ws.onmessage = evt => {
