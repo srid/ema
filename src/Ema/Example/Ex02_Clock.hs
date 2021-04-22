@@ -19,7 +19,7 @@ import Data.Time
   )
 import Ema.App (runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
-import Ema.Route (IsRoute (..))
+import Ema.Route (IsRoute (..), routeUrl)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A

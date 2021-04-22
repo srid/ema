@@ -18,14 +18,14 @@ data UrlStrategy
 instance Default UrlStrategy where
   def = UrlStrategy_HtmlOnlySansExt
 
-routeUrlWithStrategy :: UrlStrategy -> [Slug] -> Text
-routeUrlWithStrategy strat slugs =
+slugUrlWithStrategy :: UrlStrategy -> [Slug] -> Text
+slugUrlWithStrategy strat slugs =
   case strat of
     UrlStrategy_FolderOnly ->
-      "/" <> T.replace "index.html" "" (toText $ routeFileWithStrategy strat slugs)
+      "/" <> T.replace "index.html" "" (toText $ slugFileWithStrategy strat slugs)
     UrlStrategy_HtmlOnlySansExt ->
       -- FIXME: This should replace only at the end, not middle
-      let fp = toText (routeFileWithStrategy strat slugs)
+      let fp = toText (slugFileWithStrategy strat slugs)
        in if
               | "index.html" == fp ->
                 "/"
@@ -36,8 +36,8 @@ routeUrlWithStrategy strat slugs =
               | otherwise ->
                 "/" <> fp
 
-routeFileWithStrategy :: UrlStrategy -> [Slug] -> FilePath
-routeFileWithStrategy strat slugs =
+slugFileWithStrategy :: UrlStrategy -> [Slug] -> FilePath
+slugFileWithStrategy strat slugs =
   case strat of
     UrlStrategy_FolderOnly ->
       joinPath $ fmap (toString . unSlug) slugs <> ["index.html"]

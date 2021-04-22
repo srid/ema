@@ -2,15 +2,19 @@
 
 module Ema.Route
   ( IsRoute (..),
+    routeUrl,
+    routeFile,
     Slug (unSlug),
+    UrlStrategy (..),
   )
 where
 
 import Data.Default (def)
 import Ema.Route.Slug (Slug (unSlug))
 import Ema.Route.UrlStrategy
-  ( routeFileWithStrategy,
-    routeUrlWithStrategy,
+  ( UrlStrategy (..),
+    slugFileWithStrategy,
+    slugUrlWithStrategy,
   )
 
 class IsRoute r where
@@ -20,15 +24,19 @@ class IsRoute r where
   -- | The URL slug to use for a given route.
   toSlug :: r -> [Slug]
 
-  -- | Relative URL to use in "href"
-  routeUrl :: r -> Text
-  routeUrl =
-    routeUrlWithStrategy def . toSlug
+  -- | Linking strategy to use
+  urlStrategy :: r -> UrlStrategy
+  urlStrategy = def
 
-  -- | Relative file path to .html file correspondong to this route.
-  routeFile :: r -> FilePath
-  routeFile =
-    routeFileWithStrategy def . toSlug
+-- | Relative URL to use in "href"
+routeUrl :: IsRoute r => r -> Text
+routeUrl r =
+  slugUrlWithStrategy (urlStrategy r) (toSlug r)
+
+-- | Relative file path to .html file correspondong to this route.
+routeFile :: IsRoute r => r -> FilePath
+routeFile r =
+  slugFileWithStrategy (urlStrategy r) (toSlug r)
 
 -- The unit route is used for sites that have a single route, i.e. index.html.
 instance IsRoute () where
