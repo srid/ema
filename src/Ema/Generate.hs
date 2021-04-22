@@ -18,7 +18,7 @@ generate ::
 generate dest model render = do
   unlessM (doesDirectoryExist dest) $ do
     error "Destination does not exist"
-  let routes = modelRoutes model
+  let routes = staticRoutes model
   putStrLn $ "Writing " <> show (length routes) <> " routes"
   forM_ routes $ \r -> do
     let fp = dest </> routeFile @model r

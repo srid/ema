@@ -41,7 +41,7 @@ instance Ema Diary Route where
     [] -> Just Index
     [s] -> OnDay <$> parseDay (toString $ unSlug s)
     _ -> Nothing
-  modelRoutes diary =
+  staticRoutes diary =
     Index : fmap OnDay (Map.keys $ unDiary diary)
 
 parseDay :: String -> Maybe Day

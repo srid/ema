@@ -12,10 +12,10 @@ class Ema model route | route -> model where
   encodeRoute :: route -> [Slug]
   decodeRoute :: [Slug] -> Maybe route
 
-  -- | Compute all routes to generate given a model value
+  -- | Routes to use when generating the static site
   --
-  -- This is used only during static site generation (not dev server).
-  modelRoutes :: model -> [route]
+  -- This is never used by the dev server.
+  staticRoutes :: model -> [route]
 
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.
 instance Ema () () where
@@ -23,4 +23,4 @@ instance Ema () () where
   decodeRoute = \case
     [] -> Just ()
     _ -> Nothing
-  modelRoutes () = one ()
+  staticRoutes () = one ()
