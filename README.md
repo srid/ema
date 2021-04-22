@@ -28,22 +28,22 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
   - [x] client to server reconnect (on ghcid reload, or accidental client disconnect)
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [x] Multi-websocket-client support
-- [ ] Refactor Server.hs
 - [ ] Static site generation mode
 - [ ] add common examples,
   - [x] filesystem watcher
   - [ ] docs site for self (w/ sidebar and possibly even search)
 
 pre-announce,
-- [ ] plan features / messaging, re: hakyll
-  - Safer and simpler routes system
-  - Template system?
 - [ ] CLI UX (opts, logging, etc.)
-- [ ] documentation ([howto](https://documentation.divio.com/))
+- [ ] How to serve non-generated files (css, img, etc.)
 - [ ] Publish Data.LVar to Hackage
+- [ ] documentation ([howto](https://documentation.divio.com/))
 
 doc notes,
 - use async:race to avoid ghcid ghosts
 - at most one ws client supported right now
 - tailwind + blaze-html layout (BlazeWind?) for no-frills getting started
 - [dealing with errors](https://github.com/srid/memoir/issues/1)
+- messaging re: hakyll 
+  - safer/ simpler routes system
+  - bring your own templates / DSL

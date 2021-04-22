@@ -100,14 +100,33 @@ wsClientShim :: LByteString
 wsClientShim =
   encodeUtf8
     [text|
+        <script type="module" src="https://cdn.jsdelivr.net/npm/morphdom@2.6.1/dist/morphdom-umd.min.js"></script>
+
         <script type="module">
+
+        function htmlToElem(html) {
+          let temp = document.createElement('template');
+          html = html.trim(); // Never return a space text node as a result
+          temp.innerHTML = html;
+          return temp.content.firstChild;
+        };
+
+        function setHtml(elm, html) {
+          patchInnerHtml(elm, html);
+        };
+
+        function patchInnerHtml(elm, html) {
+          var htmlElem = htmlToElem(html);
+          morphdom(elm, html);
+        };
+
         // Replace the DOM with a new raw HTML
         // 
         // This function tries to trigger evaluation of <script> tags in the
         // HTML, but for some reason it doesn't seem to work reliably.
         // cf. the shims in Ema.Helper.Tailwind 
         // https://stackoverflow.com/a/47614491/55246
-        function setInnerHtml(elm, html) {
+        function setInnerHtmlSlow(elm, html) {
           elm.innerHTML = html;
           Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
             const newScript = document.createElement("script");
@@ -176,7 +195,7 @@ wsClientShim =
           };
           ws.onmessage = evt => {
             console.log("ema: ✍ Replacing DOM")
-            setInnerHtml(document.documentElement, evt.data);
+            setHtml(document.documentElement, evt.data);
             // Intercept route click events, and ask server for its HTML whilst
             // managing history state.
             document.body.addEventListener(`click`, e => {
