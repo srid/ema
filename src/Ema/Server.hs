@@ -57,7 +57,7 @@ runServerWithWebSocketHotReload port model render = do
                 Left newHtml -> do
                   -- The page the user is currently viewing has changed. Send
                   -- the new HTML to them.
-                  WS.sendTextData conn $ routeHtml newHtml watchingRoute
+                  WS.sendTextData conn $ renderWithEmaHtmlShims newHtml watchingRoute
                   log $ "[Watch]: ~~> " <> show watchingRoute
                   loop
                 Right nextRoute -> do
@@ -67,7 +67,7 @@ runServerWithWebSocketHotReload port model render = do
                   -- request immediately following this).
                   log $ "[Switch]: <~~ " <> show nextRoute
                   html <- LVar.get model
-                  WS.sendTextData conn $ routeHtml html nextRoute
+                  WS.sendTextData conn $ renderWithEmaHtmlShims html nextRoute
                   log $ "[Switch]: ~~> " <> show nextRoute
                   loop
         try loop >>= \case
@@ -81,13 +81,14 @@ runServerWithWebSocketHotReload port model render = do
           pure (H.status404, "No route")
         Just r -> do
           val <- LVar.get model
-          pure (H.status200, routeHtml val r)
+          pure (H.status200, renderWithEmaShims val r)
       f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
+    renderWithEmaShims m r =
+      render m r <> emaStatusHtml <> wsClientShim
+    renderWithEmaHtmlShims m r =
+      render m r <> emaStatusHtml
     routeFromPathInfo =
       fromSlug . fmap (fromString . toString)
-    routeHtml :: model -> route -> LByteString
-    routeHtml m r = do
-      render m r <> emaStatusHtml <> wsClientShim
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
@@ -100,14 +101,33 @@ wsClientShim :: LByteString
 wsClientShim =
   encodeUtf8
     [text|
+        <script type="module" src="https://cdn.jsdelivr.net/npm/morphdom@2.6.1/dist/morphdom-umd.min.js"></script>
+
         <script type="module">
+
+        function htmlToElem(html) {
+          let temp = document.createElement('template');
+          html = html.trim(); // Never return a space text node as a result
+          temp.innerHTML = html;
+          return temp.content.firstChild;
+        };
+
+        function setHtml(elm, html) {
+          patchInnerHtml(elm, html);
+        };
+
+        function patchInnerHtml(elm, html) {
+          var htmlElem = htmlToElem(html);
+          morphdom(elm, html);
+        };
+
         // Replace the DOM with a new raw HTML
         // 
         // This function tries to trigger evaluation of <script> tags in the
         // HTML, but for some reason it doesn't seem to work reliably.
         // cf. the shims in Ema.Helper.Tailwind 
         // https://stackoverflow.com/a/47614491/55246
-        function setInnerHtml(elm, html) {
+        function setInnerHtmlSlow(elm, html) {
           elm.innerHTML = html;
           Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
             const newScript = document.createElement("script");
@@ -162,24 +182,7 @@ wsClientShim =
              ws.send(path);
           }
 
-          ws.onopen = () => {
-            // window.connected();
-            window.hideIndicator();
-            watchCurrentRoute();
-          };
-          ws.onclose = () => {
-            console.log("ema: closed; reconnecting ..");
-            window.reloading();
-            // Reconnect after 1s, which is typical time it takes for ghcid to reboot.
-            // Then, retry in another 1s. Ideally we need an exponential retry logic.
-            setTimeout(init, 1000);
-          };
-          ws.onmessage = evt => {
-            console.log("ema: ✍ Replacing DOM")
-            setInnerHtml(document.documentElement, evt.data);
-            // Intercept route click events, and ask server for its HTML whilst
-            // managing history state.
-            document.body.addEventListener(`click`, e => {
+          function handleRouteClicks(e) {
               const origin = e.target.closest("a");
               if (origin) {
                 if (window.location.host === origin.host) {
@@ -189,8 +192,28 @@ wsClientShim =
                   e.preventDefault();
                 };
               }
-            });
-            // Continue observing
+            };
+          // Intercept route click events, and ask server for its HTML whilst
+          // managing history state.
+          window.addEventListener(`click`, handleRouteClicks);
+
+          ws.onopen = () => {
+            // window.connected();
+            window.hideIndicator();
+            watchCurrentRoute();
+          };
+          ws.onclose = () => {
+            console.log("ema: closed; reconnecting ..");
+            window.removeEventListener(`click`, handleRouteClicks);
+            window.reloading();
+            // Reconnect after 1s, which is typical time it takes for ghcid to reboot.
+            // Then, retry in another 1s. Ideally we need an exponential retry logic.
+            setTimeout(init, 1000);
+          };
+
+          ws.onmessage = evt => {
+            console.log("ema: ✍ Patching DOM")
+            setHtml(document.documentElement, evt.data);
             watchCurrentRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };
