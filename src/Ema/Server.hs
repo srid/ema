@@ -101,6 +101,11 @@ wsClientShim =
   encodeUtf8
     [text|
         <script type="module">
+        // Replace the DOM with a new raw HTML
+        // 
+        // This function tries to trigger evaluation of <script> tags in the
+        // HTML, but for some reason it doesn't seem to work reliably.
+        // cf. the shims in Ema.Helper.Tailwind 
         // https://stackoverflow.com/a/47614491/55246
         function setInnerHtml(elm, html) {
           elm.innerHTML = html;
@@ -139,7 +144,7 @@ wsClientShim =
           document.getElementById("ema-indicator").style.display = "none";
         };
 
-        // WebSocket logic
+        // WebSocket logic: watching for server changes & route switching
         function init() {
           console.log("ema: Opening ws conn");
           window.connecting();
@@ -147,47 +152,55 @@ wsClientShim =
 
           // Call this, then the server will send update *once*. Call again for
           // continous monitoring.
-          function watchRoute() {
+          function watchCurrentRoute() {
+            console.log(`ema: ⏿ Observing changes to $${document.location.pathname}`);
             ws.send(document.location.pathname);
           };
+
+          function switchRoute(path) {
+             console.log(`ema: → Switching to $${path}`);
+             ws.send(path);
+          }
 
           ws.onopen = () => {
             // window.connected();
             window.hideIndicator();
-            console.log("ema: Observing server for changes");
-            watchRoute();
+            watchCurrentRoute();
           };
           ws.onclose = () => {
             console.log("ema: closed; reconnecting ..");
             window.reloading();
+            // Reconnect after 1s, which is typical time it takes for ghcid to reboot.
+            // Then, retry in another 1s. Ideally we need an exponential retry logic.
             setTimeout(init, 1000);
-            // refreshPage();
           };
           ws.onmessage = evt => {
-            console.log("ema: Resetting HTML body")
+            console.log("ema: ✍ Replacing DOM")
             setInnerHtml(document.documentElement, evt.data);
+            // Intercept route click events, and ask server for its HTML whilst
+            // managing history state.
             document.body.addEventListener(`click`, e => {
               const origin = e.target.closest("a");
               if (origin) {
-                console.log(`You clicked ${origin.href}`);
                 if (window.location.host === origin.host) {
-                  // Hey server, cancel my previous watch - and load this
-                  console.log(`hey server: ${origin.pathname} vs ${document.location.pathname}`);
                   document.body.classList.add("opacity-20");
                   window.history.pushState({}, "", origin.pathname);
-                  ws.send(origin.pathname);
+                  switchRoute(origin.pathname);
                   e.preventDefault();
                 };
               }
             });
-            watchRoute();
+            // Continue observing
+            watchCurrentRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
 
+          // When the user clicks the back button, resume watching the URL in
+          // the addressback, which has the effect of loading it immediately.
           window.onpopstate = function(e) {
             document.body.classList.add("opacity-20");
-            ws.send(document.location.pathname);
+            watchCurrentRoute();
           };
         };
         
