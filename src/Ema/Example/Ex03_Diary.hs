@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | An advanced example demonstrating how to build something like neuron
 --
@@ -16,11 +17,10 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time (Day, defaultTimeLocale, parseTimeM)
 import Ema.App (runEma)
+import Ema.Class
 import qualified Ema.Helper.Tailwind as Tailwind
 import Ema.Route
 import qualified Shower
-import System.Directory (canonicalizePath)
-import System.Environment (getArgs)
 import System.FSNotify
   ( Event (..),
     watchDir,
@@ -32,23 +32,25 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-data Route
+data R
   = Index
   | OnDay Day
   deriving (Show)
 
-instance IsRoute Route where
-  toSlug = \case
+newtype Diary = Diary {unDiary :: Map Day OrgFile}
+  deriving (Show)
+
+instance Ema Diary where
+  type Route Diary = R
+  encodeRoute = \case
     Index -> mempty
     OnDay day -> one $ show day
-  fromSlug = \case
+  decodeRoute = \case
     [] -> Just Index
     [s] -> OnDay <$> parseDay (toString $ unSlug s)
     _ -> Nothing
-
-allRoutes :: Diary -> [Route]
-allRoutes diary =
-  Index : fmap OnDay (Map.keys diary)
+  modelRoutes diary =
+    Index : fmap OnDay (Map.keys $ unDiary diary)
 
 parseDay :: String -> Maybe Day
 parseDay =
@@ -66,13 +68,11 @@ parseDailyNoteFilepath :: FilePath -> Maybe Day
 parseDailyNoteFilepath f =
   parseDay . toString =<< T.stripSuffix ".org" (toText $ takeFileName f)
 
-type Diary = Map Day OrgFile
-
 diaryFrom :: FilePath -> IO Diary
 diaryFrom folder = do
   putStrLn $ "Loading .org files from " <> folder
   fs <- getDirectoryFiles folder (one "*.org")
-  Map.fromList . catMaybes <$> forM fs (parseDailyNote . (folder </>))
+  Diary . Map.fromList . catMaybes <$> forM fs (parseDailyNote . (folder </>))
 
 watchAndUpdateDiary :: FilePath -> LVar.LVar Diary -> IO ()
 watchAndUpdateDiary folder model = do
@@ -85,11 +85,11 @@ watchAndUpdateDiary folder model = do
               Nothing -> pure ()
               Just (day, org) -> do
                 putStrLn $ "Update: " <> show day
-                LVar.modify model $ Map.insert day org
+                LVar.modify model $ Diary . Map.insert day org . unDiary
           deleteFile fp = do
             whenJust (parseDailyNoteFilepath fp) $ \day -> do
               putStrLn $ "Delete: " <> show day
-              LVar.modify model $ Map.delete day
+              LVar.modify model $ Diary . Map.delete day . unDiary
       case event of
         Added fp _ isDir -> unless isDir $ updateFile fp
         Modified fp _ isDir -> unless isDir $ updateFile fp
@@ -104,11 +104,11 @@ main = do
 
 mainWith :: FilePath -> IO ()
 mainWith folder = do
-  runEma allRoutes render $ \model -> do
+  runEma render $ \model -> do
     LVar.set model =<< diaryFrom folder
     watchAndUpdateDiary folder model
 
-render :: Diary -> Route -> LByteString
+render :: Diary -> R -> LByteString
 render diary r = do
   Tailwind.layout (H.title pageTitle) $
     H.div ! A.class_ "container mx-auto" $ do
@@ -119,12 +119,12 @@ render diary r = do
         Index -> do
           heading "My Diary"
           H.div ! A.class_ "" $
-            forM_ (sortOn Down $ Map.keys diary) $ \day ->
+            forM_ (sortOn Down $ Map.keys $ unDiary diary) $ \day ->
               H.li $ routeElem (OnDay day) $ H.toMarkup @Text (show day)
         OnDay day -> do
           heading $ show day
           routeElem Index "Back to Index"
-          maybe "not found" renderOrg (Map.lookup day diary)
+          maybe "not found" renderOrg (Map.lookup day $ unDiary diary)
       H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
         "Powered by "
         H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
@@ -135,7 +135,7 @@ render diary r = do
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ routeUrl r')
+      A.href (fromString . toString $ routeUrl @Diary r')
 
 renderOrg :: OrgFile -> H.Html
 renderOrg _org@(Org.OrgFile meta doc) = do

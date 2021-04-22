@@ -1,25 +1,29 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Ema.Generate where
 
-import Ema.Route (IsRoute, routeFile)
+import Ema.Class
+import Ema.Route (routeFile)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
-import System.FilePath
+import System.FilePath (takeDirectory, (</>))
 
 generate ::
-  (Show route, IsRoute route) =>
+  forall model.
+  Ema model =>
   FilePath ->
-  [route] ->
-  (route -> LByteString) ->
+  model ->
+  (model -> Route model -> LByteString) ->
   IO ()
-generate dest routes render = do
+generate dest model render = do
   unlessM (doesDirectoryExist dest) $ do
     error "Destination does not exist"
+  let routes = modelRoutes model
   putStrLn $ "Writing " <> show (length routes) <> " routes"
   forM_ routes $ \r -> do
-    let fp = dest </> routeFile r
-        !s = render r
+    let fp = dest </> routeFile @model r
+        !s = render model r
     createDirectoryIfMissing True (takeDirectory fp)
     putStrLn $ "W " <> fp
     writeFileLBS fp s

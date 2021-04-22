@@ -1,4 +1,7 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | A very simple site with routes, but based on dynamically changing values
 --
@@ -18,25 +21,29 @@ import Data.Time
     getCurrentTime,
   )
 import Ema.App (runEma)
+import Ema.Class
 import qualified Ema.Helper.Tailwind as Tailwind
-import Ema.Route (IsRoute (..), routeUrl)
+import Ema.Route
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-data Route
+data R
   = Index
   | OnlyTime
-  deriving (Show)
+  deriving (Show, Enum, Bounded)
 
-instance IsRoute Route where
-  toSlug = \case
+instance Ema UTCTime where
+  type Route UTCTime = R
+  encodeRoute = \case
     Index -> mempty
     OnlyTime -> one "time"
-  fromSlug = \case
+  decodeRoute = \case
     [] -> Just Index
     ["time"] -> Just OnlyTime
     _ -> Nothing
+  modelRoutes _ =
+    [minBound .. maxBound]
 
 changeTime :: LVar.LVar UTCTime -> IO ()
 changeTime model = do
@@ -46,15 +53,15 @@ changeTime model = do
 
 main :: IO ()
 main = do
-  runEma (const [Index, OnlyTime]) render $ \model -> do
+  runEma render $ \model -> do
     LVar.set model =<< getCurrentTime
     changeTime model
 
-render :: UTCTime -> Route -> LByteString
+render :: UTCTime -> R -> LByteString
 render now r =
   Tailwind.layout (H.title "Clock") $
     H.div ! A.class_ "container mx-auto" $ do
-      H.div ! A.class_ "border-t-1 p-2 text-center" $ do
+      H.div ! A.class_ "border-t-1 p-2 tex{-# OPTIONS_GHC -fno-warn-orphans #-}t-center" $ do
         "The current time is: "
         H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
           H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do
@@ -72,7 +79,7 @@ render now r =
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ routeUrl r')
+      A.href (fromString . toString $ routeUrl @UTCTime r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]
