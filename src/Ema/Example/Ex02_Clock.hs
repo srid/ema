@@ -1,5 +1,4 @@
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | A very simple site with routes, but based on dynamically changing values
@@ -13,12 +12,7 @@ module Ema.Example.Ex02_Clock where
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
-import Data.Time
-  ( UTCTime,
-    defaultTimeLocale,
-    formatTime,
-    getCurrentTime,
-  )
+import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..), routeUrl, runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
@@ -41,17 +35,12 @@ instance Ema UTCTime Route where
   modelRoutes _ =
     [minBound .. maxBound]
 
-changeTime :: LVar.LVar UTCTime -> IO ()
-changeTime model = do
-  forever $ do
-    threadDelay $ 1 * 1000000
-    LVar.set model =<< getCurrentTime
-
 main :: IO ()
 main = do
-  runEma render $ \model -> do
-    LVar.set model =<< getCurrentTime
-    changeTime model
+  runEma render $ \model ->
+    forever $ do
+      LVar.set model =<< getCurrentTime
+      threadDelay $ 1 * 1000000
 
 render :: UTCTime -> Route -> LByteString
 render now r =
