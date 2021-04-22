@@ -43,18 +43,18 @@ runServerWithWebSocketHotReload port model render = do
                   & routeFromPathInfo
                   & fromMaybe (error "invalid route from ws")
             loop = do
-              initialRoute <- askClientForRoute
-              log $ "[Init]: Route requested: " <> show initialRoute
+              watchingRoute <- askClientForRoute
+              log $ "[Watch]: <~~ " <> show watchingRoute
               race (LVar.listenNext model subId) askClientForRoute >>= \case
-                Left initialHtml -> do
-                  WS.sendTextData conn $ routeHtml initialHtml initialRoute
-                  log $ "[Init]: HTML sent: " <> show initialRoute
+                Left newHtml -> do
+                  WS.sendTextData conn $ routeHtml newHtml watchingRoute
+                  log $ "[Watch]: ~~> " <> show watchingRoute
                   loop
                 Right nextRoute -> do
-                  log $ "[Next]: Route requested: " <> show nextRoute
-                  nextHtml <- LVar.get model
-                  WS.sendTextData conn $ routeHtml nextHtml nextRoute
-                  log $ "[Next]: HTML sent: " <> show nextRoute
+                  log $ "[Switch]: <~~ " <> show nextRoute
+                  html <- LVar.get model
+                  WS.sendTextData conn $ routeHtml html nextRoute
+                  log $ "[Switch]: ~~> " <> show nextRoute
                   loop
         try loop >>= \case
           Right () -> pure ()
