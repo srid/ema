@@ -110,7 +110,7 @@ mainWith folder = do
 
 render :: Diary -> Route -> LByteString
 render diary r = do
-  Tailwind.layout (H.title "My Diary") $
+  Tailwind.layout (H.title pageTitle) $
     H.div ! A.class_ "container mx-auto" $ do
       let heading =
             H.header
@@ -125,7 +125,13 @@ render diary r = do
           heading $ show day
           routeElem Index "Back to Index"
           maybe "not found" renderOrg (Map.lookup day diary)
+      H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
+        "Powered by "
+        H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
   where
+    pageTitle = case r of
+      Index -> "My Diary"
+      OnDay day -> show day <> " -- My Diary"
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
