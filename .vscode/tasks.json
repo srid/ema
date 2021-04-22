@@ -14,7 +14,7 @@
                 "isDefault": true
             },
             "runOptions": {
-                "runOn": "folderOpen"
+                // "runOn": "folderOpen"
             }
         }
     ]
