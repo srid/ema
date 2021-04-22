@@ -4,6 +4,7 @@
 -- | TODO: Refactor this module
 module Ema.Server where
 
+import Control.Concurrent.Async (race)
 import Control.Exception (try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
@@ -33,19 +34,42 @@ runServerWithWebSocketHotReload port model render = do
       WS.withPingThread conn 30 (pure ()) $ do
         subId <- LVar.addListener model
         let log s = putTextLn $ "[" <> show subId <> "] :: " <> s
-        log "ws connected"
-        let loop = do
-              msg <- WS.receiveData conn
-              let r :: route =
-                    msg
-                      & pathInfoFromWsMsg
-                      & routeFromPathInfo
-                      & fromMaybe (error "invalid route from ws")
-              log $ "Browser requests next HTML for: " <> show r
-              val <- LVar.listenNext model subId
-              WS.sendTextData conn $ routeHtml val r
-              log $ "Sent HTML for " <> show r
-              loop
+        log "ws:connected"
+        let askClientForRoute = do
+              msg :: Text <- WS.receiveData conn
+              pure $
+                msg
+                  & pathInfoFromWsMsg
+                  & routeFromPathInfo
+                  & fromMaybe (error "invalid route from ws")
+            loop = do
+              -- Notice that we @askClientForRoute@ in succession twice here.
+              -- The first route will be the route the client intends to observe
+              -- for changes on. The second route, *if* it is sent, indicates
+              -- that the client wants to *switch* to that route. This proecess
+              -- repeats ad infinitum: i.e., the third route is for observing
+              -- changes, the fourth route is for switching to, and so on.
+              watchingRoute <- askClientForRoute
+              log $ "[Watch]: <~~ " <> show watchingRoute
+              -- Listen *until* either we get a new value, or the client requests
+              -- to switch to a new route.
+              race (LVar.listenNext model subId) askClientForRoute >>= \case
+                Left newHtml -> do
+                  -- The page the user is currently viewing has changed. Send
+                  -- the new HTML to them.
+                  WS.sendTextData conn $ routeHtml newHtml watchingRoute
+                  log $ "[Watch]: ~~> " <> show watchingRoute
+                  loop
+                Right nextRoute -> do
+                  -- The user clicked on a route link; send them the HTML for
+                  -- that route this time, ignoring what we are watching
+                  -- currently (we expect the user to initiate a watch route
+                  -- request immediately following this).
+                  log $ "[Switch]: <~~ " <> show nextRoute
+                  html <- LVar.get model
+                  WS.sendTextData conn $ routeHtml html nextRoute
+                  log $ "[Switch]: ~~> " <> show nextRoute
+                  loop
         try loop >>= \case
           Right () -> pure ()
           Left (err :: ConnectionException) -> do
@@ -77,6 +101,11 @@ wsClientShim =
   encodeUtf8
     [text|
         <script type="module">
+        // Replace the DOM with a new raw HTML
+        // 
+        // This function tries to trigger evaluation of <script> tags in the
+        // HTML, but for some reason it doesn't seem to work reliably.
+        // cf. the shims in Ema.Helper.Tailwind 
         // https://stackoverflow.com/a/47614491/55246
         function setInnerHtml(elm, html) {
           elm.innerHTML = html;
@@ -88,29 +117,6 @@ wsClientShim =
             oldScript.parentNode.replaceChild(newScript, oldScript);
           });
         }
-
-        // Unused, right now.
-        function refreshPage() {
-          // The setTimeout is necessary, otherwise reload will hang forever (at
-          // least on Brave browser)
-          // 
-          // The delayedRefresh trick (5000 and 2000) is for cases when the
-          // server hasn't reloaded fast enough, but the browser hangs forever
-          // in reload refresh state.
-          //
-          // FIXME: This is not enough. Cancel and retry the reload, as it is
-          // normal to have longer sessions of ghcid in error state while the
-          // user fixes their code.
-          setTimeout(function() {
-            window.location.reload();
-          }, 5000);
-          setTimeout(function() {
-            window.location.reload();
-          }, 2000);
-          setTimeout(function() {
-            window.location.reload();
-          }, 100);
-        };
 
         // Ema Status indicator
         const messages = {
@@ -138,7 +144,7 @@ wsClientShim =
           document.getElementById("ema-indicator").style.display = "none";
         };
 
-        // WebSocket logic
+        // WebSocket logic: watching for server changes & route switching
         function init() {
           console.log("ema: Opening ws conn");
           window.connecting();
@@ -146,29 +152,56 @@ wsClientShim =
 
           // Call this, then the server will send update *once*. Call again for
           // continous monitoring.
-          function watchRoute() {
+          function watchCurrentRoute() {
+            console.log(`ema: ⏿ Observing changes to $${document.location.pathname}`);
             ws.send(document.location.pathname);
           };
+
+          function switchRoute(path) {
+             console.log(`ema: → Switching to $${path}`);
+             ws.send(path);
+          }
 
           ws.onopen = () => {
             // window.connected();
             window.hideIndicator();
-            console.log("ema: Observing server for changes");
-            watchRoute();
+            watchCurrentRoute();
           };
           ws.onclose = () => {
             console.log("ema: closed; reconnecting ..");
             window.reloading();
+            // Reconnect after 1s, which is typical time it takes for ghcid to reboot.
+            // Then, retry in another 1s. Ideally we need an exponential retry logic.
             setTimeout(init, 1000);
-            // refreshPage();
           };
           ws.onmessage = evt => {
-            console.log("ema: Resetting HTML body")
+            console.log("ema: ✍ Replacing DOM")
             setInnerHtml(document.documentElement, evt.data);
-            watchRoute();
+            // Intercept route click events, and ask server for its HTML whilst
+            // managing history state.
+            document.body.addEventListener(`click`, e => {
+              const origin = e.target.closest("a");
+              if (origin) {
+                if (window.location.host === origin.host) {
+                  document.body.classList.add("opacity-20");
+                  window.history.pushState({}, "", origin.pathname);
+                  switchRoute(origin.pathname);
+                  e.preventDefault();
+                };
+              }
+            });
+            // Continue observing
+            watchCurrentRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
+
+          // When the user clicks the back button, resume watching the URL in
+          // the addressback, which has the effect of loading it immediately.
+          window.onpopstate = function(e) {
+            document.body.classList.add("opacity-20");
+            watchCurrentRoute();
+          };
         };
         
         window.onpageshow = init;
