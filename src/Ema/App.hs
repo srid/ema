@@ -42,10 +42,10 @@ runEmaPure html = do
 -- It uses @race_@ to properly clean up the update action when the ema thread
 -- exits, and vice-versa.
 runEma ::
-  forall model.
-  (Ema model, Show (Route model)) =>
+  forall model route.
+  (Ema model route, Show route) =>
   -- | How to render a route, given the model
-  (model -> Route model -> LByteString) ->
+  (model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (LVar model -> IO ()) ->
@@ -59,8 +59,8 @@ runEma render runModel = do
 
 -- | Run Ema live dev server
 runEmaWith ::
-  forall model.
-  (Ema model, Show (Route model)) =>
+  forall model route.
+  (Ema model route, Show route) =>
   -- | CLI Action
   Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
@@ -73,7 +73,7 @@ runEmaWith ::
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (model -> Route model -> LByteString) ->
+  (model -> route -> LByteString) ->
   IO ()
 runEmaWith action model render = do
   -- TODO: Use a logging library, in place of managing buffering and using putStrLn

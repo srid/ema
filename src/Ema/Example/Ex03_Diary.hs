@@ -30,7 +30,7 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-data R
+data Route
   = Index
   | OnDay Day
   deriving (Show)
@@ -38,8 +38,7 @@ data R
 newtype Diary = Diary {unDiary :: Map Day OrgFile}
   deriving (Show)
 
-instance Ema Diary where
-  type Route Diary = R
+instance Ema Diary Route where
   encodeRoute = \case
     Index -> mempty
     OnDay day -> one $ show day
@@ -106,7 +105,7 @@ mainWith folder = do
     LVar.set model =<< diaryFrom folder
     watchAndUpdateDiary folder model
 
-render :: Diary -> R -> LByteString
+render :: Diary -> Route -> LByteString
 render diary r = do
   Tailwind.layout (H.title pageTitle) $
     H.div ! A.class_ "container mx-auto" $ do
@@ -133,7 +132,7 @@ render diary r = do
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ routeUrl @Diary r')
+      A.href (fromString . toString $ routeUrl r')
 
 renderOrg :: OrgFile -> H.Html
 renderOrg _org@(Org.OrgFile meta doc) = do

@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -19,10 +18,10 @@ import Ema.Route.UrlStrategy
     slugUrlWithStrategy,
   )
 
-routeUrl :: forall a. Ema a => Route a -> Text
+routeUrl :: forall a r. Ema a r => r -> Text
 routeUrl r =
   slugUrlWithStrategy def (encodeRoute @a r)
 
-routeFile :: forall a. Ema a => Route a -> FilePath
+routeFile :: forall a r. Ema a r => r -> FilePath
 routeFile r =
   slugFileWithStrategy def (encodeRoute @a r)

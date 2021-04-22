@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -10,11 +9,11 @@ import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.FilePath (takeDirectory, (</>))
 
 generate ::
-  forall model.
-  Ema model =>
+  forall model route.
+  Ema model route =>
   FilePath ->
   model ->
-  (model -> Route model -> LByteString) ->
+  (model -> route -> LByteString) ->
   IO ()
 generate dest model render = do
   unlessM (doesDirectoryExist dest) $ do

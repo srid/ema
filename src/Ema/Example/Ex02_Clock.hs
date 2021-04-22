@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -26,13 +25,12 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
-data R
+data Route
   = Index
   | OnlyTime
   deriving (Show, Enum, Bounded)
 
-instance Ema UTCTime where
-  type Route UTCTime = R
+instance Ema UTCTime Route where
   encodeRoute = \case
     Index -> mempty
     OnlyTime -> one "time"
@@ -55,7 +53,7 @@ main = do
     LVar.set model =<< getCurrentTime
     changeTime model
 
-render :: UTCTime -> R -> LByteString
+render :: UTCTime -> Route -> LByteString
 render now r =
   Tailwind.layout (H.title "Clock") $
     H.div ! A.class_ "container mx-auto" $ do
@@ -77,7 +75,7 @@ render now r =
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ routeUrl @UTCTime r')
+      A.href (fromString . toString $ routeUrl r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]

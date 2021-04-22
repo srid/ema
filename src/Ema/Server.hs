@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -20,11 +19,11 @@ import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
 
 runServerWithWebSocketHotReload ::
-  forall model.
-  (Ema model, Show (Route model)) =>
+  forall model route.
+  (Ema model route, Show route) =>
   Int ->
   LVar model ->
-  (model -> Route model -> LByteString) ->
+  (model -> route -> LByteString) ->
   IO ()
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
