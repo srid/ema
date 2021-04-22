@@ -4,6 +4,7 @@
 -- | TODO: Refactor this module
 module Ema.Server where
 
+import Control.Concurrent.Async (race)
 import Control.Exception (try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
@@ -41,11 +42,25 @@ runServerWithWebSocketHotReload port model render = do
                       & pathInfoFromWsMsg
                       & routeFromPathInfo
                       & fromMaybe (error "invalid route from ws")
-              log $ "Browser requests next HTML for: " <> show r
-              val <- LVar.listenNext model subId
-              WS.sendTextData conn $ routeHtml val r
-              log $ "Sent HTML for " <> show r
-              loop
+              log $ "!!!: Browser requests next HTML for: " <> show r
+              eVal <- race (LVar.listenNext model subId) $ do
+                msg2 :: Text <- WS.receiveData conn
+                pure $
+                  msg2
+                    & pathInfoFromWsMsg
+                    & routeFromPathInfo
+                    & fromMaybe (error "invalid route from ws")
+              case eVal of
+                Left val -> do
+                  WS.sendTextData conn $ routeHtml val r
+                  log $ "!!!: Sent HTML for " <> show r
+                  loop
+                Right routeToSwitch -> do
+                  log $ "~~>: request to switch"
+                  val <- LVar.get model
+                  WS.sendTextData conn $ routeHtml val routeToSwitch
+                  log $ "~~>: Sent HTML for " <> show routeToSwitch
+                  loop
         try loop >>= \case
           Right () -> pure ()
           Left (err :: ConnectionException) -> do
@@ -165,10 +180,29 @@ wsClientShim =
           ws.onmessage = evt => {
             console.log("ema: Resetting HTML body")
             setInnerHtml(document.documentElement, evt.data);
+            document.body.addEventListener(`click`, e => {
+              const origin = e.target.closest("a");
+              if (origin) {
+                console.log(`You clicked ${origin.href}`);
+                if (window.location.host === origin.host) {
+                  // Hey server, cancel my previous watch - and load this
+                  console.log(`hey server: ${origin.pathname} vs ${document.location.pathname}`);
+                  document.body.classList.add("opacity-20");
+                  window.history.pushState({}, "", origin.pathname);
+                  ws.send(origin.pathname);
+                  e.preventDefault();
+                };
+              }
+            });
             watchRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
+
+          window.onpopstate = function(e) {
+            document.body.classList.add("opacity-20");
+            ws.send(document.location.pathname);
+          };
         };
         
         window.onpageshow = init;
