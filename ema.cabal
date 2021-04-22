@@ -89,14 +89,15 @@ library
 
   exposed-modules:
     Data.LVar
-    Ema.App
-    Ema.Class
+    Ema
     Ema.CLI
-    Ema.Generate
     Ema.Helper.Tailwind
-    Ema.Route
 
   other-modules:
+    Ema.App
+    Ema.Class
+    Ema.Generate
+    Ema.Route
     Ema.Route.Slug
     Ema.Route.UrlStrategy
     Ema.Server

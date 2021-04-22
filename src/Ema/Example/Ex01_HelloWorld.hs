@@ -6,10 +6,10 @@
 -- values.
 module Ema.Example.Ex01_HelloWorld where
 
-import Ema.App (runEmaPure)
+import Ema (runEmaPure)
 
 main :: IO ()
 main = do
-  let name :: Text = "Srid"
-  runEmaPure $ \() ->
-    encodeUtf8 $ "Hello, " <> name
+  let speaker :: Text = "Ema"
+  runEmaPure $
+    encodeUtf8 $ "<b>Hello</b>, from " <> speaker

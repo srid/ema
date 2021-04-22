@@ -11,30 +11,30 @@ module Ema.App
 where
 
 import Control.Concurrent.Async (race_)
-import Data.Default
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
-import Ema.CLI
+import Ema.CLI (Action (..))
 import qualified Ema.CLI as CLI
-import Ema.Class
+import Ema.Class (Ema (..))
 import qualified Ema.Generate as Generate
-import Ema.Route.UrlStrategy
 import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 import System.Environment (lookupEnv)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
--- Due to purity, there is no impure state, and thus no time-varying model. The
--- render function consequently takes only the @route@ as argument.
+-- Due to purity, there is no impure state, and thus no time-varying model.
+-- Neither is there a concept of route, as only a single route (index.html) is
+-- expected, whose HTML contents is specified as the only argument to this
+-- function.
 runEmaPure ::
   -- | How to render a route
-  (Route () -> LByteString) ->
+  LByteString ->
   IO ()
-runEmaPure render = do
+runEmaPure html = do
   action <- CLI.cliAction
-  emptyModel <- LVar.empty
-  runEmaWith @() action emptyModel (const render)
+  emptyModel <- LVar.new ()
+  runEmaWith @() action emptyModel (\() () -> html)
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
@@ -44,9 +44,10 @@ runEmaPure render = do
 runEma ::
   forall model.
   (Ema model, Show (Route model)) =>
+  -- | How to render a route, given the model
+  (model -> Route model -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (model -> Route model -> LByteString) ->
   (LVar model -> IO ()) ->
   IO ()
 runEma render runModel = do
@@ -60,6 +61,7 @@ runEma render runModel = do
 runEmaWith ::
   forall model.
   (Ema model, Show (Route model)) =>
+  -- | CLI Action
   Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
   -- time (for hot-reload).

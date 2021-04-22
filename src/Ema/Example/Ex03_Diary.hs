@@ -16,10 +16,8 @@ import qualified Data.Org as Org
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time (Day, defaultTimeLocale, parseTimeM)
-import Ema.App (runEma)
-import Ema.Class
+import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
-import Ema.Route
 import qualified Shower
 import System.FSNotify
   ( Event (..),

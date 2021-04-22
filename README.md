@@ -11,9 +11,9 @@ The simplest ema app looks like this:
 ```haskell
 main :: IO ()
 main = do
-  let name :: Text = "Srid"
-  runEmaPure $ \() ->
-    encodeUtf8 $ "<b>Hello,</b> " <> name
+  let name :: Text = "Ema"
+  runEmaPure $
+    encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 
 ## Hacking

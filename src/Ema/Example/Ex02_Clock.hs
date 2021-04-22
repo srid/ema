@@ -20,10 +20,8 @@ import Data.Time
     formatTime,
     getCurrentTime,
   )
-import Ema.App (runEma)
-import Ema.Class
+import Ema (Ema (..), routeUrl, runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
-import Ema.Route
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
