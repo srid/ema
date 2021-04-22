@@ -5,6 +5,7 @@
 module Ema.App
   ( runEma,
     runEmaPure,
+    runEmaWithAction,
     runEmaWith,
     Ema (..),
   )
@@ -52,6 +53,22 @@ runEma ::
   IO ()
 runEma render runModel = do
   action <- CLI.cliAction
+  runEmaWithAction action render runModel
+
+-- | Like @runEma@ but takes the CLI action
+--
+-- Useful if you are handling CLI arguments yourself.
+runEmaWithAction ::
+  forall model route.
+  (Ema model route, Show route) =>
+  Action ->
+  -- | How to render a route, given the model
+  (model -> route -> LByteString) ->
+  -- | A long-running IO action that will update the @model@ @LVar@ over time.
+  -- This IO action must set the initial model value in the very beginning.
+  (LVar model -> IO ()) ->
+  IO ()
+runEmaWithAction action render runModel = do
   model <- LVar.empty
   race_
     (runModel model)
