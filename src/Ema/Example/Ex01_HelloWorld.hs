@@ -11,5 +11,5 @@ import Ema.App (runEmaPure)
 main :: IO ()
 main = do
   let name :: Text = "Srid"
-  runEmaPure $ \() ->
+  runEmaPure (one ()) $ \() ->
     encodeUtf8 $ "Hello, " <> name

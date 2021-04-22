@@ -46,7 +46,7 @@ changeTime model = do
 
 main :: IO ()
 main = do
-  flip runEma render $ \model -> do
+  runEma (const [Index, OnlyTime]) render $ \model -> do
     LVar.set model =<< getCurrentTime
     changeTime model
 

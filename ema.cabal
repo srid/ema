@@ -39,7 +39,7 @@ library
   build-depends:
     , aeson
     , async
-    , base                ^>=4.14.1.0
+    , base                  ^>=4.14.1.0
     , blaze-html
     , blaze-markup
     , containers
@@ -47,6 +47,7 @@ library
     , filepath
     , http-types
     , neat-interpolation
+    , optparse-applicative
     , relude
     , safe-exceptions
     , stm
@@ -88,9 +89,11 @@ library
 
   exposed-modules:
     Data.LVar
+    Ema.CLI
     Ema.App
     Ema.Helper.Tailwind
     Ema.Route
+    Ema.Generate
 
   other-modules:
     Ema.Route.Slug

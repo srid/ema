@@ -46,6 +46,10 @@ instance IsRoute Route where
     [s] -> OnDay <$> parseDay (toString $ unSlug s)
     _ -> Nothing
 
+allRoutes :: Diary -> [Route]
+allRoutes diary =
+  Index : fmap OnDay (Map.keys diary)
+
 parseDay :: String -> Maybe Day
 parseDay =
   parseTimeM False defaultTimeLocale "%Y-%m-%d"
@@ -96,15 +100,11 @@ watchAndUpdateDiary folder model = do
 
 main :: IO ()
 main = do
-  folder <-
-    getArgs >>= \case
-      [_, path] -> canonicalizePath path
-      _ -> canonicalizePath "src/Ema/Example/Diary"
-  mainWith folder
+  mainWith "src/Ema/Example/Diary"
 
 mainWith :: FilePath -> IO ()
 mainWith folder = do
-  flip runEma render $ \model -> do
+  runEma allRoutes render $ \model -> do
     LVar.set model =<< diaryFrom folder
     watchAndUpdateDiary folder model
 
