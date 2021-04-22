@@ -80,14 +80,13 @@ runServerWithWebSocketHotReload port model render = do
         Nothing ->
           pure (H.status404, "No route")
         Just r -> do
+          let renderWithEmaShims m r' =
+                render m r' <> emaStatusHtml <> wsClientShim
           val <- LVar.get model
           pure (H.status200, renderWithEmaShims val r)
       f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
     routeFromPathInfo =
       fromSlug . fmap (fromString . toString)
-    renderWithEmaShims :: model -> route -> LByteString
-    renderWithEmaShims m r = do
-      render m r <> emaStatusHtml <> wsClientShim
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
@@ -181,6 +180,22 @@ wsClientShim =
              ws.send(path);
           }
 
+          function handleRouteClicks(e) {
+              console.log("click");
+              const origin = e.target.closest("a");
+              if (origin) {
+                if (window.location.host === origin.host) {
+                  document.body.classList.add("opacity-20");
+                  window.history.pushState({}, "", origin.pathname);
+                  switchRoute(origin.pathname);
+                  e.preventDefault();
+                };
+              }
+            };
+          // Intercept route click events, and ask server for its HTML whilst
+          // managing history state.
+          window.addEventListener(`click`, handleRouteClicks);
+
           ws.onopen = () => {
             // window.connected();
             window.hideIndicator();
@@ -193,23 +208,10 @@ wsClientShim =
             // Then, retry in another 1s. Ideally we need an exponential retry logic.
             setTimeout(init, 1000);
           };
+
           ws.onmessage = evt => {
-            console.log("ema: ✍ Replacing DOM")
+            console.log("ema: ✍ Patching DOM")
             setHtml(document.documentElement, evt.data);
-            // Intercept route click events, and ask server for its HTML whilst
-            // managing history state.
-            document.body.addEventListener(`click`, e => {
-              const origin = e.target.closest("a");
-              if (origin) {
-                if (window.location.host === origin.host) {
-                  document.body.classList.add("opacity-20");
-                  window.history.pushState({}, "", origin.pathname);
-                  switchRoute(origin.pathname);
-                  e.preventDefault();
-                };
-              }
-            });
-            // Continue observing
             watchCurrentRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };
