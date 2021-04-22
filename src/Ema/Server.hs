@@ -57,7 +57,7 @@ runServerWithWebSocketHotReload port model render = do
                 Left newHtml -> do
                   -- The page the user is currently viewing has changed. Send
                   -- the new HTML to them.
-                  WS.sendTextData conn $ routeHtml newHtml watchingRoute
+                  WS.sendTextData conn $ render newHtml watchingRoute
                   log $ "[Watch]: ~~> " <> show watchingRoute
                   loop
                 Right nextRoute -> do
@@ -67,7 +67,7 @@ runServerWithWebSocketHotReload port model render = do
                   -- request immediately following this).
                   log $ "[Switch]: <~~ " <> show nextRoute
                   html <- LVar.get model
-                  WS.sendTextData conn $ routeHtml html nextRoute
+                  WS.sendTextData conn $ render html nextRoute
                   log $ "[Switch]: ~~> " <> show nextRoute
                   loop
         try loop >>= \case
@@ -81,12 +81,12 @@ runServerWithWebSocketHotReload port model render = do
           pure (H.status404, "No route")
         Just r -> do
           val <- LVar.get model
-          pure (H.status200, routeHtml val r)
+          pure (H.status200, renderWithEmaShims val r)
       f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
     routeFromPathInfo =
       fromSlug . fmap (fromString . toString)
-    routeHtml :: model -> route -> LByteString
-    routeHtml m r = do
+    renderWithEmaShims :: model -> route -> LByteString
+    renderWithEmaShims m r = do
       render m r <> emaStatusHtml <> wsClientShim
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
