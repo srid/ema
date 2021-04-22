@@ -113,29 +113,6 @@ wsClientShim =
           });
         }
 
-        // Unused, right now.
-        function refreshPage() {
-          // The setTimeout is necessary, otherwise reload will hang forever (at
-          // least on Brave browser)
-          // 
-          // The delayedRefresh trick (5000 and 2000) is for cases when the
-          // server hasn't reloaded fast enough, but the browser hangs forever
-          // in reload refresh state.
-          //
-          // FIXME: This is not enough. Cancel and retry the reload, as it is
-          // normal to have longer sessions of ghcid in error state while the
-          // user fixes their code.
-          setTimeout(function() {
-            window.location.reload();
-          }, 5000);
-          setTimeout(function() {
-            window.location.reload();
-          }, 2000);
-          setTimeout(function() {
-            window.location.reload();
-          }, 100);
-        };
-
         // Ema Status indicator
         const messages = {
           connected: "Connected",
