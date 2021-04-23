@@ -1,1 +1,3 @@
-Hello
+# Ema static site generator
+
+*Welcome*.

@@ -65,8 +65,10 @@ library
       build-depends:
         , commonmark
         , commonmark-extensions
+        , commonmark-pandoc
         , filepattern
         , fsnotify
+        , pandoc-types
         , shower
         , tagged
         , time
