@@ -13,18 +13,16 @@ module Ema.Example.Ex03_Documentation where
 import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
-import Control.Concurrent (threadDelay)
-import Control.Exception (finally, throw)
+import Control.Exception (throw)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
 import Data.Tagged (Tagged (Tagged), untag)
+import qualified Data.Text as T
 import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
+import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import qualified Shower
-import System.Directory (canonicalizePath)
-import System.FSNotify (Event (..), watchDir, watchTree, withManager)
-import System.FilePath (makeRelative, splitExtension, splitPath, (</>))
-import System.FilePattern.Directory (getDirectoryFiles)
+import System.FilePath (splitExtension, splitPath, (</>))
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -37,7 +35,8 @@ type SourcePath = Tagged "SourcePath" (NonEmpty Text)
 mkSourcePath :: FilePath -> Maybe SourcePath
 mkSourcePath = \case
   (splitExtension -> (fp, ".md")) ->
-    Tagged . fmap toText <$> nonEmpty (splitPath fp)
+    let slugs = T.dropWhileEnd (== '/') . toText <$> splitPath fp
+     in Tagged <$> nonEmpty slugs
   _ ->
     Nothing
 
@@ -58,46 +57,26 @@ instance Ema Sources SourcePath where
 
 main :: IO ()
 main = do
-  mainWith =<< canonicalizePath "docs"
+  mainWith "docs"
 
 mainWith :: FilePath -> IO ()
 mainWith folder = do
   runEma render $ \model -> do
-    LVar.set model =<< loadSources
-    watchAndUpdate model
-  where
-    loadSources :: IO Sources
-    loadSources = do
+    LVar.set model =<< do
       putStrLn $ "Loading .md files from " <> folder
-      fs <- getDirectoryFiles folder (one "**/*.md")
-      Tagged . Map.fromList . catMaybes <$> forM fs readSource
-
-    -- Watch the diary folder, and update our in-memory model incrementally.
-    watchAndUpdate :: LVar.LVar Sources -> IO ()
-    watchAndUpdate model = do
-      putStrLn $ "Watching .org files in " <> folder
-      withManager $ \mgr -> do
-        stop <- watchTree mgr folder (const True) $ \event -> do
-          print event
-          let updateFile fp = do
-                readSource fp >>= \case
-                  Nothing -> pure ()
-                  Just (spath, s) -> do
-                    putStrLn $ "Update: " <> show spath
-                    LVar.modify model $ Tagged . Map.insert spath s . untag
-              deleteFile fp = do
-                whenJust (mkSourcePath fp) $ \spath -> do
-                  putStrLn $ "Delete: " <> show spath
-                  LVar.modify model $ Tagged . Map.delete spath . untag
-          let rel = makeRelative folder
-          case event of
-            Added (rel -> fp) _ isDir -> unless isDir $ updateFile fp
-            Modified (rel -> fp) _ isDir -> unless isDir $ updateFile fp
-            Removed (rel -> fp) _ isDir -> unless isDir $ deleteFile fp
-            Unknown (rel -> fp) _ _ -> updateFile fp
-        threadDelay maxBound
-          `finally` stop
-
+      mdFiles <- FileSystem.filesMatching folder ["**/*.md"]
+      forM mdFiles readSource
+        <&> Tagged . Map.fromList . catMaybes
+    FileSystem.onChange folder $ \fp -> \case
+      FileSystem.Update ->
+        whenJustM (readSource fp) $ \(spath, s) -> do
+          putStrLn $ "Update: " <> show spath
+          LVar.modify model $ Tagged . Map.insert spath s . untag
+      FileSystem.Delete ->
+        whenJust (mkSourcePath fp) $ \spath -> do
+          putStrLn $ "Delete: " <> show spath
+          LVar.modify model $ Tagged . Map.delete spath . untag
+  where
     readSource :: FilePath -> IO (Maybe (SourcePath, Pandoc))
     readSource fp =
       runMaybeT $ do
@@ -105,11 +84,18 @@ mainWith folder = do
         s <- readFileText $ folder </> fp
         pure (spath, parseMarkdown s)
 
+newtype BadRoute = BadRoute SourcePath
+  deriving (Show, Exception)
+
 render :: Sources -> SourcePath -> LByteString
 render srcs spath = do
   Tailwind.layout (H.title "Ema Docs") $
     H.div ! A.class_ "container mx-auto" $ do
-      H.pre $ H.toHtml $ Shower.shower srcs
+      if spath == Tagged (one "index")
+        then H.pre $ H.toHtml $ Shower.shower srcs
+        else case Map.lookup spath (untag srcs) of
+          Nothing -> throw $ BadRoute spath
+          Just doc -> H.pre $ H.toHtml $ Shower.shower doc
       H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
         "Powered by "
         H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
@@ -133,14 +119,6 @@ parseMarkdown s =
       CP.unCm @() @B.Blocks $
         either (throw . BadMarkdown . show) id $
           join $ CM.commonmarkWith @(Either CM.ParseError) markdownSpec "x" s
-
-{-
-type SyntaxSpec m il bl =
-  ( SyntaxSpec' m il bl,
-    m ~ Either P.ParseError,
-    bl ~ CP.Cm () B.Blocks
-  )
-  -}
 
 type SyntaxSpec' m il bl =
   ( Monad m,

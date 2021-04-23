@@ -60,14 +60,14 @@ library
     build-depends:
       , blaze-html
       , blaze-markup
+      , filepattern
+      , fsnotify
 
     if flag(with-examples)
       build-depends:
         , commonmark
         , commonmark-extensions
         , commonmark-pandoc
-        , filepattern
-        , fsnotify
         , pandoc-types
         , shower
         , tagged
@@ -99,7 +99,9 @@ library
     Ema.CLI
 
   if (flag(with-helpers) || flag(with-examples))
-    exposed-modules: Ema.Helper.Tailwind
+    exposed-modules:
+      Ema.Helper.FileSystem
+      Ema.Helper.Tailwind
 
   other-modules:
     Ema.App
