@@ -21,8 +21,9 @@ import Data.Tagged (Tagged (Tagged), untag)
 import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
 import qualified Shower
-import System.FSNotify (Event (..), watchDir, withManager)
-import System.FilePath (splitExtension, splitPath, (</>))
+import System.Directory (canonicalizePath)
+import System.FSNotify (Event (..), watchDir, watchTree, withManager)
+import System.FilePath (makeRelative, splitExtension, splitPath, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -46,17 +47,18 @@ instance Ema Sources SourcePath where
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
     Tagged paths -> toList . fmap (fromString . toString) $ paths
-  decodeRoute = \case
-    [] ->
-      Just $ Tagged $ one "index"
-    (slug : rest) ->
-      Just $ Tagged $ fmap (toText . unSlug) $ slug :| rest
+  decodeRoute =
+    Just . Tagged . \case
+      (nonEmpty -> Nothing) ->
+        one "index"
+      (nonEmpty -> Just slugs) ->
+        toText . unSlug <$> slugs
   staticRoutes (Map.keys . untag -> spaths) =
     spaths
 
 main :: IO ()
 main = do
-  mainWith "docs"
+  mainWith =<< canonicalizePath "docs"
 
 mainWith :: FilePath -> IO ()
 mainWith folder = do
@@ -67,15 +69,15 @@ mainWith folder = do
     loadSources :: IO Sources
     loadSources = do
       putStrLn $ "Loading .md files from " <> folder
-      fs <- getDirectoryFiles folder (one "*.md")
-      Tagged . Map.fromList . catMaybes <$> forM fs (readSource . (folder </>))
+      fs <- getDirectoryFiles folder (one "**/*.md")
+      Tagged . Map.fromList . catMaybes <$> forM fs readSource
 
     -- Watch the diary folder, and update our in-memory model incrementally.
     watchAndUpdate :: LVar.LVar Sources -> IO ()
     watchAndUpdate model = do
       putStrLn $ "Watching .org files in " <> folder
       withManager $ \mgr -> do
-        stop <- watchDir mgr folder (const True) $ \event -> do
+        stop <- watchTree mgr folder (const True) $ \event -> do
           print event
           let updateFile fp = do
                 readSource fp >>= \case
@@ -87,20 +89,21 @@ mainWith folder = do
                 whenJust (mkSourcePath fp) $ \spath -> do
                   putStrLn $ "Delete: " <> show spath
                   LVar.modify model $ Tagged . Map.delete spath . untag
+          let rel = makeRelative folder
           case event of
-            Added fp _ isDir -> unless isDir $ updateFile fp
-            Modified fp _ isDir -> unless isDir $ updateFile fp
-            Removed fp _ isDir -> unless isDir $ deleteFile fp
-            Unknown fp _ _ -> updateFile fp
+            Added (rel -> fp) _ isDir -> unless isDir $ updateFile fp
+            Modified (rel -> fp) _ isDir -> unless isDir $ updateFile fp
+            Removed (rel -> fp) _ isDir -> unless isDir $ deleteFile fp
+            Unknown (rel -> fp) _ _ -> updateFile fp
         threadDelay maxBound
           `finally` stop
 
-readSource :: FilePath -> IO (Maybe (SourcePath, Pandoc))
-readSource fp =
-  runMaybeT $ do
-    spath :: SourcePath <- MaybeT $ pure $ mkSourcePath fp
-    s <- readFileText fp
-    pure (spath, parseMarkdown s)
+    readSource :: FilePath -> IO (Maybe (SourcePath, Pandoc))
+    readSource fp =
+      runMaybeT $ do
+        spath :: SourcePath <- MaybeT $ pure $ mkSourcePath fp
+        s <- readFileText $ folder </> fp
+        pure (spath, parseMarkdown s)
 
 render :: Sources -> SourcePath -> LByteString
 render srcs spath = do
