@@ -1,4 +1,0 @@
-#+mood: 4
-
-* A very *old* diary entry
-** Indeed, it is. :someTag:

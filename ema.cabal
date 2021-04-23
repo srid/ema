@@ -29,10 +29,6 @@ extra-source-files:
   LICENSE
   README.md
 
-data-files:
-  if flag(with-examples)
-    src/Ema/Example/Diary/*.org
-
 library
   -- Modules included in this executable, other than Main.
   -- other-modules:
@@ -60,17 +56,19 @@ library
     , warp
     , websockets
 
-  if flag(with-helpers) || flag(with-examples)
+  if (flag(with-helpers) || flag(with-examples))
     build-depends:
       , blaze-html
       , blaze-markup
 
     if flag(with-examples)
       build-depends:
+        , commonmark
+        , commonmark-extensions
         , filepattern
         , fsnotify
-        , org-mode
         , shower
+        , tagged
         , time
 
   mixins:
@@ -98,9 +96,8 @@ library
     Ema
     Ema.CLI
 
-  if flag(with-helpers) || flag(with-examples)
-    exposed-modules:
-      Ema.Helper.Tailwind
+  if (flag(with-helpers) || flag(with-examples))
+    exposed-modules: Ema.Helper.Tailwind
 
   other-modules:
     Ema.App
@@ -115,7 +112,7 @@ library
     other-modules:
       Ema.Example.Ex01_HelloWorld
       Ema.Example.Ex02_Clock
-      Ema.Example.Ex03_Diary
+      Ema.Example.Ex03_Documentation
 
   hs-source-dirs:     src
   default-language:   Haskell2010
