@@ -12,7 +12,7 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
-import Data.Tagged
+import Data.Tagged (Tagged (Tagged))
 import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
 import qualified Ema.Helper.Tailwind as Tailwind
 import System.FSNotify (Event (..), watchDir, withManager)
@@ -22,11 +22,8 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
+-- | Represents the relative path to a source (.md) file under some directory.
 type SourcePath = Tagged "SourcePath" (NonEmpty Text)
-
-instance One SourcePath where
-  type OneItem SourcePath = Text
-  one x = Tagged $ x :| []
 
 mkSourcePath :: FilePath -> Maybe SourcePath
 mkSourcePath = \case
@@ -35,23 +32,20 @@ mkSourcePath = \case
   _ ->
     Nothing
 
-data Route
-  = Page SourcePath
-  deriving (Show)
-
 newtype Sources = Sources {unSources :: Map SourcePath Text}
   deriving (Show)
 
-instance Ema Sources Route where
+instance Ema Sources SourcePath where
   encodeRoute = \case
-    Page (Tagged ("index" :| [])) -> mempty
-    Page (Tagged paths) -> toList . fmap (fromString . toString) $ paths
+    Tagged ("index" :| []) -> mempty
+    Tagged paths -> toList . fmap (fromString . toString) $ paths
   decodeRoute = \case
-    [] -> Just (Page $ one "index")
+    [] ->
+      Just $ Tagged $ one "index"
     (slug : rest) ->
-      Just $ Page $ Tagged $ fmap (toText . unSlug) $ slug :| rest
+      Just $ Tagged $ fmap (toText . unSlug) $ slug :| rest
   staticRoutes (Map.keys . unSources -> spaths) =
-    Page <$> spaths
+    spaths
 
 main :: IO ()
 main = do
@@ -101,8 +95,8 @@ readSource fp =
     s <- readFileText fp
     pure (spath, s)
 
-render :: Sources -> Route -> LByteString
-render diary (Page spath) = do
+render :: Sources -> SourcePath -> LByteString
+render srcs spath = do
   Tailwind.layout (H.title "Ema Docs") $
     H.div ! A.class_ "container mx-auto" $ do
       H.pre $ show spath
