@@ -49,3 +49,5 @@ doc notes,
 - messaging re: hakyll 
   - safer/ simpler routes system
   - bring your own templates / DSL
+- message cmp: svelte
+  - SSE

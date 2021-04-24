@@ -14,7 +14,6 @@
         overlays = [ ];
         pkgs = import nixpkgs {
           inherit system overlays;
-          config.allowBroken = true; # To allow `org-mode` package which is broken
         };
         emaProject = returnShellEnv:
           pkgs.haskellPackages.developPackage {
@@ -22,9 +21,6 @@
             name = "ema";
             root = ./.;
             withHoogle = false;
-            overrides = self: super: with pkgs.haskell.lib; {
-              org-mode = dontCheck super.org-mode; # `tasty` dependency is broken on nixpkgs
-            };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
               [

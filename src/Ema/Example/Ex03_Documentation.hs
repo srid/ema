@@ -1,6 +1,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -23,6 +24,7 @@ import qualified Data.Text as T
 import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
+import NeatInterpolation (text)
 import qualified Shower
 import System.FilePath (splitExtension, splitPath, (</>))
 import Text.Blaze.Html5 ((!))
@@ -135,11 +137,28 @@ render srcs spath = do
 
 renderBreadcrumbs :: SourcePath -> H.Html
 renderBreadcrumbs spath = do
-  H.div ! A.class_ "mt-4" $ do
-    forM_ (sourcePathInits spath) $ \crumb ->
-      H.a ! A.class_ "bg-green-200 p-2 border-2 rounded mr-2"
-        ! routeHref crumb
-        $ H.text $ sourcePathFileBase crumb
+  let (crumbs, lastCrumb) = init &&& last $ sourcePathInits spath
+  unless (null crumbs) $ do
+    -- Styling is based on https://tailwindesign.com/components/breadcrumb
+    H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
+      H.div ! A.class_ "flex justify-center" $ do
+        H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
+          H.ul ! A.class_ "flex text-gray-500 text-sm lg:text-base" $ do
+            forM_ crumbs $ \crumb ->
+              H.li ! A.class_ "inline-flex items-center" $ do
+                H.a ! A.class_ ""
+                  ! routeHref crumb
+                  $ H.text $ sourcePathFileBase crumb
+                rightArrow
+            H.li ! A.class_ "inline-flex items-center text-gray-600 underline" $ do
+              H.a $ H.text $ sourcePathFileBase lastCrumb
+  where
+    rightArrow = do
+      H.unsafeByteString $
+        encodeUtf8
+          [text|
+          <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-auto text-gray-400"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+          |]
 
 routeHref :: Ema a r => r -> H.Attribute
 routeHref r' =
@@ -154,9 +173,11 @@ rewriteLinks f =
       B.Link attr is (f url, title)
     x -> x
 
--- H.a ! A.href (H.textValue url) ! A.title (H.textValue title) ! rpAttr attr $ mapM_ rpInline is
-
 -- Pandoc renderer
+--
+-- Note that we hardcode tailwind classes, because pandoc AST is not flexible
+-- enough to provide attrs for all inlines/blocks. So we can't rely on Walk to
+-- transform it.
 
 renderPandoc :: Pandoc -> H.Html
 renderPandoc (Pandoc _meta blocks) = do
