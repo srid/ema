@@ -14,6 +14,7 @@ import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..), routeUrl, runEma)
+import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -37,14 +38,14 @@ instance Ema UTCTime Route where
 
 main :: IO ()
 main = do
-  runEma (const render) $ \model ->
+  runEma render $ \model ->
     forever $ do
       LVar.set model =<< getCurrentTime
       threadDelay $ 1 * 1000000
 
-render :: UTCTime -> Route -> LByteString
-render now r =
-  Tailwind.layout (H.title "Clock") $
+render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
+render emaAction now r =
+  Tailwind.layout emaAction (H.title "Clock") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "border-t-1 p-2 tex{-# OPTIONS_GHC -fno-warn-orphans #-}t-center" $ do
         "The current time is: "

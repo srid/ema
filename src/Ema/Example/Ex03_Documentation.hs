@@ -129,15 +129,10 @@ render emaAction srcs spath =
       let title = maybe (last $ untag spath) plainify $ getPandocH1 doc
           headWidget = do
             H.title $ H.text $ title <> " – Ema"
+            H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
             favIcon
             prismJs
-          tailwindSetup =
-            case emaAction of
-              Ema.CLI.Generate _ ->
-                Tailwind.twindShimUnofficial
-              _ ->
-                Tailwind.twindShimCdn
-      Tailwind.layoutWith "en" "UTF-8" tailwindSetup headWidget $ do
+      Tailwind.layout emaAction headWidget $ do
         H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
           H.div $ do
             H.b "WIP: "
@@ -246,9 +241,13 @@ rpBlock = \case
   B.BlockQuote bs ->
     H.blockquote $ mapM_ rpBlock bs
   B.OrderedList _ bss ->
-    H.ol ! A.class_ listStyle $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ol ! A.class_ listStyle $
+      forM_ bss $ \bs ->
+        H.li ! A.class_ listItemStyle $ mapM_ rpBlock bs
   B.BulletList bss ->
-    H.ul ! A.class_ (listStyle <> " list-disc") $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ul ! A.class_ (listStyle <> " list-disc") $
+      forM_ bss $ \bs ->
+        H.li ! A.class_ listItemStyle $ mapM_ rpBlock bs
   B.DefinitionList defs ->
     H.dl $
       forM_ defs $ \(term, descList) -> do
@@ -267,6 +266,7 @@ rpBlock = \case
     pure ()
   where
     listStyle = "list-inside ml-2"
+    listItemStyle = "text-xl py-1.5 lg:py-0 lg:text-base"
 
 headerElem :: Int -> H.Html -> H.Html
 headerElem = \case

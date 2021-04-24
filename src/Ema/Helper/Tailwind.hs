@@ -15,6 +15,7 @@ module Ema.Helper.Tailwind
   )
 where
 
+import qualified Ema.CLI
 import NeatInterpolation (text)
 import qualified Text.Blaze.Html.Renderer.Utf8 as RU
 import Text.Blaze.Html5 ((!))
@@ -22,11 +23,15 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
 -- | A simple and off-the-shelf layout using Tailwind CSS
-layout :: H.Html -> H.Html -> LByteString
-layout =
-  -- TODO: Preprocess the CSS (via tailwind postcss or windicss) when statically
-  -- generating, for a better Lighthouse score. CDN shim is inefficient for that.
-  layoutWith "en" "UTF-8" twindShimUnofficial
+layout :: Ema.CLI.Action -> H.Html -> H.Html -> LByteString
+layout action =
+  layoutWith "en" "UTF-8" $ case action of
+    Ema.CLI.Generate _ ->
+      twindShimUnofficial
+    _ ->
+      -- Twind shim doesn't reliably work in dev server mode. Let's just use the
+      -- tailwind CDN.
+      twindShimCdn
 
 -- | Like @layout@, but pick your own language, encoding and tailwind shim.
 layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> H.Html -> LByteString
