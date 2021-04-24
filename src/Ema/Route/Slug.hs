@@ -6,7 +6,7 @@ import qualified Data.Text as T
 
 -- | An URL path is made of multiple slugs, separated by '/'
 newtype Slug = Slug {unSlug :: Text}
-  deriving (Eq)
+  deriving (Eq, Show)
 
 instance IsString Slug where
   fromString :: HasCallStack => String -> Slug
