@@ -1,7 +1,8 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
--- | Use Tailwind? Try this module for rapid prototyping of websites in Ema.
+-- | Use Tailwind with blaze-html? Try this module for rapid prototyping of
+-- websites in Ema.
 module Ema.Helper.Tailwind
   ( -- * Main functions
     layout,
@@ -23,15 +24,18 @@ import qualified Text.Blaze.Html5.Attributes as A
 -- | A simple and off-the-shelf layout using Tailwind CSS
 layout :: H.Html -> H.Html -> LByteString
 layout =
-  layoutWith twindShimCdn
+  -- TODO: Preprocess the CSS (via tailwind postcss or windicss) when statically
+  -- generating, for a better Lighthouse score. CDN shim is inefficient for that.
+  layoutWith "en" "UTF-8" twindShimUnofficial
 
--- | Like @layout@, but pick your own tailwind shim.
-layoutWith :: H.Html -> H.Html -> H.Html -> LByteString
-layoutWith twindShim appHead appBody = RU.renderHtml $ do
+-- | Like @layout@, but pick your own language, encoding and tailwind shim.
+layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> H.Html -> LByteString
+layoutWith lang encoding twindShim appHead appBody = RU.renderHtml $ do
   H.docType
-  H.html ! A.lang "en" $ do
+  H.html ! A.lang lang $ do
     H.head $ do
-      H.meta ! A.charset "UTF-8"
+      H.meta ! A.charset encoding
+      -- This makes the site mobile friendly by default.
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
       appHead
       twindShim
@@ -43,8 +47,8 @@ twindShimCdn :: H.Html
 twindShimCdn =
   H.unsafeByteString . encodeUtf8 $
     [text|
-  <link href="https://unpkg.com/tailwindcss@2.1.1/dist/tailwind.min.css" rel="stylesheet" type="text/css">
-  |]
+    <link href="https://unpkg.com/tailwindcss@2.1.1/dist/tailwind.min.css" rel="stylesheet" type="text/css">
+    |]
 
 -- | This shim doesn't work with hot reload.
 twindShimOfficial :: H.Html
@@ -61,13 +65,12 @@ twindShimUnofficial = do
     ! A.type_ "text/javascript"
     ! A.src "https://cdn.jsdelivr.net/combine/npm/twind/twind.umd.min.js,npm/twind/observe/observe.umd.min.js"
     $ ""
-  H.script
-    ! A.type_ "text/javascript"
-    $ (fromString . toString) twindShimJS
-  where
-    twindShimJS :: Text
-    twindShimJS =
-      [text|
-      twind.setup({})
-      twindObserve.observe(document.documentElement)
+  H.script ! A.type_ "text/javascript" $ twindShimUnofficialEval
+
+twindShimUnofficialEval :: H.Html
+twindShimUnofficialEval =
+  H.unsafeByteString . encodeUtf8 $
+    [text|
+    twind.setup({})
+    twindObserve.observe(document.documentElement)
     |]

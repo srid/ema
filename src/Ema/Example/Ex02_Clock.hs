@@ -37,7 +37,7 @@ instance Ema UTCTime Route where
 
 main :: IO ()
 main = do
-  runEma render $ \model ->
+  runEma (const render) $ \model ->
     forever $ do
       LVar.set model =<< getCurrentTime
       threadDelay $ 1 * 1000000

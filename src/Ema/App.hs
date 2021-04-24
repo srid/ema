@@ -30,12 +30,12 @@ import System.Environment (lookupEnv)
 -- function.
 runEmaPure ::
   -- | How to render a route
-  LByteString ->
+  (Action -> LByteString) ->
   IO ()
 runEmaPure html = do
   action <- CLI.cliAction
   emptyModel <- LVar.new ()
-  runEmaWith @() action emptyModel (\() () -> html)
+  runEmaWith @() action emptyModel (\_ () () -> html action)
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
@@ -46,7 +46,7 @@ runEma ::
   forall model route.
   (Ema model route, Show route) =>
   -- | How to render a route, given the model
-  (model -> route -> LByteString) ->
+  (Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (LVar model -> IO ()) ->
@@ -63,7 +63,7 @@ runEmaWithAction ::
   (Ema model route, Show route) =>
   Action ->
   -- | How to render a route, given the model
-  (model -> route -> LByteString) ->
+  (Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (LVar model -> IO ()) ->
@@ -90,7 +90,7 @@ runEmaWith ::
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (model -> route -> LByteString) ->
+  (Action -> model -> route -> LByteString) ->
   IO ()
 runEmaWith action model render = do
   -- TODO: Use a logging library, in place of managing buffering and using putStrLn
@@ -101,9 +101,9 @@ runEmaWith action model render = do
   case action of
     Generate dest -> do
       val <- LVar.get model
-      Generate.generate dest val render
+      Generate.generate dest val (render action)
     Run -> do
       void $ LVar.get model
       port <- fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       putStrLn $ "Launching Ema at http://localhost:" <> show port
-      Server.runServerWithWebSocketHotReload port model render
+      Server.runServerWithWebSocketHotReload port model (render action)

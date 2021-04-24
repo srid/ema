@@ -11,5 +11,5 @@ import Ema (runEmaPure)
 main :: IO ()
 main = do
   let speaker :: Text = "Ema"
-  runEmaPure $
+  runEmaPure $ \_ ->
     encodeUtf8 $ "<b>Hello</b>, from " <> speaker

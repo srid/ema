@@ -120,14 +120,8 @@ wsClientShim =
           morphdom(elm, html);
         };
 
-        // Replace the DOM with a new raw HTML
-        // 
-        // This function tries to trigger evaluation of <script> tags in the
-        // HTML, but for some reason it doesn't seem to work reliably.
-        // cf. the shims in Ema.Helper.Tailwind 
-        // https://stackoverflow.com/a/47614491/55246
-        function setInnerHtmlSlow(elm, html) {
-          elm.innerHTML = html;
+        // FIXME: Can't make this work with tailwind shim
+        function reloadScripts(elm) {
           Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
             const newScript = document.createElement("script");
             Array.from(oldScript.attributes)
@@ -135,7 +129,7 @@ wsClientShim =
             newScript.appendChild(document.createTextNode(oldScript.innerHTML));
             oldScript.parentNode.replaceChild(newScript, oldScript);
           });
-        }
+        };
 
         // Ema Status indicator
         const messages = {
@@ -219,6 +213,7 @@ wsClientShim =
           ws.onmessage = evt => {
             console.log("ema: ✍ Patching DOM")
             setHtml(document.documentElement, evt.data);
+            // reloadScripts(document.documentElement);
             watchCurrentRoute();
           };
           window.onbeforeunload = evt => { ws.close(); };

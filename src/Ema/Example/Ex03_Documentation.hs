@@ -23,6 +23,7 @@ import Data.Profunctor (dimap)
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
 import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
+import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
@@ -120,8 +121,8 @@ mainWith folder =
 newtype BadRoute = BadRoute SourcePath
   deriving (Show, Exception)
 
-render :: Sources -> SourcePath -> LByteString
-render srcs spath =
+render :: Ema.CLI.Action -> Sources -> SourcePath -> LByteString
+render emaAction srcs spath =
   case Map.lookup spath (untag srcs) of
     Nothing -> throw $ BadRoute spath
     Just doc -> do
@@ -130,7 +131,13 @@ render srcs spath =
             H.title $ H.text $ title <> " – Ema"
             favIcon
             prismJs
-      Tailwind.layout headWidget $ do
+          tailwindSetup =
+            case emaAction of
+              Ema.CLI.Generate _ ->
+                Tailwind.twindShimUnofficial
+              _ ->
+                Tailwind.twindShimCdn
+      Tailwind.layoutWith "en" "UTF-8" tailwindSetup headWidget $ do
         H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
           H.div $ do
             H.b "WIP: "
@@ -302,7 +309,7 @@ rpInline = \case
     throw Unsupported
   B.Link attr is (url, title) -> do
     H.a
-      ! A.class_ "text-pink-500 font-bold hover:bg-pink-50"
+      ! A.class_ "text-pink-600 font-bold hover:bg-pink-50"
       ! A.href (H.textValue url)
       ! A.title (H.textValue title)
       ! rpAttr attr
