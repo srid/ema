@@ -1,7 +1,7 @@
 # Ema
 
 :::{.avatar}
-![](https://raw.githubusercontent.com/srid/ema/master/ema.svg)
+![](https://raw.githubusercontent.com/srid/ema/master/ema.svg){.w-32 .h-32}
 :::
 
 [Ema](https://github.com/srid/ema) is a next-gen **Haskell** library for building [jamstack-style](https://jamstack.org/) static sites. Ema sites are *change-aware*; in addition to good ol' static site generation, it provides a live server supporting **fast hot-reload** on the browser on code *or* data change. 

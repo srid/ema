@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
--- | Use Tailwind with blaze-html? Try this module for rapid prototyping of
+-- | Use Tailwind CSS with blaze-html? Try this module for rapid prototyping of
 -- websites in Ema.
 module Ema.Helper.Tailwind
   ( -- * Main functions
@@ -55,7 +55,7 @@ twindShimCdn =
     <link href="https://unpkg.com/tailwindcss@2.1.1/dist/tailwind.min.css" rel="stylesheet" type="text/css">
     |]
 
--- | This shim doesn't work with hot reload.
+-- | This shim may not work with hot reload.
 twindShimOfficial :: H.Html
 twindShimOfficial =
   H.unsafeByteString . encodeUtf8 $
@@ -71,11 +71,11 @@ twindShimUnofficial = do
     ! A.src "https://cdn.jsdelivr.net/combine/npm/twind/twind.umd.min.js,npm/twind/observe/observe.umd.min.js"
     $ ""
   H.script ! A.type_ "text/javascript" $ twindShimUnofficialEval
-
-twindShimUnofficialEval :: H.Html
-twindShimUnofficialEval =
-  H.unsafeByteString . encodeUtf8 $
-    [text|
-    twind.setup({})
-    twindObserve.observe(document.documentElement)
-    |]
+  where
+    twindShimUnofficialEval :: H.Html
+    twindShimUnofficialEval =
+      H.unsafeByteString . encodeUtf8 $
+        [text|
+        twind.setup({})
+        twindObserve.observe(document.documentElement)
+        |]
