@@ -19,13 +19,13 @@ import Control.Exception (throw)
 import qualified Data.LVar as LVar
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
+import Data.Profunctor (dimap)
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
 import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
-import qualified Shower
 import System.FilePath (splitExtension, splitPath, (</>))
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -120,24 +120,29 @@ newtype BadRoute = BadRoute SourcePath
 
 render :: Sources -> SourcePath -> LByteString
 render srcs spath = do
-  Tailwind.layout (H.title "Ema Docs") $ do
-    H.div ! A.class_ "flex justify-center p-4 bg-red-300 text-gray-700 font-bold text-2xl" $ do
-      H.div "Work In Progress"
-    H.div
-      ! A.class_ "container mx-auto"
-      $ do
-        renderBreadcrumbs spath
-        case Map.lookup spath (untag srcs) of
-          Nothing -> throw $ BadRoute spath
-          Just doc -> do
+  case Map.lookup spath (untag srcs) of
+    Nothing -> throw $ BadRoute spath
+    Just doc -> do
+      let title = maybe (last $ untag spath) plainify $ getPandocH1 doc
+      Tailwind.layout (H.title $ H.text $ title <> " – Ema Docs") $ do
+        H.div ! A.class_ "flex justify-center p-4 bg-red-300 text-gray-700 font-bold text-2xl" $ do
+          H.div "Work In Progress"
+        H.div
+          ! A.class_ "container mx-auto"
+          $ do
+            renderBreadcrumbs spath
             renderPandoc $
               doc
                 & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
-            -- Debug
-            H.div ! A.class_ "text-xs border-2 p-2 mt-10 bg-gray-100" $ H.pre $ H.toHtml $ Shower.shower doc
+                & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
             H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
               "Powered by "
               H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
+  where
+    emaMarkdownStyleLibrary =
+      Map.fromList
+        [ ("feature", "p-2 rounded border-2 border-gray-400 bg-pink-100 text-xl font-bold hover:bg-pink-200 hover:shadow hover:border-black")
+        ]
 
 renderBreadcrumbs :: SourcePath -> H.Html
 renderBreadcrumbs spath = do
@@ -177,6 +182,17 @@ rewriteLinks f =
       B.Link attr is (f url, title)
     x -> x
 
+applyClassLibrary :: (Text -> Text) -> Pandoc -> Pandoc
+applyClassLibrary f =
+  W.walk $ \case
+    B.Div (id', cls, attr) bs ->
+      B.Div (id', withPackedClass f cls, attr) bs
+    x -> x
+  where
+    withPackedClass :: (Text -> Text) -> [Text] -> [Text]
+    withPackedClass =
+      dimap (T.intercalate " ") (T.splitOn " ")
+
 -- Pandoc renderer
 --
 -- Note that we hardcode tailwind classes, because pandoc AST is not flexible
@@ -203,9 +219,9 @@ rpBlock = \case
   B.BlockQuote bs ->
     H.blockquote $ mapM_ rpBlock bs
   B.OrderedList _ bss ->
-    H.ol $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ol ! A.class_ "list-inside" $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
   B.BulletList bss ->
-    H.ul ! A.class_ "list-disc" $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ul ! A.class_ "list-disc list-inside" $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
   B.DefinitionList defs ->
     H.dl $
       forM_ defs $ \(term, descList) -> do

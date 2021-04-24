@@ -56,7 +56,6 @@ doc notes,
 - hot reload fast, morphdom
   - html templates + tailwind for fast style feedback
 - use async:race to avoid ghcid ghosts
-- at most one ws client supported right now
 - tailwind + blaze-html layout (BlazeWind?) for no-frills getting started
 - [dealing with errors](https://github.com/srid/memoir/issues/1)
 - messaging re: hakyll 

@@ -4,3 +4,22 @@
 
 * [Getting Started](getting-started.md)
 * [How To](howto.md)
+* [Features](features.md)
+
+## Features
+
+:::{.flex .justify-evenly .items-center .bg-gray-100 .py-4 }
+
+:::{.feature}
+Hot Reload
+:::
+
+:::{.feature}
+Server Side Rendering
+:::
+
+:::{.feature}
+Haskell's safety
+:::
+
+:::
