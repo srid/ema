@@ -32,18 +32,19 @@
                 haskell-language-server
               ]);
           };
+        ema = emaProject false;
       in
       {
         # Used by `nix build`
-        defaultPackage = emaProject false;
+        defaultPackage = ema;
 
         # Used by `nix develop`
         devShell = emaProject true;
 
         # Used by `nix run` (for docs)
         apps.${name} = flake-utils.lib.mkApp {
-          inherit name;
-          drv = emaProject false;
+          drv = ema;
+          exePath = "/bin/ema-docs";
         };
       });
 }
