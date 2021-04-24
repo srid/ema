@@ -207,7 +207,7 @@ wsClientShim =
             // connection error (ghcid hasn't rebooted yet), which cannot be
             // avoided as it is impossible to trap this error and handle it.
             // You'll see a big ugly error in the console.
-            setTimeout(init, 200);
+            setTimeout(init, 400);
           };
 
           ws.onmessage = evt => {
