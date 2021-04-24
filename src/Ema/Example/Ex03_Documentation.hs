@@ -98,17 +98,11 @@ render srcs spath = do
       case Map.lookup spath (untag srcs) of
         Nothing -> throw $ BadRoute spath
         Just doc -> do
-          let title = maybe "Untitled" plainify $ getPandocH1 doc
-          H.h1 ! A.class_ "text-5xl border-b-2 p-4 mb-8" $ H.toHtml title
           renderPandoc $
             doc
               & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
           -- Debug
-          if spath == Tagged (one "index")
-            then do
-              H.div ! A.class_ "border-2 p-2" $ do
-                H.pre $ H.toHtml $ Shower.shower srcs
-            else H.pre $ H.toHtml $ Shower.shower doc
+          H.div ! A.class_ "text-xs border-2 p-2 bg-gray-100" $ H.pre $ H.toHtml $ Shower.shower doc
           H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
             "Powered by "
             H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
@@ -140,7 +134,7 @@ rpBlock = \case
   B.Plain is ->
     mapM_ rpInline is
   B.Para is ->
-    mapM_ rpInline is
+    H.p ! A.class_ "my-2" $ mapM_ rpInline is
   B.LineBlock iss ->
     forM_ iss $ \is ->
       mapM_ rpInline is >> "\n"
@@ -153,7 +147,7 @@ rpBlock = \case
   B.OrderedList _ bss ->
     H.ol $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
   B.BulletList bss ->
-    H.ul $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ul ! A.class_ "list-disc" $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
   B.DefinitionList defs ->
     H.dl $
       forM_ defs $ \(term, descList) -> do
@@ -173,13 +167,15 @@ rpBlock = \case
 
 headerElem :: Int -> H.Html -> H.Html
 headerElem = \case
-  1 -> H.h1
-  2 -> H.h2
-  3 -> H.h3
-  4 -> H.h4
-  5 -> H.h5
-  6 -> H.h6
+  1 -> H.h1 ! A.class_ ("text-6xl " <> my <> " border-b-2 py-2")
+  2 -> H.h2 ! A.class_ ("text-5xl " <> my)
+  3 -> H.h3 ! A.class_ ("text-4xl " <> my)
+  4 -> H.h4 ! A.class_ ("text-3xl " <> my)
+  5 -> H.h5 ! A.class_ ("text-2xl " <> my)
+  6 -> H.h6 ! A.class_ ("text-xl " <> my)
   _ -> error "Invalid pandoc header level"
+  where
+    my = "my-2"
 
 rpInline :: B.Inline -> H.Html
 rpInline = \case
