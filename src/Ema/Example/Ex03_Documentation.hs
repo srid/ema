@@ -100,7 +100,9 @@ render srcs spath = do
         Just doc -> do
           let title = maybe "Untitled" plainify $ getPandocH1 doc
           H.h1 ! A.class_ "text-5xl border-b-2 p-4 mb-8" $ H.toHtml title
-          renderPandoc doc
+          renderPandoc $
+            doc
+              & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
           -- Debug
           if spath == Tagged (one "index")
             then do
@@ -115,6 +117,19 @@ render srcs spath = do
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
       A.href (fromString . toString $ routeUrl r')
+
+-- Pandoc transformer
+
+rewriteLinks :: (Text -> Text) -> Pandoc -> Pandoc
+rewriteLinks f =
+  W.walk $ \case
+    B.Link attr is (url, title) ->
+      B.Link attr is (f url, title)
+    x -> x
+
+-- H.a ! A.href (H.textValue url) ! A.title (H.textValue title) ! rpAttr attr $ mapM_ rpInline is
+
+-- Pandoc renderer
 
 renderPandoc :: Pandoc -> H.Html
 renderPandoc (Pandoc _meta blocks) = do
