@@ -41,7 +41,7 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
 - [x] Static site generation mode
 - [ ] add common examples,
   - [x] filesystem watcher
-  - [ ] docs site for self (w/ sidebar and possibly even search)
+  - [ ] docs site for self (w/ breadcrumbs and possibly even search)
 
 pre-announce,
 - [ ] CLI UX (opts, logging, etc.)

@@ -27,6 +27,6 @@ cliAction = do
       info
         (actionParser <**> helper)
         ( fullDesc
-            <> progDesc "Ema - desc"
+            <> progDesc "Ema - static site generator"
             <> header "Ema - header"
         )
