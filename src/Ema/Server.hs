@@ -183,7 +183,6 @@ wsClientShim =
               const origin = e.target.closest("a");
               if (origin) {
                 if (window.location.host === origin.host) {
-                  document.body.classList.add("opacity-20");
                   window.history.pushState({}, "", origin.pathname);
                   switchRoute(origin.pathname);
                   e.preventDefault();
@@ -226,7 +225,6 @@ wsClientShim =
           // When the user clicks the back button, resume watching the URL in
           // the addressback, which has the effect of loading it immediately.
           window.onpopstate = function(e) {
-            document.body.classList.add("opacity-20");
             watchCurrentRoute();
           };
         };
