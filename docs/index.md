@@ -1,3 +1,3 @@
 # Ema static site generator
 
-*Welcome*.
+*Welcome* to Ema documentation site. It is a work in progress.
