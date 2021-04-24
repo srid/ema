@@ -76,7 +76,9 @@ runServerWithWebSocketHotReload port model render = do
             log $ "ws:error " <> show err
             LVar.removeListener model subId
     httpApp req f = do
-      (status, v) <- case routeFromPathInfo (Wai.pathInfo req) of
+      let mr = routeFromPathInfo (Wai.pathInfo req)
+      putStrLn $ "[http] " <> show mr
+      (status, v) <- case mr of
         Nothing ->
           pure (H.status404, "No route")
         Just r -> do

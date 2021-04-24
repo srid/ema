@@ -77,21 +77,23 @@ instance Ema Sources SourcePath where
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
     Tagged paths -> toList . fmap (fromString . toString) $ paths
-  decodeRoute =
-    Just . Tagged . \case
-      (nonEmpty -> Nothing) ->
-        one "index"
-      (nonEmpty -> Just slugs) ->
-        toText . unSlug <$> slugs
+  decodeRoute = \case
+    (nonEmpty -> Nothing) ->
+      pure $ Tagged $ one "index"
+    (nonEmpty -> Just slugs) -> do
+      let parts = toText . unSlug <$> slugs
+      -- Heuristic to let requests to static files (eg: favicon.ico) to pass through
+      guard $ not (any (T.isInfixOf ".") parts)
+      pure $ Tagged parts
   staticRoutes (Map.keys . untag -> spaths) =
     spaths
 
 main :: IO ()
-main = do
+main =
   mainWith "docs"
 
 mainWith :: FilePath -> IO ()
-mainWith folder = do
+mainWith folder =
   runEma render $ \model -> do
     LVar.set model =<< do
       putStrLn $ "Loading .md files from " <> folder
@@ -119,36 +121,42 @@ newtype BadRoute = BadRoute SourcePath
   deriving (Show, Exception)
 
 render :: Sources -> SourcePath -> LByteString
-render srcs spath = do
+render srcs spath =
   case Map.lookup spath (untag srcs) of
     Nothing -> throw $ BadRoute spath
     Just doc -> do
       let title = maybe (last $ untag spath) plainify $ getPandocH1 doc
-      Tailwind.layout (H.title $ H.text $ title <> " – Ema Docs") $ do
-        H.div ! A.class_ "flex justify-center p-4 bg-red-300 text-gray-700 font-bold text-2xl" $ do
-          H.div "Work In Progress"
-        H.div
-          ! A.class_ "container mx-auto"
-          $ do
+      Tailwind.layout (H.title (H.text $ title <> " – Ema Docs") >> prismJs) $ do
+        H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
+          H.div $ do
+            H.b "WIP: "
+            "Documentation is still being written"
+        H.div ! A.class_ "container mx-auto " $ do
+          H.div ! A.class_ "px-2" $ do
             renderBreadcrumbs spath
             renderPandoc $
               doc
                 & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
                 & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
-            H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
-              "Powered by "
-              H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
+          H.footer ! A.class_ "mt-2 text-center text-gray-500" $ do
+            "Powered by "
+            H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
-        [ ("feature", "p-2 rounded border-2 border-gray-400 bg-pink-100 text-xl font-bold hover:bg-pink-200 hover:shadow hover:border-black")
+        [ ("feature", "flex justify-center items-center text-center p-2 m-2 w-32 h-32 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-xl font-bold hover:bg-pink-200 hover:shadow hover:border-black"),
+          ("avatar", "float-right w-32 h-32")
         ]
+    prismJs = do
+      H.unsafeByteString . encodeUtf8 $
+        [text|
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" /><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-core.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
+        |]
 
 renderBreadcrumbs :: SourcePath -> H.Html
 renderBreadcrumbs spath = do
   let (crumbs, lastCrumb) = init &&& last $ sourcePathInits spath
-  unless (null crumbs) $ do
-    -- Styling is based on https://tailwindesign.com/components/breadcrumb
+  unless (null crumbs) $
     H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
       H.div ! A.class_ "flex justify-center" $ do
         H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
@@ -162,7 +170,7 @@ renderBreadcrumbs spath = do
             H.li ! A.class_ "inline-flex items-center text-gray-600 underline" $ do
               H.a $ H.text $ sourcePathFileBase lastCrumb
   where
-    rightArrow = do
+    rightArrow =
       H.unsafeByteString $
         encodeUtf8
           [text|
@@ -200,7 +208,7 @@ applyClassLibrary f =
 -- transform it.
 
 renderPandoc :: Pandoc -> H.Html
-renderPandoc (Pandoc _meta blocks) = do
+renderPandoc (Pandoc _meta blocks) =
   mapM_ rpBlock blocks
 
 rpBlock :: B.Block -> H.Html
@@ -219,9 +227,9 @@ rpBlock = \case
   B.BlockQuote bs ->
     H.blockquote $ mapM_ rpBlock bs
   B.OrderedList _ bss ->
-    H.ol ! A.class_ "list-inside" $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ol ! A.class_ listStyle $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
   B.BulletList bss ->
-    H.ul ! A.class_ "list-disc list-inside" $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
+    H.ul ! A.class_ (listStyle <> " list-disc") $ forM_ bss $ \bs -> H.li $ mapM_ rpBlock bs
   B.DefinitionList defs ->
     H.dl $
       forM_ defs $ \(term, descList) -> do
@@ -238,10 +246,12 @@ rpBlock = \case
     H.div ! rpAttr attr $ mapM_ rpBlock bs
   B.Null ->
     pure ()
+  where
+    listStyle = "list-inside ml-2"
 
 headerElem :: Int -> H.Html -> H.Html
 headerElem = \case
-  1 -> H.h1 ! A.class_ ("text-6xl " <> my <> " border-b-2 py-2")
+  1 -> H.h1 ! A.class_ ("text-6xl " <> my <> " text-center py-2")
   2 -> H.h2 ! A.class_ ("text-5xl " <> my)
   3 -> H.h3 ! A.class_ ("text-4xl " <> my)
   4 -> H.h4 ! A.class_ ("text-3xl " <> my)
