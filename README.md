@@ -21,8 +21,10 @@ main = do
 If you have Nix installed with Flakes, give Ema a test-drive by running it to serve its own documentation:
 
 ```bash
-PORT=8000 nix run
+PORT=8000 nix run github:srid/ema
 ```
+
+NOTE: This will work if you have this repo's `./docs` directory locally. In future, ema should be made to include the docs in the nix derivation and reference it.
 
 ## Hacking
 
