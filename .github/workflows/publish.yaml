@@ -15,14 +15,13 @@ jobs:
           install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
           extra_nix_config: |
             experimental-features = nix-command flakes
-      # This builds neuron, as well as run tests
       - name: Build and generate docs HTML 🔧
         run: |
           mkdir ./docs-output
           nix run . -- gen ./docs-output
-    - name: Deploy to gh-pages 🚀
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: docs-output
-        cname: ema.srid.ca
+      - name: Deploy to gh-pages 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs-output
+          cname: ema.srid.ca

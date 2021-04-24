@@ -39,15 +39,18 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock exampl
     - [x] or, investigate https://hackage.haskell.org/package/ghci-websockets
 - [x] Multi-websocket-client support
 - [x] Static site generation mode
-- [ ] add common examples,
+- [x] add common examples,
   - [x] filesystem watcher
-  - [ ] docs site for self (w/ breadcrumbs and possibly even search)
+  - [x] docs site for self (w/ breadcrumbs and possibly even search)
 
 pre-announce,
-- [ ] CLI UX (opts, logging, etc.)
+- CLI UX 
+  - [x] opts
+  - [ ] logging
 - [ ] How to serve non-generated files (css, img, etc.)
 - [ ] Publish Data.LVar to Hackage
 - [ ] documentation ([howto](https://documentation.divio.com/))
+- [ ] Avoid tailwind CDN in docs (use twind or windicss) for better lighthouse score
 
 doc notes,
 - hot reload fast, morphdom
@@ -59,5 +62,5 @@ doc notes,
 - messaging re: hakyll 
   - safer/ simpler routes system
   - bring your own templates / DSL
-- message cmp: svelte
+- messaging re: svelte
   - SSE
