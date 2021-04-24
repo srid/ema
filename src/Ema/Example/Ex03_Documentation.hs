@@ -122,13 +122,16 @@ newtype BadRoute = BadRoute SourcePath
   deriving (Show, Exception)
 
 render :: Ema.CLI.Action -> Sources -> SourcePath -> LByteString
-render emaAction srcs spath =
+render emaAction srcs spath = do
+  let siteTitle = "Ema"
   case Map.lookup spath (untag srcs) of
     Nothing -> throw $ BadRoute spath
     Just doc -> do
       let title = maybe (last $ untag spath) plainify $ getPandocH1 doc
           headWidget = do
-            H.title $ H.text $ title <> " – Ema"
+            H.title $
+              H.text $
+                if title == siteTitle then siteTitle else title <> " – " <> siteTitle
             H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
             favIcon
             unless (spath == indexSourcePath) prismJs
@@ -137,21 +140,24 @@ render emaAction srcs spath =
           H.div $ do
             H.b "WIP: "
             "Documentation is still being written"
-        H.div ! A.class_ "container mx-auto " $ do
+        H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
           H.div ! A.class_ "px-2" $ do
-            renderBreadcrumbs spath
+            renderBreadcrumbs srcs spath
             renderPandoc $
               doc
                 & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
                 & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
-          H.footer ! A.class_ "mt-2 text-center text-gray-500" $ do
+          H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
             "Powered by "
-            H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
+            H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
         [ ("feature", "flex justify-center items-center text-center p-2 m-2 w-32 h-32 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-xl font-bold hover:bg-pink-200 hover:shadow hover:border-black"),
-          ("avatar", "float-right w-32 h-32")
+          ("avatar", "float-right w-32 h-32"),
+          -- Styling the last line in series posts
+          ("last", "mt-8 border-t-2 border-pink-500"),
+          ("next", "py-2 text-xl italic font-bold")
         ]
     prismJs = do
       H.unsafeByteString . encodeUtf8 $
@@ -165,22 +171,28 @@ render emaAction srcs spath =
         <link href="https://raw.githubusercontent.com/srid/ema/master/ema.svg" rel="icon" />
         |]
 
-renderBreadcrumbs :: SourcePath -> H.Html
-renderBreadcrumbs spath = do
-  let (crumbs, lastCrumb) = init &&& last $ sourcePathInits spath
-  unless (null crumbs) $
+lookupTitleForgiving :: Sources -> SourcePath -> Text
+lookupTitleForgiving srcs spath =
+  fromMaybe (sourcePathFileBase spath) $ do
+    doc <- Map.lookup spath $ untag srcs
+    is <- getPandocH1 doc
+    pure $ plainify is
+
+renderBreadcrumbs :: Sources -> SourcePath -> H.Html
+renderBreadcrumbs srcs spath = do
+  whenNotNull (init $ sourcePathInits spath) $ \(toList -> crumbs) ->
     H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
       H.div ! A.class_ "flex justify-center" $ do
         H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
           H.ul ! A.class_ "flex text-gray-500 text-sm lg:text-base" $ do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
-                H.a ! A.class_ ""
+                H.a ! A.class_ "px-1 font-bold bg-pink-500 text-gray-50 rounded"
                   ! routeHref crumb
-                  $ H.text $ sourcePathFileBase crumb
+                  $ H.text $ lookupTitleForgiving srcs crumb
                 rightArrow
-            H.li ! A.class_ "inline-flex items-center text-gray-600 underline" $ do
-              H.a $ H.text $ sourcePathFileBase lastCrumb
+            H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
+              H.a $ H.text $ lookupTitleForgiving srcs spath
   where
     rightArrow =
       H.unsafeByteString $
@@ -204,11 +216,18 @@ rewriteLinks f =
 
 applyClassLibrary :: (Text -> Text) -> Pandoc -> Pandoc
 applyClassLibrary f =
-  W.walk $ \case
-    B.Div (id', cls, attr) bs ->
-      B.Div (id', withPackedClass f cls, attr) bs
-    x -> x
+  walkBlocks . walkInlines
   where
+    walkBlocks = W.walk $ \case
+      B.Div attr bs ->
+        B.Div (g attr) bs
+      x -> x
+    walkInlines = W.walk $ \case
+      B.Span attr is ->
+        B.Span (g attr) is
+      x -> x
+    g (id', cls, attr) =
+      (id', withPackedClass f cls, attr)
     withPackedClass :: (Text -> Text) -> [Text] -> [Text]
     withPackedClass =
       dimap (T.intercalate " ") (T.splitOn " ")
@@ -330,9 +349,13 @@ rpInline = \case
 
 rpAttr :: B.Attr -> H.Attribute
 rpAttr (id', classes, attrs) =
-  A.id (fromString . toString $ id')
-    <> A.class_ (fromString . toString $ T.intercalate " " classes)
-    <> mconcat (fmap (\(k, v) -> H.dataAttribute (fromString . toString $ k) (fromString . toString $ v)) attrs)
+  let cls = T.intercalate " " classes
+   in unlessNull id' (A.id (fromString . toString $ id'))
+        <> unlessNull cls (A.class_ (fromString . toString $ cls))
+        <> mconcat (fmap (\(k, v) -> H.dataAttribute (fromString . toString $ k) (fromString . toString $ v)) attrs)
+  where
+    unlessNull x f =
+      if T.null x then mempty else f
 
 data Unsupported = Unsupported
   deriving (Show, Exception)
