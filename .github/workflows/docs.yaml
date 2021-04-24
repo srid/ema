@@ -18,6 +18,7 @@ jobs:
       # This builds neuron, as well as run tests
       - name: Build and generate docs HTML 🔧
         run: |
+          mkdir ./docs-output
           nix run . -- gen ./docs-output
       - name: Deploy to GitHub Pages 🚀
         uses: JamesIves/github-pages-deploy-action@3.7.1
