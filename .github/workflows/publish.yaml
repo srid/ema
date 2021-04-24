@@ -1,4 +1,4 @@
-name: "Publish Ema Docs"
+name: "Publish"
 on:
   # Run only when pushing to master branch
   push:
@@ -20,10 +20,9 @@ jobs:
         run: |
           mkdir ./docs-output
           nix run . -- gen ./docs-output
-      - name: Deploy to GitHub Pages 🚀
-        uses: JamesIves/github-pages-deploy-action@3.7.1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: docs-output
-          CLEAN: true
+    - name: Deploy to gh-pages 🚀
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs-output
+        cname: ema.srid.ca

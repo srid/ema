@@ -120,20 +120,24 @@ newtype BadRoute = BadRoute SourcePath
 
 render :: Sources -> SourcePath -> LByteString
 render srcs spath = do
-  Tailwind.layout (H.title "Ema Docs") $
-    H.div ! A.class_ "container mx-auto" $ do
-      renderBreadcrumbs spath
-      case Map.lookup spath (untag srcs) of
-        Nothing -> throw $ BadRoute spath
-        Just doc -> do
-          renderPandoc $
-            doc
-              & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
-          -- Debug
-          H.div ! A.class_ "text-xs border-2 p-2 bg-gray-100" $ H.pre $ H.toHtml $ Shower.shower doc
-          H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
-            "Powered by "
-            H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
+  Tailwind.layout (H.title "Ema Docs") $ do
+    H.div ! A.class_ "flex justify-center p-4 bg-red-300 text-gray-700 font-bold text-2xl" $ do
+      H.div "Work In Progress"
+    H.div
+      ! A.class_ "container mx-auto"
+      $ do
+        renderBreadcrumbs spath
+        case Map.lookup spath (untag srcs) of
+          Nothing -> throw $ BadRoute spath
+          Just doc -> do
+            renderPandoc $
+              doc
+                & rewriteLinks (\url -> maybe url routeUrl $ mkSourcePath $ toString url)
+            -- Debug
+            H.div ! A.class_ "text-xs border-2 p-2 mt-10 bg-gray-100" $ H.pre $ H.toHtml $ Shower.shower doc
+            H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
+              "Powered by "
+              H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
 
 renderBreadcrumbs :: SourcePath -> H.Html
 renderBreadcrumbs spath = do
@@ -258,8 +262,13 @@ rpInline = \case
     H.pre $ H.toHtml s
   B.Math _ _ ->
     throw Unsupported
-  B.Link attr is (url, title) ->
-    H.a ! A.href (H.textValue url) ! A.title (H.textValue title) ! rpAttr attr $ mapM_ rpInline is
+  B.Link attr is (url, title) -> do
+    H.a
+      ! A.class_ "text-pink-500 font-bold hover:bg-pink-50"
+      ! A.href (H.textValue url)
+      ! A.title (H.textValue title)
+      ! rpAttr attr
+      $ mapM_ rpInline is
   B.Image attr is (url, title) ->
     H.img ! A.src (H.textValue url) ! A.title (H.textValue title) ! A.alt (H.textValue $ plainify is) ! rpAttr attr
   B.Note _ ->
