@@ -126,7 +126,11 @@ render srcs spath =
     Nothing -> throw $ BadRoute spath
     Just doc -> do
       let title = maybe (last $ untag spath) plainify $ getPandocH1 doc
-      Tailwind.layout (H.title (H.text $ title <> " – Ema Docs") >> prismJs) $ do
+          headWidget = do
+            H.title $ H.text $ title <> " – Ema"
+            favIcon
+            prismJs
+      Tailwind.layout headWidget $ do
         H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
           H.div $ do
             H.b "WIP: "
@@ -151,6 +155,12 @@ render srcs spath =
       H.unsafeByteString . encodeUtf8 $
         [text|
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" /><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-core.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+        |]
+    favIcon = do
+      H.unsafeByteString . encodeUtf8 $
+        [text|
+        <link href="https://raw.githubusercontent.com/srid/ema/master/ema.svg" rel="icon" />
         |]
 
 renderBreadcrumbs :: SourcePath -> H.Html
@@ -223,7 +233,7 @@ rpBlock = \case
   B.CodeBlock (id', classes, attrs) s ->
     -- Prism friendly classes
     let classes' = flip concatMap classes $ \cls -> [cls, "language-" <> cls]
-     in H.code ! rpAttr (id', classes', attrs) $ H.pre ! rpAttr ("", classes', []) $ H.text s
+     in H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
   B.RawBlock _ _ ->
     throw Unsupported
   B.BlockQuote bs ->
