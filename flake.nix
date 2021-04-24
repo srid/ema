@@ -11,14 +11,14 @@
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
       let
+        name = "ema";
         overlays = [ ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
         emaProject = returnShellEnv:
           pkgs.haskellPackages.developPackage {
-            inherit returnShellEnv;
-            name = "ema";
+            inherit name returnShellEnv;
             root = ./.;
             withHoogle = false;
             modifier = drv:
@@ -32,12 +32,20 @@
                 haskell-language-server
               ]);
           };
+        ema = emaProject false;
       in
-      {
+      rec {
         # Used by `nix build`
-        defaultPackage = emaProject false;
+        defaultPackage = ema;
 
         # Used by `nix develop`
         devShell = emaProject true;
+
+        # Used by `nix run` (for docs)
+        apps.${name} = flake-utils.lib.mkApp {
+          drv = ema;
+          exePath = "/bin/ema-docs";
+        };
+        defaultApp = apps.${name};
       });
 }

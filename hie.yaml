@@ -2,3 +2,5 @@ cradle:
   cabal:
     - path: "./src"
       component: "library:ema"
+    - path: "./docs"
+      component: "exe:ema-docs"
