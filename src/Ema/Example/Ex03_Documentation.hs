@@ -15,6 +15,7 @@ import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
 import qualified Data.LVar as LVar
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
@@ -43,6 +44,29 @@ mkSourcePath = \case
      in Tagged <$> nonEmpty slugs
   _ ->
     Nothing
+
+sourcePathFileBase :: SourcePath -> Text
+sourcePathFileBase (Tagged slugs) =
+  head $ NE.reverse slugs
+
+sourcePathInits :: SourcePath -> NonEmpty SourcePath
+sourcePathInits (Tagged ("index" :| [])) =
+  one indexSourcePath
+sourcePathInits (Tagged (slug :| rest')) =
+  indexSourcePath :| case nonEmpty rest' of
+    Nothing ->
+      one $ Tagged (one slug)
+    Just rest ->
+      Tagged (one slug) : go (one slug) rest
+  where
+    go :: NonEmpty Text -> NonEmpty Text -> [SourcePath]
+    go x (y :| ys') =
+      let this = Tagged (x <> one y)
+       in case nonEmpty ys' of
+            Nothing ->
+              one this
+            Just ys ->
+              this : go (untag this) ys
 
 type Sources = Tagged "Sources" (Map SourcePath Pandoc)
 
@@ -95,6 +119,7 @@ render :: Sources -> SourcePath -> LByteString
 render srcs spath = do
   Tailwind.layout (H.title "Ema Docs") $
     H.div ! A.class_ "container mx-auto" $ do
+      renderBreadcrumbs spath
       case Map.lookup spath (untag srcs) of
         Nothing -> throw $ BadRoute spath
         Just doc -> do
@@ -106,11 +131,18 @@ render srcs spath = do
           H.footer ! A.class_ "mt-2 text-center border-t-2 text-gray-500" $ do
             "Powered by "
             H.a ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
-  where
-    routeElem r' w =
-      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
-    routeHref r' =
-      A.href (fromString . toString $ routeUrl r')
+
+renderBreadcrumbs :: SourcePath -> H.Html
+renderBreadcrumbs spath = do
+  H.div ! A.class_ "mt-4" $ do
+    forM_ (sourcePathInits spath) $ \crumb ->
+      H.a ! A.class_ "bg-green-200 p-2 border-2 rounded mr-2"
+        ! routeHref crumb
+        $ H.text $ sourcePathFileBase crumb
+
+routeHref :: Ema a r => r -> H.Attribute
+routeHref r' =
+  A.href (fromString . toString $ routeUrl r')
 
 -- Pandoc transformer
 
