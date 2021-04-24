@@ -7,7 +7,8 @@
 
 -- | An advanced example demonstrating how to build documentation sites.
 --
--- This "example" is actually used to build Ema's documentation site itself.
+-- This "example" is actually used to build Ema's documentation site itself. It
+-- is a work in progress currently.
 module Ema.Example.Ex03_Documentation where
 
 import qualified Commonmark as CM
