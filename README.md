@@ -16,6 +16,14 @@ main = do
     encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 
+## Quick Preview
+
+If you have Nix installed with Flakes, give Ema a test-drive by running it to serve its own documentation:
+
+```bash
+PORT=8000 nix run
+```
+
 ## Hacking
 
 Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock example; modify `./.ghcid` to run a different example.

@@ -34,7 +34,7 @@
           };
         ema = emaProject false;
       in
-      {
+      rec {
         # Used by `nix build`
         defaultPackage = ema;
 
@@ -46,5 +46,6 @@
           drv = ema;
           exePath = "/bin/ema-docs";
         };
+        defaultApp = apps.${name};
       });
 }
