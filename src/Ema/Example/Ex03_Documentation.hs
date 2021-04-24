@@ -220,8 +220,10 @@ rpBlock = \case
   B.LineBlock iss ->
     forM_ iss $ \is ->
       mapM_ rpInline is >> "\n"
-  B.CodeBlock attr s ->
-    H.code ! rpAttr attr $ H.pre $ H.text s
+  B.CodeBlock (id', classes, attrs) s ->
+    -- Prism friendly classes
+    let classes' = flip concatMap classes $ \cls -> [cls, "language-" <> cls]
+     in H.code ! rpAttr (id', classes', attrs) $ H.pre ! rpAttr ("", classes', []) $ H.text s
   B.RawBlock _ _ ->
     throw Unsupported
   B.BlockQuote bs ->

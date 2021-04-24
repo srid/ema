@@ -8,9 +8,11 @@
 
 The ultimate goal of ema is to make it possible to easily implement your own [neuron](https://neuron.zettel.page/), or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view, of your data, on desktop & mobile.
 
+:::{.flex .text-xl .my-8}
 * [Getting Started](getting-started.md)
 * [How To](howto.md)
 * [Features](features.md)
+:::
 
 ## Features
 
