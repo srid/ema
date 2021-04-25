@@ -145,14 +145,17 @@ render emaAction srcs spath = do
             renderBreadcrumbs srcs spath
             renderPandoc $
               doc
-                & rewriteLinks
-                  ( \url ->
-                      if "://" `T.isInfixOf` url
-                        then url
-                        else -- TODO: If referring to static files, we will have to be more lenient here.
-                          maybe (error $ "Broken link? " <> url) routeUrl $ mkSourcePath $ toString url
-                  )
                 & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
+                & rewriteLinks
+                  -- Rewrite .md links to @SourcePath@
+                  ( \url -> fromMaybe url $ do
+                      guard $ not $ "://" `T.isInfixOf` url
+                      target <- mkSourcePath $ toString url
+                      -- Check that .md links are not broken
+                      if Map.member target (untag srcs)
+                        then pure $ routeUrl target
+                        else throw $ BadRoute target
+                  )
           H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
             "Powered by "
             H.a ! A.class_ "font-bold" ! A.target "blank" ! A.href "https://github.com/srid/ema" $ "Ema"

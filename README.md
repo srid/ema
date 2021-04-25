@@ -14,18 +14,9 @@ main = do
     encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 
-## Quick Preview
-
-If you have Nix installed, give Ema a test-drive by running it to serve its own documentation:
-
-```bash
-git clone https://github.com/srid/ema.git 
-cd ema && PORT=8000 nix run . -- -C ./docs
-```
-
 ## Hacking
 
-Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the documentation example; modify `./.ghcid` to run a different example.
+Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the documentation example; modify `./.ghcid` to run a different example, such as the clock example - which updates every second, demonstrating hot reload.
 
 ## TODO
 
@@ -44,6 +35,7 @@ pre-announce,
 - CLI UX 
   - [x] opts
   - [ ] logging
+    - Expose it to apps (inc/ helpers) in a simple way
 - [x] [deal with errors](https://github.com/srid/memoir/issues/1)
 - [x] How to serve non-generated files (css, img, etc.)
 - [ ] Publish Data.LVar to Hackage
