@@ -14,12 +14,12 @@ This type represents two routes pointing to -- the index page (`/`) and the abou
 class Ema MyModel Route where 
   -- Convert our route to browser URL, represented as a list of slugs
   encodeRoute = \case
-    Index -> []
-    OnlyTime -> ["time"]
+    Index -> []  -- An empty slug represents the index route: index.html
+    About -> ["about"]
   -- Convert back the browser URL, represented as a list of slugs, to our route
   decodeRoute = \case
     [] -> Just Index
-    ["time"] -> Just OnlyTime
+    ["about"] -> Just About
     _ -> Nothing
 ```
 
@@ -27,10 +27,6 @@ class Ema MyModel Route where
 
 That is all there is to it. You can use whatever complex route types to model your website's routes, as long as those types are isomorphic to the slug list.
 
-## The unit route
-
-If you website has only one page `index.html` you can use `()` ("unit" type) as your route type. You'll still need write an instance for it.
-
 
 {.last}
-[Next]{.next}, with model and routes in place, [we will render HTML for the site](howto/render.md) using Ema.
+[Next]{.next}, with our model and routes in place, [we will define the HTML for our site](howto/render.md) using Ema.

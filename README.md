@@ -48,7 +48,7 @@ pre-announce,
 - [ ] How to serve non-generated files (css, img, etc.)
 - [ ] Publish Data.LVar to Hackage
 - [ ] documentation ([howto](https://documentation.divio.com/))
-- [ ] Avoid tailwind CDN in docs (use twind or windicss) for better lighthouse score
+- [x] Avoid tailwind CDN in docs (use twind or windicss) for better lighthouse score
 
 doc notes,
 - hot reload fast, morphdom
