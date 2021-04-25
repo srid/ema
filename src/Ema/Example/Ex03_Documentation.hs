@@ -78,7 +78,7 @@ instance Ema Sources SourcePath where
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
     Tagged paths -> toList . fmap (fromString . toString) $ paths
-  decodeRoute = \case
+  decodeRoute _ = \case
     (nonEmpty -> Nothing) ->
       pure $ Tagged $ one "index"
     (nonEmpty -> Just slugs) -> do

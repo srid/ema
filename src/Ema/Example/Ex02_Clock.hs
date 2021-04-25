@@ -29,7 +29,7 @@ instance Ema UTCTime Route where
   encodeRoute = \case
     Index -> mempty
     OnlyTime -> one "time"
-  decodeRoute = \case
+  decodeRoute _ = \case
     [] -> Just Index
     ["time"] -> Just OnlyTime
     _ -> Nothing

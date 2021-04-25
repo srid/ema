@@ -17,7 +17,7 @@ class Ema MyModel Route where
     Index -> []  -- An empty slug represents the index route: index.html
     About -> ["about"]
   -- Convert back the browser URL, represented as a list of slugs, to our route
-  decodeRoute = \case
+  decodeRoute _model = \case
     [] -> Just Index
     ["about"] -> Just About
     _ -> Nothing
