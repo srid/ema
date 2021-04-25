@@ -8,7 +8,7 @@ The simplest Ema app looks like this:
 main :: IO ()
 main = do
   let name :: Text = "Ema"
-  runEmaPure $
+  runEmaPure $ \_
     encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 

@@ -155,12 +155,12 @@ render emaAction srcs spath = do
   where
     emaMarkdownStyleLibrary =
       Map.fromList
-        [ ("feature", "flex justify-center items-center text-center p-2 m-2 w-32 h-32 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-xl font-bold hover:bg-pink-200 hover:shadow hover:border-black"),
+        [ ("feature", "flex justify-center items-center text-center shadow-lg p-2 m-2 w-32 h-16 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-base font-bold hover:bg-pink-200 hover:border-black"),
           ("avatar", "float-right w-32 h-32"),
           -- List item specifc styles
           ("item-intro", "text-gray-500"),
           -- Styling the last line in series posts
-          ("last", "mt-8 border-t-2 border-pink-500"),
+          ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
           ("next", "py-2 text-xl italic font-bold")
         ]
     prismJs = do

@@ -8,7 +8,7 @@ data Route
   | About
 ```
 
-This type represents two routes pointing to -- the index page (`/`) and the about page (`/about`). Designing the route type is only half the job; you will also need to tell Ema how to convert it to / from the browser URL. This is achieve by writing an instance for the `Ema` typeclass:
+This type represents two routes pointing to -- the index page (`/`) and the about page (`/about`). Designing the route type is only half the job; you will also need to tell Ema how to convert it to / from the browser URL. This is achieved by writing an instance for the `Ema` typeclass:
 
 ```haskell
 class Ema MyModel Route where 
@@ -31,7 +31,7 @@ class Ema MyModel Route where
 
 That is all there is to it. 
 
-You can use whatever complex route types to model your website's routes, as long as those types are isomorphic to the slug list. 
+You can use whatever complex route types to model your website's routes, as long as those types are isomorphic to the [slug](/ref/slug.md) list. 
 
 ## Advanced example
 

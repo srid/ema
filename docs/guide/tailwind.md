@@ -2,6 +2,7 @@
 
 TODO
 
-- Use CDN in dev mode
-- Use shim in static mode for better lighthouse score
-
+- the helper does this:
+    - Use CDN in dev mode
+    - Use twind shim in static mode for better lighthouse score
+- also uses blaze html
