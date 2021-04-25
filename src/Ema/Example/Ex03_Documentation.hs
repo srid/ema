@@ -134,6 +134,8 @@ render emaAction srcs spath = do
                 if title == siteTitle then siteTitle else title <> " – " <> siteTitle
             H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
             favIcon
+            -- Need to support static files, first. cf. https://web.dev/themed-omnibox/
+            -- H.meta ! A.name "theme-color" ! A.content "#d53f8c"
             unless (spath == indexSourcePath) prismJs
       Tailwind.layout emaAction headWidget $ do
         H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
@@ -155,6 +157,8 @@ render emaAction srcs spath = do
       Map.fromList
         [ ("feature", "flex justify-center items-center text-center p-2 m-2 w-32 h-32 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-xl font-bold hover:bg-pink-200 hover:shadow hover:border-black"),
           ("avatar", "float-right w-32 h-32"),
+          -- List item specifc styles
+          ("item-intro", "text-gray-500"),
           -- Styling the last line in series posts
           ("last", "mt-8 border-t-2 border-pink-500"),
           ("next", "py-2 text-xl italic font-bold")
