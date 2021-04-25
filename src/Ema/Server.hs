@@ -40,11 +40,10 @@ runServerWithWebSocketHotReload port model render = do
         log "ws:connected"
         let askClientForRoute = do
               msg :: Text <- WS.receiveData conn
-              v <- LVar.get model
               pure $
                 msg
                   & pathInfoFromWsMsg
-                  & routeFromPathInfo v
+                  & routeFromPathInfo
                   & fromMaybe (error "invalid route from ws")
             loop = do
               -- Notice that we @askClientForRoute@ in succession twice here.
@@ -87,8 +86,7 @@ runServerWithWebSocketHotReload port model render = do
                 foldl1' (Static.<|>) $ Static.hasPrefix <$> assets
            in Static.staticPolicy assetPolicy
     httpApp req f = do
-      modelVal <- LVar.get model
-      let mr = routeFromPathInfo modelVal (Wai.pathInfo req)
+      let mr = routeFromPathInfo (Wai.pathInfo req)
       putStrLn $ "[http] " <> show mr
       (status, v) <- case mr of
         Nothing ->
@@ -106,8 +104,8 @@ runServerWithWebSocketHotReload port model render = do
           "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
             <> show @Text err
             <> "</pre><p>Once you fix your code this page will automatically update.</body>"
-    routeFromPathInfo v =
-      decodeRoute v . fmap (fromString . toString)
+    routeFromPathInfo =
+      decodeRoute @model . fmap (fromString . toString)
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
 

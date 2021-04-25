@@ -78,7 +78,7 @@ instance Ema MarkdownSources MarkdownPath where
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
     Tagged paths -> toList . fmap (fromString . toString) $ paths
-  decodeRoute _ = \case
+  decodeRoute = \case
     (nonEmpty -> Nothing) ->
       pure $ Tagged $ one "index"
     (nonEmpty -> Just slugs) -> do
