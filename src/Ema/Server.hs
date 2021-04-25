@@ -87,8 +87,8 @@ runServerWithWebSocketHotReload port model render = do
                 foldl1' (Static.<|>) $ Static.hasPrefix <$> assets
            in Static.staticPolicy assetPolicy
     httpApp req f = do
-      v <- LVar.get model
-      let mr = routeFromPathInfo v (Wai.pathInfo req)
+      modelVal <- LVar.get model
+      let mr = routeFromPathInfo modelVal (Wai.pathInfo req)
       putStrLn $ "[http] " <> show mr
       (status, v) <- case mr of
         Nothing ->

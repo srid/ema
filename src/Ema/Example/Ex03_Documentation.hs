@@ -36,34 +36,34 @@ import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
 
 -- | Represents the relative path to a source (.md) file under some directory.
-type SourcePath = Tagged "SourcePath" (NonEmpty Text)
+type MarkdownPath = Tagged "MarkdownPath" (NonEmpty Text)
 
-indexSourcePath :: SourcePath
-indexSourcePath = Tagged $ "index" :| []
+indexMarkdownPath :: MarkdownPath
+indexMarkdownPath = Tagged $ "index" :| []
 
-mkSourcePath :: FilePath -> Maybe SourcePath
-mkSourcePath = \case
+mkMarkdownPath :: FilePath -> Maybe MarkdownPath
+mkMarkdownPath = \case
   (splitExtension -> (fp, ".md")) ->
     let slugs = T.dropWhileEnd (== '/') . toText <$> splitPath fp
      in Tagged <$> nonEmpty slugs
   _ ->
     Nothing
 
-sourcePathFileBase :: SourcePath -> Text
-sourcePathFileBase (Tagged slugs) =
+markdownPathFileBase :: MarkdownPath -> Text
+markdownPathFileBase (Tagged slugs) =
   head $ NE.reverse slugs
 
-sourcePathInits :: SourcePath -> NonEmpty SourcePath
-sourcePathInits (Tagged ("index" :| [])) =
-  one indexSourcePath
-sourcePathInits (Tagged (slug :| rest')) =
-  indexSourcePath :| case nonEmpty rest' of
+markdownPathInits :: MarkdownPath -> NonEmpty MarkdownPath
+markdownPathInits (Tagged ("index" :| [])) =
+  one indexMarkdownPath
+markdownPathInits (Tagged (slug :| rest')) =
+  indexMarkdownPath :| case nonEmpty rest' of
     Nothing ->
       one $ Tagged (one slug)
     Just rest ->
       Tagged (one slug) : go (one slug) rest
   where
-    go :: NonEmpty Text -> NonEmpty Text -> [SourcePath]
+    go :: NonEmpty Text -> NonEmpty Text -> [MarkdownPath]
     go x (y :| ys') =
       let this = Tagged (x <> one y)
        in case nonEmpty ys' of
@@ -72,9 +72,9 @@ sourcePathInits (Tagged (slug :| rest')) =
             Just ys ->
               this : go (untag this) ys
 
-type Sources = Tagged "Sources" (Map SourcePath Pandoc)
+type MarkdownSources = Tagged "MarkdownSources" (Map MarkdownPath Pandoc)
 
-instance Ema Sources SourcePath where
+instance Ema MarkdownSources MarkdownPath where
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
     Tagged paths -> toList . fmap (fromString . toString) $ paths
@@ -105,72 +105,41 @@ main =
           putStrLn $ "Update: " <> show spath
           LVar.modify model $ Tagged . Map.insert spath s . untag
       FileSystem.Delete ->
-        whenJust (mkSourcePath fp) $ \spath -> do
+        whenJust (mkMarkdownPath fp) $ \spath -> do
           putStrLn $ "Delete: " <> show spath
           LVar.modify model $ Tagged . Map.delete spath . untag
   where
-    readSource :: FilePath -> IO (Maybe (SourcePath, Pandoc))
+    readSource :: FilePath -> IO (Maybe (MarkdownPath, Pandoc))
     readSource fp =
       runMaybeT $ do
-        spath :: SourcePath <- MaybeT $ pure $ mkSourcePath fp
+        spath :: MarkdownPath <- MaybeT $ pure $ mkMarkdownPath fp
         s <- readFileText fp
         pure (spath, parseMarkdown s)
 
-newtype BadRoute = BadRoute SourcePath
+newtype BadRoute = BadRoute MarkdownPath
   deriving (Show, Exception)
 
-render :: Ema.CLI.Action -> Sources -> SourcePath -> LByteString
+render :: Ema.CLI.Action -> MarkdownSources -> MarkdownPath -> LByteString
 render emaAction srcs spath = do
-  let siteTitle = "Ema"
   case Map.lookup spath (untag srcs) of
     Nothing -> throw $ BadRoute spath
     Just doc -> do
-      let title = maybe (last $ untag spath) plainify $ getPandocH1 doc
-          headWidget = do
-            H.title $
-              H.text $
-                if title == siteTitle then siteTitle else title <> " – " <> siteTitle
-            H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
-            favIcon
-            -- Need to support static files, first. cf. https://web.dev/themed-omnibox/
-            H.link ! A.rel "manifest" ! A.href "/manifest.json"
-            H.meta ! A.name "theme-color" ! A.content "#d53f8c"
-            unless (spath == indexSourcePath) prismJs
-      Tailwind.layout emaAction headWidget $ do
-        H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
-          H.div $ do
-            H.b "WIP: "
-            "Documentation is still being written"
-        H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
-          H.div ! A.class_ "px-2" $ do
-            renderBreadcrumbs srcs spath
-            renderPandoc $
-              doc
-                & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
-                & rewriteLinks
-                  -- Rewrite .md links to @SourcePath@
-                  ( \url -> fromMaybe url $ do
-                      guard $ not $ "://" `T.isInfixOf` url
-                      target <- mkSourcePath $ toString url
-                      -- Check that .md links are not broken
-                      if Map.member target (untag srcs)
-                        then pure $ routeUrl target
-                        else throw $ BadRoute target
-                  )
-          H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
-            "Powered by "
-            H.a ! A.class_ "font-bold" ! A.target "blank" ! A.href "https://github.com/srid/ema" $ "Ema"
+      Tailwind.layout emaAction (headHtml spath doc) (bodyHtml srcs spath doc)
+
+headHtml :: MarkdownPath -> Pandoc -> H.Html
+headHtml spath doc = do
+  let siteTitle = "Ema"
+      routeTitle = maybe (last $ untag spath) plainify $ getPandocH1 doc
+  H.title $
+    H.text $
+      if routeTitle == siteTitle then siteTitle else routeTitle <> " – " <> siteTitle
+  H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
+  favIcon
+  -- Make this a PWA and w/ https://web.dev/themed-omnibox/
+  H.link ! A.rel "manifest" ! A.href "/manifest.json"
+  H.meta ! A.name "theme-color" ! A.content "#d53f8c"
+  unless (spath == indexMarkdownPath) prismJs
   where
-    emaMarkdownStyleLibrary =
-      Map.fromList
-        [ ("feature", "flex justify-center items-center text-center shadow-lg p-2 m-2 w-32 h-16 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-base font-bold hover:bg-pink-200 hover:border-black"),
-          ("avatar", "float-right w-32 h-32"),
-          -- List item specifc styles
-          ("item-intro", "text-gray-500"),
-          -- Styling the last line in series posts
-          ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
-          ("next", "py-2 text-xl italic font-bold")
-        ]
     prismJs = do
       H.unsafeByteString . encodeUtf8 $
         [text|
@@ -183,16 +152,53 @@ render emaAction srcs spath = do
         <link href="/ema.svg" rel="icon" />
         |]
 
-lookupTitleForgiving :: Sources -> SourcePath -> Text
+bodyHtml :: MarkdownSources -> MarkdownPath -> Pandoc -> H.Html
+bodyHtml srcs spath doc = do
+  H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
+    H.div $ do
+      H.b "WIP: "
+      "Documentation is still being written"
+  H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
+    H.div ! A.class_ "px-2" $ do
+      renderBreadcrumbs srcs spath
+      renderPandoc $
+        doc
+          & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
+          & rewriteLinks
+            -- Rewrite .md links to @MarkdownPath@
+            ( \url -> fromMaybe url $ do
+                guard $ not $ "://" `T.isInfixOf` url
+                target <- mkMarkdownPath $ toString url
+                -- Check that .md links are not broken
+                if Map.member target (untag srcs)
+                  then pure $ routeUrl target
+                  else throw $ BadRoute target
+            )
+    H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
+      "Powered by "
+      H.a ! A.class_ "font-bold" ! A.target "blank" ! A.href "https://github.com/srid/ema" $ "Ema"
+  where
+    emaMarkdownStyleLibrary =
+      Map.fromList
+        [ ("feature", "flex justify-center items-center text-center shadow-lg p-2 m-2 w-32 h-16 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-base font-bold hover:bg-pink-200 hover:border-black"),
+          ("avatar", "float-right w-32 h-32"),
+          -- List item specifc styles
+          ("item-intro", "text-gray-500"),
+          -- Styling the last line in series posts
+          ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
+          ("next", "py-2 text-xl italic font-bold")
+        ]
+
+lookupTitleForgiving :: MarkdownSources -> MarkdownPath -> Text
 lookupTitleForgiving srcs spath =
-  fromMaybe (sourcePathFileBase spath) $ do
+  fromMaybe (markdownPathFileBase spath) $ do
     doc <- Map.lookup spath $ untag srcs
     is <- getPandocH1 doc
     pure $ plainify is
 
-renderBreadcrumbs :: Sources -> SourcePath -> H.Html
+renderBreadcrumbs :: MarkdownSources -> MarkdownPath -> H.Html
 renderBreadcrumbs srcs spath = do
-  whenNotNull (init $ sourcePathInits spath) $ \(toList -> crumbs) ->
+  whenNotNull (init $ markdownPathInits spath) $ \(toList -> crumbs) ->
     H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
       H.div ! A.class_ "flex justify-center" $ do
         H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
