@@ -51,7 +51,7 @@ library
     , stm
     , text
     , wai
-    , wai-app-static
+    , wai-middleware-static
     , wai-websockets
     , warp
     , websockets

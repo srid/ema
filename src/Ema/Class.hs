@@ -20,8 +20,8 @@ class Ema model route | route -> model, model -> route where
   -- | List of (top-level) filepaths to serve as static assets
   --
   -- These will be copied over as-is during static site generation
-  staticAssets :: model -> [FilePath]
-  staticAssets _ = mempty
+  staticAssets :: Proxy model -> [FilePath]
+  staticAssets Proxy = mempty
 
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.
 instance Ema () () where

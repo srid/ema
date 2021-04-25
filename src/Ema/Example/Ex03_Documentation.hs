@@ -89,7 +89,7 @@ instance Ema Sources SourcePath where
   staticRoutes (Map.keys . untag -> spaths) =
     spaths
   staticAssets _ =
-    mempty
+    ["ema.svg"]
 
 main :: IO ()
 main =
@@ -176,7 +176,7 @@ render emaAction srcs spath = do
     favIcon = do
       H.unsafeByteString . encodeUtf8 $
         [text|
-        <link href="https://raw.githubusercontent.com/srid/ema/master/ema.svg" rel="icon" />
+        <link href="/ema.svg" rel="icon" />
         |]
 
 lookupTitleForgiving :: Sources -> SourcePath -> Text
