@@ -260,7 +260,7 @@ rpBlock = \case
     let classes' = flip concatMap classes $ \cls -> [cls, "language-" <> cls]
      in H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
   B.RawBlock _ _ ->
-    throw Unsupported
+    pure ()
   B.BlockQuote bs ->
     H.blockquote $ mapM_ rpBlock bs
   B.OrderedList _ bss ->

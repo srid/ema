@@ -45,19 +45,8 @@ pre-announce,
 - CLI UX 
   - [x] opts
   - [ ] logging
+- [ ] [deal with errors](https://github.com/srid/memoir/issues/1)
 - [ ] How to serve non-generated files (css, img, etc.)
 - [ ] Publish Data.LVar to Hackage
 - [ ] documentation ([guide](https://documentation.divio.com/))
-- [x] Avoid tailwind CDN in docs (use twind or windicss) for better lighthouse score
-
-doc notes,
-- hot reload fast, morphdom
-  - html templates + tailwind for fast style feedback
-- use async:race to avoid ghcid ghosts
-- tailwind + blaze-html layout (BlazeWind?) for no-frills getting started
-- [dealing with errors](https://github.com/srid/memoir/issues/1)
-- messaging re: hakyll 
-  - safer/ simpler routes system
-  - bring your own templates / DSL
-- messaging re: svelte
-  - SSE
+  - [x] Avoid tailwind CDN in docs (use twind or windicss) for better lighthouse score

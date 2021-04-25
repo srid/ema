@@ -13,7 +13,7 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 :::{.my-8}
 * [Getting Started](start.md)
 * [Guide](guide.md)
-* [Reference](ref.md)
+* [Concepts](concepts.md)
 :::
 
 ## Features
@@ -30,6 +30,14 @@ Server Side Rendering
 
 :::{.feature}
 Haskell's Safety
+:::
+
+<!-- TODO: explain key differences from the like of Hakyll 
+- simpler routes system
+- bring your own templates
+-->
+:::{.feature}
+Choose Your Own Libraries
 :::
 
 :::

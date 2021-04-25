@@ -31,7 +31,7 @@ class Ema MyModel Route where
 
 That is all there is to it. 
 
-You can use whatever complex route types to model your website's routes, as long as those types are isomorphic to the [slug](/ref/slug.md) list. 
+You can use whatever complex route types to model your website's routes, as long as those types are isomorphic to the [slug](/concepts/slug.md) list. 
 
 ## Advanced example
 
