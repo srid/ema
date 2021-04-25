@@ -1,7 +1,7 @@
 # Ema
 
 :::{.avatar}
-![](https://raw.githubusercontent.com/srid/ema/master/ema.svg){.w-32 .h-32}
+![](/ema.svg){.w-32 .h-32}
 :::
 
 {.text-xl .mb-8}
