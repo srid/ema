@@ -89,7 +89,7 @@ instance Ema Sources SourcePath where
   staticRoutes (Map.keys . untag -> spaths) =
     spaths
   staticAssets _ =
-    ["ema.svg"]
+    ["manifest.json", "ema.svg"]
 
 main :: IO ()
 main =
@@ -133,7 +133,8 @@ render emaAction srcs spath = do
             H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
             favIcon
             -- Need to support static files, first. cf. https://web.dev/themed-omnibox/
-            -- H.meta ! A.name "theme-color" ! A.content "#d53f8c"
+            H.link ! A.rel "manifest" ! A.href "/manifest.json"
+            H.meta ! A.name "theme-color" ! A.content "#d53f8c"
             unless (spath == indexSourcePath) prismJs
       Tailwind.layout emaAction headWidget $ do
         H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
