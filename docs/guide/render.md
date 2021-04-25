@@ -33,7 +33,7 @@ render model route = Blaze.renderHtml $
 
 Note that Ema provides a `routeUrl` helper function that serializes your route to the final URL (here, `/about`) for linking to.
 
-Spend a few moments to recognize how this is *much simpler* to write than dealing with HTML template files spread across the disk as is the case with traditional static site generators. Of course when using Ema nothing prevents you from choosing to use traditional HTML templates (see [working with files](guide/filesystem.md) for tips on that). But if you choose instead to go the DSL route, [Haskell's type-safety](/concepts/haskell-safety.md) now applies to your HTML as well. On top of it, Ema's [hot reload](/concepts/hot-reload.md) will instantly update the dev server's browser view whenever you change your HTML (or any of the Haskell source code).
+Spend a few moments to recognize how this is *much simpler* to write than dealing with HTML template files spread across the disk as is the case with traditional static site generators. Of course when using Ema nothing prevents you from choosing to use traditional HTML templates (see [working with files](guide/filesystem.md) for tips on that). But if you choose instead to go the DSL route, [Haskell's type-safety](concepts/haskell-safety.md) now applies to your HTML as well. On top of it, Ema's [hot reload](concepts/hot-reload.md) will instantly update the dev server's browser view whenever you change your HTML (or any of the Haskell source code).
 
 
 {.last}

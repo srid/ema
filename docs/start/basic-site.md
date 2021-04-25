@@ -10,4 +10,4 @@ For now, see the second example in the Git repo. Or the third example, which is 
 - Generate static files
 
 {.last}
-[Next]{.next}, checkout the [Guide](../guide.md) series for information on specific topics.
+[Next]{.next}, checkout the [Guide](guide.md) series for information on specific topics.
