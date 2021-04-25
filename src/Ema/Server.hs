@@ -9,7 +9,7 @@ import Control.Exception (try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Class
+import Ema.Class (Ema (decodeRoute))
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
 import qualified Network.Wai as Wai
