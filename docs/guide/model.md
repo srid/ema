@@ -2,6 +2,7 @@
 
 TODO
 
+- What's a "model"?
 - Any Haskell type
 - Stored in `LVar` to enable hot-reload
 - `LVar.set` and `LVar.modify`

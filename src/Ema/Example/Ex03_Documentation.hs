@@ -151,7 +151,7 @@ render emaAction srcs spath = do
                 & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
             "Powered by "
-            H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" $ "Ema"
+            H.a ! A.class_ "font-bold" ! A.target "blank" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList

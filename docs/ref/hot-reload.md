@@ -7,3 +7,4 @@ TODO
 - DOM patch vs replace 
 - ghcid reload
 - can run in production?
+- link to filesystem.md
