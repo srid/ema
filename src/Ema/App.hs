@@ -5,8 +5,7 @@
 module Ema.App
   ( runEma,
     runEmaPure,
-    runEmaWithAction,
-    runEmaWith,
+    runEmaWithCli,
     Ema (..),
   )
 where
@@ -14,12 +13,13 @@ where
 import Control.Concurrent.Async (race_)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
-import Ema.CLI (Action (..))
+import Ema.CLI (Action (..), Cli)
 import qualified Ema.CLI as CLI
 import Ema.Class (Ema (..))
 import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
+import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
@@ -30,12 +30,12 @@ import System.Environment (lookupEnv)
 -- function.
 runEmaPure ::
   -- | How to render a route
-  (Action -> LByteString) ->
+  (Cli -> LByteString) ->
   IO ()
 runEmaPure html = do
-  action <- CLI.cliAction
+  cli <- CLI.cliAction
   emptyModel <- LVar.new ()
-  runEmaWith @() action emptyModel (\_ () () -> html action)
+  runEmaWithCliInCwd @() (CLI.action cli) emptyModel (\_ () () -> html cli)
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
@@ -46,40 +46,48 @@ runEma ::
   forall model route.
   (Ema model route, Show route) =>
   -- | How to render a route, given the model
-  (Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (LVar model -> IO ()) ->
   IO ()
 runEma render runModel = do
-  action <- CLI.cliAction
-  runEmaWithAction action render runModel
+  cli <- CLI.cliAction
+  runEmaWithCli cli render runModel
 
 -- | Like @runEma@ but takes the CLI action
 --
 -- Useful if you are handling CLI arguments yourself.
-runEmaWithAction ::
+runEmaWithCli ::
   forall model route.
   (Ema model route, Show route) =>
-  Action ->
+  Cli ->
   -- | How to render a route, given the model
-  (Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (LVar model -> IO ()) ->
   IO ()
-runEmaWithAction action render runModel = do
+runEmaWithCli cli render runModel = do
   model <- LVar.empty
-  race_
-    (runModel model)
-    (runEmaWith action model render)
+  -- TODO: Use a logging library, in place of managing buffering and using putStrLn
+  hSetBuffering stdout LineBuffering
+  hSetBuffering stderr LineBuffering
+  withCurrentDirectory (CLI.workingDir cli) $ do
+    cwd <- getCurrentDirectory
+    putStrLn $ "Running Ema under: " <> cwd
+    putStrLn "Waiting for initial site model ..."
+    putStrLn "  stuck here? set a model value using `LVar.set`"
+    race_
+      (runModel model)
+      (runEmaWithCliInCwd (CLI.action cli) model render)
 
 -- | Run Ema live dev server
-runEmaWith ::
+runEmaWithCliInCwd ::
   forall model route.
   (Ema model route, Show route) =>
-  -- | CLI Action
-  Action ->
+  -- | CLI arguments
+  CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
   -- time (for hot-reload).
   --
@@ -92,18 +100,13 @@ runEmaWith ::
   -- or generate on disk.
   (Action -> model -> route -> LByteString) ->
   IO ()
-runEmaWith action model render = do
-  -- TODO: Use a logging library, in place of managing buffering and using putStrLn
-  hSetBuffering stdout LineBuffering
-  hSetBuffering stderr LineBuffering
-  putStrLn "Waiting for initial site model ..."
-  putStrLn "  stuck here? set a model value using `LVar.set`"
-  case action of
+runEmaWithCliInCwd cliAction model render = do
+  case cliAction of
     Generate dest -> do
       val <- LVar.get model
-      Generate.generate dest val (render action)
+      Generate.generate dest val (render cliAction)
     Run -> do
       void $ LVar.get model
       port <- fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       putStrLn $ "Launching Ema at http://localhost:" <> show port
-      Server.runServerWithWebSocketHotReload port model (render action)
+      Server.runServerWithWebSocketHotReload port model (render cliAction)
