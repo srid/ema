@@ -9,13 +9,14 @@ import Control.Exception (catch, try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Class (Ema (decodeRoute))
+import Ema.Class (Ema (decodeRoute, staticAssets))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Network.Wai.Handler.WebSockets as WaiWs
+import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
 
@@ -28,7 +29,7 @@ runServerWithWebSocketHotReload ::
   IO ()
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
-  Warp.runSettings settings $ WaiWs.websocketsOr WS.defaultConnectionOptions wsApp httpApp
+  Warp.runSettings settings $ assetsMiddleware $ WaiWs.websocketsOr WS.defaultConnectionOptions wsApp httpApp
   where
     wsApp pendingConn = do
       conn :: WS.Connection <- WS.acceptRequest pendingConn
@@ -76,6 +77,10 @@ runServerWithWebSocketHotReload port model render = do
           Left (err :: ConnectionException) -> do
             log $ "ws:error " <> show err
             LVar.removeListener model subId
+    assetsMiddleware = do
+      Static.staticPolicy $
+        flip foldMap (staticAssets $ Proxy @route) $ \path ->
+          Static.hasPrefix path
     httpApp req f = do
       let mr = routeFromPathInfo (Wai.pathInfo req)
       putStrLn $ "[http] " <> show mr

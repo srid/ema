@@ -25,7 +25,11 @@ class Ema MyModel Route where
   -- This tells Ema which routes to generate .html files for.
   staticRoutes model =
     [Index, About]
-```
+  -- The fourth method is optional; if you have static assets to serve, specify
+  -- them here. Paths are relative to current working directory.
+  staticAssets Proxy =
+    ["css", "images", "favicon.ico", "resume.pdf"]
+  ```
 
 (The `MyModel` type is explained in the [earlier section](guide/model.md)).
 

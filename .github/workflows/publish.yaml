@@ -18,7 +18,7 @@ jobs:
       - name: Build and generate docs HTML 🔧
         run: |
           mkdir ./docs-output
-          nix run . -- gen ./docs-output
+          nix run . -- -C ./docs gen $(pwd)/docs-output
       - name: Deploy to gh-pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:

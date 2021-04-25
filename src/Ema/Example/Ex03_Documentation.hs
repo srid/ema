@@ -27,7 +27,7 @@ import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
-import System.FilePath (splitExtension, splitPath, (</>))
+import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -88,20 +88,18 @@ instance Ema Sources SourcePath where
       pure $ Tagged parts
   staticRoutes (Map.keys . untag -> spaths) =
     spaths
+  staticAssets _ =
+    ["ema.svg"]
 
 main :: IO ()
 main =
-  mainWith "docs"
-
-mainWith :: FilePath -> IO ()
-mainWith folder =
   runEma render $ \model -> do
     LVar.set model =<< do
-      putStrLn $ "Loading .md files from " <> folder
-      mdFiles <- FileSystem.filesMatching folder ["**/*.md"]
+      putStrLn "Loading .md files"
+      mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
       forM mdFiles readSource
         <&> Tagged . Map.fromList . catMaybes
-    FileSystem.onChange folder $ \fp -> \case
+    FileSystem.onChange "." $ \fp -> \case
       FileSystem.Update ->
         whenJustM (readSource fp) $ \(spath, s) -> do
           putStrLn $ "Update: " <> show spath
@@ -115,7 +113,7 @@ mainWith folder =
     readSource fp =
       runMaybeT $ do
         spath :: SourcePath <- MaybeT $ pure $ mkSourcePath fp
-        s <- readFileText $ folder </> fp
+        s <- readFileText fp
         pure (spath, parseMarkdown s)
 
 newtype BadRoute = BadRoute SourcePath
@@ -178,7 +176,7 @@ render emaAction srcs spath = do
     favIcon = do
       H.unsafeByteString . encodeUtf8 $
         [text|
-        <link href="https://raw.githubusercontent.com/srid/ema/master/ema.svg" rel="icon" />
+        <link href="/ema.svg" rel="icon" />
         |]
 
 lookupTitleForgiving :: Sources -> SourcePath -> Text
