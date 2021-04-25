@@ -10,6 +10,7 @@ module Ema.App
   )
 where
 
+import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
@@ -34,8 +35,9 @@ runEmaPure ::
   IO ()
 runEmaPure html = do
   cli <- CLI.cliAction
-  emptyModel <- LVar.new ()
-  runEmaWithCliInCwd @() (CLI.action cli) emptyModel (\_ () () -> html cli)
+  runEmaWithCli cli (\_ () () -> html cli) $ \model -> do
+    LVar.set model ()
+    threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
