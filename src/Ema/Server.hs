@@ -19,6 +19,7 @@ import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
+import Relude.Extra.Foldable1 (foldl1')
 
 runServerWithWebSocketHotReload ::
   forall model route.
@@ -78,9 +79,12 @@ runServerWithWebSocketHotReload port model render = do
             log $ "ws:error " <> show err
             LVar.removeListener model subId
     assetsMiddleware = do
-      Static.staticPolicy $
-        flip foldMap (staticAssets $ Proxy @route) $ \path ->
-          Static.hasPrefix path
+      case nonEmpty (staticAssets $ Proxy @route) of
+        Nothing -> id
+        Just assets ->
+          let assetPolicy :: Static.Policy =
+                foldl1' (Static.<|>) $ Static.hasPrefix <$> assets
+           in Static.staticPolicy assetPolicy
     httpApp req f = do
       let mr = routeFromPathInfo (Wai.pathInfo req)
       putStrLn $ "[http] " <> show mr
