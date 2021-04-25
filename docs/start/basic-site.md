@@ -5,7 +5,7 @@ TODO
 For now, see the second example in the Git repo. Or the third example, which is the source for this very site.
 
 - Model, routes, view (similar to TEA)
-- Hot reload
+- port, hot reload
 - Generate static files
 
 {.last}

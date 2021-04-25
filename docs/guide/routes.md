@@ -21,6 +21,10 @@ class Ema MyModel Route where
     [] -> Just Index
     ["about"] -> Just About
     _ -> Nothing
+  -- The third method is used during static site generation. 
+  -- This tells Ema which routes to generate .html files for.
+  staticRoutes model =
+    [Index, About]
 ```
 
 (The `MyModel` type is explained in the [earlier section](guide/model.md)).

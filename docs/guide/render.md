@@ -1,6 +1,6 @@
 # Rendering HTML
 
-Once you have [model](guide/model.md) and [routes](guide/routes.md) in place, the last piece of the puzzle is write a function that takes both as arguments and returns the HTML string (lazy bytestring, to be exact). This function can be as simple as the following:
+Once you have [model](guide/model.md) and [routes](guide/routes.md) in place, the last piece of the puzzle is to write a function that takes both as arguments and returns the HTML string (lazy bytestring, to be exact). This function can be as simple as the following:
 
 ```haskell
 render :: MyModel -> Route -> ByteString

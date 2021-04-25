@@ -13,4 +13,4 @@ main = do
 ```
 
 {.last}
-[Next]{.next}, we will [develop a basic site](getting-started/basic-site.md) using Ema.
+[Next]{.next}, we will [develop a basic site](start/basic-site.md) using Ema.
