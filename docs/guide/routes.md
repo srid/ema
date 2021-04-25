@@ -23,10 +23,10 @@ class Ema MyModel Route where
     _ -> Nothing
 ```
 
-(The `MyModel` type is explained in the [earlier section](howto/model.md)).
+(The `MyModel` type is explained in the [earlier section](guide/model.md)).
 
 That is all there is to it. You can use whatever complex route types to model your website's routes, as long as those types are isomorphic to the slug list.
 
 
 {.last}
-[Next]{.next}, with our model and routes in place, [we will define the HTML for our site](howto/render.md) using Ema.
+[Next]{.next}, with our model and routes in place, [we will define the HTML for our site](guide/render.md) using Ema.

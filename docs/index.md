@@ -10,7 +10,7 @@ The ultimate goal of ema is to make it possible to easily implement your own [ne
 
 :::{.my-8}
 * [Getting Started](getting-started.md)
-* [How To](howto.md)
+* [Guide](guide.md)
 * [Features](features.md)
 :::
 
