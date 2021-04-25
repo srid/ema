@@ -27,7 +27,7 @@ Server Side Rendering
 :::
 
 :::{.feature}
-Haskell's safety
+Haskell's Safety
 :::
 
 :::

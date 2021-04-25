@@ -151,7 +151,7 @@ render emaAction srcs spath = do
                 & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
             "Powered by "
-            H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" ! A.target "blank_" $ "Ema"
+            H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
@@ -331,10 +331,15 @@ rpInline = \case
   B.Math _ _ ->
     throw Unsupported
   B.Link attr is (url, title) -> do
+    let (cls, target) =
+          if "://" `T.isInfixOf` url
+            then ("text-pink-600 hover:underline", A.target "_blank")
+            else ("text-pink-600 font-bold hover:bg-pink-50", mempty)
     H.a
-      ! A.class_ "text-pink-600 font-bold hover:bg-pink-50"
+      ! A.class_ cls
       ! A.href (H.textValue url)
       ! A.title (H.textValue title)
+      ! target
       ! rpAttr attr
       $ mapM_ rpInline is
   B.Image attr is (url, title) ->
