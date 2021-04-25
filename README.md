@@ -45,7 +45,7 @@ pre-announce,
 - CLI UX 
   - [x] opts
   - [ ] logging
-- [ ] [deal with errors](https://github.com/srid/memoir/issues/1)
+- [x] [deal with errors](https://github.com/srid/memoir/issues/1)
 - [ ] How to serve non-generated files (css, img, etc.)
 - [ ] Publish Data.LVar to Hackage
 - [ ] documentation ([guide](https://documentation.divio.com/))

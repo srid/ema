@@ -13,5 +13,5 @@ TODO
 - data reload (filesystem.md)
   - HTML templates implications
 - link to tailwind (for shim trick)
-- exceptions
+- exception handling in browser view
 - can run in production?

@@ -5,11 +5,12 @@
 module Ema.Server where
 
 import Control.Concurrent.Async (race)
-import Control.Exception (try)
+import Control.Exception (catch, try)
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
 import Ema.Class (Ema (decodeRoute))
+import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
 import qualified Network.Wai as Wai
@@ -83,14 +84,21 @@ runServerWithWebSocketHotReload port model render = do
           pure (H.status404, "No route")
         Just r -> do
           val <- LVar.get model
-          pure (H.status200, renderWithEmaShims val r)
+          let html = renderCatchingErrors val r
+          pure (H.status200, html <> emaStatusHtml <> wsClientShim)
       f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
-    renderWithEmaShims m r =
-      render m r <> emaStatusHtml <> wsClientShim
     renderWithEmaHtmlShims m r =
-      render m r <> emaStatusHtml
+      renderCatchingErrors m r <> emaStatusHtml
+    renderCatchingErrors m r =
+      unsafeCatch (render m r) $ \(err :: SomeException) ->
+        encodeUtf8 $
+          "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
+            <> show @Text err
+            <> "</pre><p>Once you fix your code this page will automatically update.</body>"
     routeFromPathInfo =
       decodeRoute @model . fmap (fromString . toString)
+    unsafeCatch :: Exception e => a -> (e -> a) -> a
+    unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
