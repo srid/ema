@@ -25,7 +25,7 @@ cd ema && PORT=8000 nix run . -- -C ./docs
 
 ## Hacking
 
-Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock example; modify `./.ghcid` to run a different example.
+Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the documentation example; modify `./.ghcid` to run a different example.
 
 ## TODO
 

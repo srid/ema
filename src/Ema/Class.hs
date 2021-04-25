@@ -7,7 +7,7 @@ module Ema.Class where
 import Ema.Route.Slug (Slug)
 
 -- | Enrich a model to work with Ema
-class Ema model route | route -> model, model -> route where
+class Ema model route | route -> model where
   -- How to convert URLs to/from routes
   encodeRoute :: route -> [Slug]
   decodeRoute :: [Slug] -> Maybe route
@@ -20,7 +20,7 @@ class Ema model route | route -> model, model -> route where
   -- | List of (top-level) filepaths to serve as static assets
   --
   -- These will be copied over as-is during static site generation
-  staticAssets :: Proxy model -> [FilePath]
+  staticAssets :: Proxy route -> [FilePath]
   staticAssets Proxy = mempty
 
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.

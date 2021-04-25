@@ -7,7 +7,7 @@ module Ema.Generate where
 import Control.Exception (throw)
 import Ema.Class
 import Ema.Route (routeFile)
-import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getCurrentDirectory)
+import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 
@@ -29,7 +29,7 @@ generate dest model render = do
     let !s = render model r
     createDirectoryIfMissing True (takeDirectory fp)
     writeFileLBS fp s
-  forM_ (staticAssets $ Proxy @model) $ \staticPath -> do
+  forM_ (staticAssets $ Proxy @route) $ \staticPath -> do
     copyDirRecursively staticPath dest
 
 newtype StaticAssetMissing = StaticAssetMissing FilePath

@@ -79,7 +79,7 @@ runServerWithWebSocketHotReload port model render = do
             LVar.removeListener model subId
     assetsMiddleware = do
       Static.staticPolicy $
-        flip foldMap (staticAssets $ Proxy @model) $ \path ->
+        flip foldMap (staticAssets $ Proxy @route) $ \path ->
           Static.hasPrefix path
     httpApp req f = do
       let mr = routeFromPathInfo (Wai.pathInfo req)
