@@ -2,7 +2,7 @@ cabal-version:      2.4
 name:               ema
 version:            0.1.0.0
 license:            AGPL-3.0-only
-copyright:          2020 Sridhar Ratnakumar
+copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 author:             Sridhar Ratnakumar
 category:           Web
@@ -44,6 +44,7 @@ library
     , directory
     , filepath
     , http-types
+    , lvar
     , monad-logger
     , monad-logger-extras
     , neat-interpolation
@@ -98,7 +99,6 @@ library
     ViewPatterns
 
   exposed-modules:
-    Data.LVar
     Ema
     Ema.CLI
 

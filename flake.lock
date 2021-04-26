@@ -31,6 +31,22 @@
         "type": "github"
       }
     },
+    "lvar": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1619458516,
+        "narHash": "sha256-4nuuDSKPWDIdjmZDxne9EDJvVcivPRaPRZ92dmhjb0Q=",
+        "owner": "srid",
+        "repo": "lvar",
+        "rev": "e68489533fcb67b7404c945b443bb58cdc23b710",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "lvar",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1618909122,
@@ -51,6 +67,7 @@
       "inputs": {
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
+        "lvar": "lvar",
         "nixpkgs": "nixpkgs"
       }
     }
