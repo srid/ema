@@ -111,7 +111,7 @@ runEmaWithCliInCwd cliAction model render = do
   case cliAction of
     Generate dest -> do
       val <- LVar.get model
-      liftIO $ Generate.generate dest val (render cliAction)
+      Generate.generate dest val (render cliAction)
     Run -> do
       void $ LVar.get model
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"

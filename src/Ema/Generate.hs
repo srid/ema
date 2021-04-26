@@ -5,6 +5,7 @@
 module Ema.Generate where
 
 import Control.Exception (throw)
+import Control.Monad.Logger
 import Ema.Class
 import Ema.Route (routeFile)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist)
@@ -12,23 +13,24 @@ import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 
 generate ::
-  forall model route.
-  Ema model route =>
+  forall model route m.
+  (MonadEma m, Ema model route) =>
   FilePath ->
   model ->
   (model -> route -> LByteString) ->
-  IO ()
+  m ()
 generate dest model render = do
-  unlessM (doesDirectoryExist dest) $ do
+  unlessM (liftIO $ doesDirectoryExist dest) $ do
     error "Destination does not exist"
   let routes = staticRoutes model
-  putStrLn $ "Writing " <> show (length routes) <> " routes"
+  logInfoN $ "Writing " <> show (length routes) <> " routes"
   forM_ routes $ \r -> do
     let fp = dest </> routeFile @model r
-    putStrLn $ "W " <> fp
+    logInfoN $ toText $ "W " <> fp
     let !s = render model r
-    createDirectoryIfMissing True (takeDirectory fp)
-    writeFileLBS fp s
+    liftIO $ do
+      createDirectoryIfMissing True (takeDirectory fp)
+      writeFileLBS fp s
   forM_ (staticAssets $ Proxy @route) $ \staticPath -> do
     copyDirRecursively staticPath dest
 
@@ -36,26 +38,28 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving (Show, Exception)
 
 copyDirRecursively ::
+  MonadEma m =>
   -- | Source file or directory relative to CWD that will be copied
   FilePath ->
   -- | Directory *under* which the source file/dir will be copied
   FilePath ->
-  IO ()
+  m ()
 copyDirRecursively srcRel destParent =
-  doesFileExist srcRel >>= \case
+  liftIO (doesFileExist srcRel) >>= \case
     True -> do
       let b = destParent </> srcRel
-      putStrLn $ "C " <> b
-      copyFile srcRel b
+      logInfoN $ toText $ "C " <> b
+      liftIO $ copyFile srcRel b
     False ->
-      doesDirectoryExist srcRel >>= \case
+      liftIO (doesDirectoryExist srcRel) >>= \case
         False ->
           throw $ StaticAssetMissing srcRel
         True -> do
-          fs <- getDirectoryFiles srcRel ["**"]
+          fs <- liftIO $ getDirectoryFiles srcRel ["**"]
           forM_ fs $ \fp -> do
             let a = srcRel </> fp
                 b = destParent </> srcRel </> fp
-            putStrLn $ "C " <> b
-            createDirectoryIfMissing True (takeDirectory b)
-            copyFile a b
+            logInfoN $ toText $ "C " <> b
+            liftIO $ do
+              createDirectoryIfMissing True (takeDirectory b)
+              copyFile a b
