@@ -92,28 +92,31 @@ instance Ema MarkdownSources MarkdownPath where
   staticAssets _ =
     ["manifest.json", "ema.svg"]
 
+log :: MonadLogger m => Text -> m ()
+log = logInfoNS "Ex03_Documentation"
+
 main :: IO ()
 main =
   runEma render $ \model -> do
     LVar.set model =<< do
       mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
-      liftIO $
-        forM mdFiles readSource
-          <&> Tagged . Map.fromList . catMaybes
+      forM mdFiles readSource
+        <&> Tagged . Map.fromList . catMaybes
     FileSystem.onChange "." $ \fp -> \case
       FileSystem.Update ->
         whenJustM (readSource fp) $ \(spath, s) -> do
-          logInfoN $ "Update: " <> show spath
+          log $ "Update: " <> show spath
           LVar.modify model $ Tagged . Map.insert spath s . untag
       FileSystem.Delete ->
         whenJust (mkMarkdownPath fp) $ \spath -> do
-          logInfoN $ "Delete: " <> show spath
+          log $ "Delete: " <> show spath
           LVar.modify model $ Tagged . Map.delete spath . untag
   where
-    readSource :: MonadIO m => FilePath -> m (Maybe (MarkdownPath, Pandoc))
+    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownPath, Pandoc))
     readSource fp =
       runMaybeT $ do
         spath :: MarkdownPath <- MaybeT $ pure $ mkMarkdownPath fp
+        log $ "Reading " <> toText fp
         s <- readFileText fp
         pure (spath, parseMarkdown s)
 

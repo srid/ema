@@ -24,10 +24,13 @@ import UnliftIO (withRunInIO)
 
 type FolderPath = FilePath
 
+log :: MonadLogger m => LogLevel -> Text -> m ()
+log = logWithoutLoc "Helper.FileSystem"
+
 filesMatching :: MonadEma m => FolderPath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
   parent <- liftIO $ canonicalizePath parent'
-  logInfoN $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
+  log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
   liftIO $ getDirectoryFiles parent pats
 
 data FileAction = Update | Delete
@@ -40,9 +43,9 @@ onChange parent' f = do
   -- @parent'@ (as passed by user), which is what @f@ will expect.
   parent <- liftIO $ canonicalizePath parent'
   withManagerM $ \mgr -> do
-    logInfoN $ toText $ "Monitoring " <> parent <> " for changes"
+    log LevelInfo $ toText $ "Monitoring " <> parent <> " for changes"
     stop <- watchTreeM mgr parent (const True) $ \event -> do
-      logInfoN $ show event
+      log LevelDebug $ show event
       let rel = makeRelative parent
       case event of
         Added (rel -> fp) _ _ -> f fp Update

@@ -23,7 +23,6 @@ import qualified Ema.CLI as CLI
 import Ema.Class (Ema (..), MonadEma)
 import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
-import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
 
@@ -75,9 +74,7 @@ runEmaWithCli ::
   IO ()
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
-  -- TODO: Use a logging library, in place of managing buffering and using putStrLn
-  hSetBuffering stdout LineBuffering
-  hSetBuffering stderr LineBuffering
+  -- TODO: Allow library users to control logging levels
   let logger = colorize logToStdout
   withCurrentDirectory (CLI.workingDir cli) $ do
     cwd <- getCurrentDirectory

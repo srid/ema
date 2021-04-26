@@ -12,6 +12,9 @@ import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist,
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 
+log :: MonadLogger m => LogLevel -> Text -> m ()
+log = logWithoutLoc "Generate"
+
 generate ::
   forall model route m.
   (MonadEma m, Ema model route) =>
@@ -23,10 +26,10 @@ generate dest model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error "Destination does not exist"
   let routes = staticRoutes model
-  logInfoN $ "Writing " <> show (length routes) <> " routes"
+  log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   forM_ routes $ \r -> do
     let fp = dest </> routeFile @model r
-    logInfoN $ toText $ "W " <> fp
+    log LevelInfo $ toText $ "W " <> fp
     let !s = render model r
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory fp)
@@ -48,7 +51,7 @@ copyDirRecursively srcRel destParent =
   liftIO (doesFileExist srcRel) >>= \case
     True -> do
       let b = destParent </> srcRel
-      logInfoN $ toText $ "C " <> b
+      log LevelInfo $ toText $ "C " <> b
       liftIO $ copyFile srcRel b
     False ->
       liftIO (doesDirectoryExist srcRel) >>= \case
@@ -59,7 +62,7 @@ copyDirRecursively srcRel destParent =
           forM_ fs $ \fp -> do
             let a = srcRel </> fp
                 b = destParent </> srcRel </> fp
-            logInfoN $ toText $ "C " <> b
+            log LevelInfo $ toText $ "C " <> b
             liftIO $ do
               createDirectoryIfMissing True (takeDirectory b)
               copyFile a b
