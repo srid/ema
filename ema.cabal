@@ -14,7 +14,12 @@ description:
   Ema sites are change-aware; in addition to good ol’ static site generation,
   it provides a live server supporting fast hot-reload in the browser on code
   or data change.
-  
+
+extra-source-files:
+  CHANGELOG.md
+  LICENSE
+  README.md
+
 flag with-examples
   description: Include examples and their dependencies
   default:     True
@@ -22,11 +27,6 @@ flag with-examples
 flag with-helpers
   description: Include helper modules based on blaze-html
   default:     True
-
-extra-source-files:
-  CHANGELOG.md
-  LICENSE
-  README.md
 
 library
   -- Modules included in this executable, other than Main.

@@ -2,5 +2,5 @@
 
 TODO
 
-- monad-logger
+- monad-logger, MonadLogger m
 - CLI log levels
