@@ -53,12 +53,17 @@ runServerWithWebSocketHotReload port model render = do
             let log s = logDebugNS (toText @String $ printf "WS.Client.%.2d" subId) s
             log "Connected"
             let askClientForRoute = do
-                  msg :: Text <- WS.receiveData conn
-                  pure $
-                    msg
-                      & pathInfoFromWsMsg
-                      & routeFromPathInfo
-                      & fromMaybe (error "invalid route from ws")
+                  msg :: Text <- liftIO $ WS.receiveData conn
+                  let r =
+                        msg
+                          & pathInfoFromWsMsg
+                          & routeFromPathInfo
+                          & fromMaybe (error "invalid route from ws")
+                  log $ "<~~ " <> show r
+                  pure r
+                sendRouteHtmlToClient r s = do
+                  liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims s r
+                  log $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
                   -- The first route will be the route the client intends to observe
@@ -66,27 +71,22 @@ runServerWithWebSocketHotReload port model render = do
                   -- that the client wants to *switch* to that route. This proecess
                   -- repeats ad infinitum: i.e., the third route is for observing
                   -- changes, the fourth route is for switching to, and so on.
-                  watchingRoute <- liftIO askClientForRoute
-                  log $ "<~~ " <> show watchingRoute
+                  watchingRoute <- askClientForRoute
                   -- Listen *until* either we get a new value, or the client requests
                   -- to switch to a new route.
                   liftIO $ do
-                    race (LVar.listenNext model subId) askClientForRoute >>= \res -> flip runLoggingT logger $ case res of
+                    race (LVar.listenNext model subId) (runLoggingT askClientForRoute logger) >>= \res -> flip runLoggingT logger $ case res of
                       Left newHtml -> do
                         -- The page the user is currently viewing has changed. Send
                         -- the new HTML to them.
-                        liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims newHtml watchingRoute
-                        log $ " ~~> " <> show watchingRoute
+                        sendRouteHtmlToClient watchingRoute newHtml
                         lift loop
                       Right nextRoute -> do
                         -- The user clicked on a route link; send them the HTML for
                         -- that route this time, ignoring what we are watching
                         -- currently (we expect the user to initiate a watch route
                         -- request immediately following this).
-                        log $ "[Switch]: <~~ " <> show nextRoute
-                        html <- LVar.get model
-                        liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims html nextRoute
-                        log $ "[Switch]: ~~> " <> show nextRoute
+                        sendRouteHtmlToClient nextRoute =<< LVar.get model
                         lift loop
             liftIO (try loop) >>= \case
               Right () -> pure ()

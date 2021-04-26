@@ -34,7 +34,7 @@ Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the documentatio
 pre-announce,
 - CLI UX 
   - [x] opts
-  - [ ] logging
+  - [x] logging
     - Expose it to apps (inc/ helpers) in a simple way
 - [x] [deal with errors](https://github.com/srid/memoir/issues/1)
 - [x] How to serve non-generated files (css, img, etc.)
