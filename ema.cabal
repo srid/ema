@@ -38,18 +38,21 @@ library
   build-depends:
     , aeson
     , async
-    , base                  ^>=4.14.1.0
+    , base                   ^>=4.14.1.0
     , containers
     , data-default
     , directory
     , filepath
     , http-types
+    , monad-logger
+    , monad-logger-extras
     , neat-interpolation
     , optparse-applicative
     , relude
     , safe-exceptions
     , stm
     , text
+    , unliftio
     , wai
     , wai-middleware-static
     , wai-websockets

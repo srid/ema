@@ -6,10 +6,11 @@ module Ema.Server where
 
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
+import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Class (Ema (decodeRoute, staticAssets))
+import Ema.Class (Ema (decodeRoute, staticAssets), MonadEma)
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
@@ -20,82 +21,98 @@ import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
 import Relude.Extra.Foldable1 (foldl1')
+import Text.Printf (printf)
 
 runServerWithWebSocketHotReload ::
-  forall model route.
-  (Ema model route, Show route) =>
+  forall model route m.
+  (Ema model route, Show route, MonadEma m) =>
   Int ->
   LVar model ->
   (model -> route -> LByteString) ->
-  IO ()
+  m ()
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
-  Warp.runSettings settings $ assetsMiddleware $ WaiWs.websocketsOr WS.defaultConnectionOptions wsApp httpApp
+  logger <- askLoggerIO
+
+  logInfoN $ "Launching Ema at http://localhost:" <> show port
+  liftIO $
+    Warp.runSettings settings $
+      assetsMiddleware $
+        WaiWs.websocketsOr
+          WS.defaultConnectionOptions
+          (flip runLoggingT logger . wsApp)
+          (httpApp logger)
   where
     wsApp pendingConn = do
-      conn :: WS.Connection <- WS.acceptRequest pendingConn
-      WS.withPingThread conn 30 (pure ()) $ do
-        subId <- LVar.addListener model
-        let log s = putTextLn $ "[" <> show subId <> "] :: " <> s
-        log "ws:connected"
-        let askClientForRoute = do
-              msg :: Text <- WS.receiveData conn
-              pure $
-                msg
-                  & pathInfoFromWsMsg
-                  & routeFromPathInfo
-                  & fromMaybe (error "invalid route from ws")
-            loop = do
-              -- Notice that we @askClientForRoute@ in succession twice here.
-              -- The first route will be the route the client intends to observe
-              -- for changes on. The second route, *if* it is sent, indicates
-              -- that the client wants to *switch* to that route. This proecess
-              -- repeats ad infinitum: i.e., the third route is for observing
-              -- changes, the fourth route is for switching to, and so on.
-              watchingRoute <- askClientForRoute
-              log $ "[Watch]: <~~ " <> show watchingRoute
-              -- Listen *until* either we get a new value, or the client requests
-              -- to switch to a new route.
-              race (LVar.listenNext model subId) askClientForRoute >>= \case
-                Left newHtml -> do
-                  -- The page the user is currently viewing has changed. Send
-                  -- the new HTML to them.
-                  WS.sendTextData conn $ renderWithEmaHtmlShims newHtml watchingRoute
-                  log $ "[Watch]: ~~> " <> show watchingRoute
-                  loop
-                Right nextRoute -> do
-                  -- The user clicked on a route link; send them the HTML for
-                  -- that route this time, ignoring what we are watching
-                  -- currently (we expect the user to initiate a watch route
-                  -- request immediately following this).
-                  log $ "[Switch]: <~~ " <> show nextRoute
-                  html <- LVar.get model
-                  WS.sendTextData conn $ renderWithEmaHtmlShims html nextRoute
-                  log $ "[Switch]: ~~> " <> show nextRoute
-                  loop
-        try loop >>= \case
-          Right () -> pure ()
-          Left (err :: ConnectionException) -> do
-            log $ "ws:error " <> show err
-            LVar.removeListener model subId
+      conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
+      logger <- askLoggerIO
+      lift $
+        WS.withPingThread conn 30 (pure ()) $
+          flip runLoggingT logger $ do
+            subId <- LVar.addListener model
+            let log s = logDebugNS (toText @String $ printf "WS.Client.%.2d" subId) s
+            log "Connected"
+            let askClientForRoute = do
+                  msg :: Text <- WS.receiveData conn
+                  pure $
+                    msg
+                      & pathInfoFromWsMsg
+                      & routeFromPathInfo
+                      & fromMaybe (error "invalid route from ws")
+                loop = flip runLoggingT logger $ do
+                  -- Notice that we @askClientForRoute@ in succession twice here.
+                  -- The first route will be the route the client intends to observe
+                  -- for changes on. The second route, *if* it is sent, indicates
+                  -- that the client wants to *switch* to that route. This proecess
+                  -- repeats ad infinitum: i.e., the third route is for observing
+                  -- changes, the fourth route is for switching to, and so on.
+                  watchingRoute <- liftIO askClientForRoute
+                  log $ "<~~ " <> show watchingRoute
+                  -- Listen *until* either we get a new value, or the client requests
+                  -- to switch to a new route.
+                  liftIO $ do
+                    race (LVar.listenNext model subId) askClientForRoute >>= \res -> flip runLoggingT logger $ case res of
+                      Left newHtml -> do
+                        -- The page the user is currently viewing has changed. Send
+                        -- the new HTML to them.
+                        liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims newHtml watchingRoute
+                        log $ " ~~> " <> show watchingRoute
+                        lift loop
+                      Right nextRoute -> do
+                        -- The user clicked on a route link; send them the HTML for
+                        -- that route this time, ignoring what we are watching
+                        -- currently (we expect the user to initiate a watch route
+                        -- request immediately following this).
+                        log $ "[Switch]: <~~ " <> show nextRoute
+                        html <- LVar.get model
+                        liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims html nextRoute
+                        log $ "[Switch]: ~~> " <> show nextRoute
+                        lift loop
+            liftIO (try loop) >>= \case
+              Right () -> pure ()
+              Left (err :: ConnectionException) -> do
+                log $ "ws:error " <> show err
+                LVar.removeListener model subId
     assetsMiddleware = do
       case nonEmpty (staticAssets $ Proxy @route) of
         Nothing -> id
-        Just assets ->
+        Just topLevelPaths ->
           let assetPolicy :: Static.Policy =
-                foldl1' (Static.<|>) $ Static.hasPrefix <$> assets
+                foldl1' (Static.<|>) $ Static.hasPrefix <$> topLevelPaths
            in Static.staticPolicy assetPolicy
-    httpApp req f = do
-      let mr = routeFromPathInfo (Wai.pathInfo req)
-      putStrLn $ "[http] " <> show mr
-      (status, v) <- case mr of
-        Nothing ->
-          pure (H.status404, "No route")
-        Just r -> do
-          val <- LVar.get model
-          let html = renderCatchingErrors val r
-          pure (H.status200, html <> emaStatusHtml <> wsClientShim)
-      f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
+    httpApp logger req f = do
+      flip runLoggingT logger $ do
+        let path = Wai.pathInfo req
+            mr = routeFromPathInfo path
+        logInfoNS "HTTP" $ show path <> " as " <> show mr
+        (status, v) <- case mr of
+          Nothing ->
+            pure (H.status404, "No route")
+          Just r -> do
+            val <- LVar.get model
+            let html = renderCatchingErrors val r
+            pure (H.status200, html <> emaStatusHtml <> wsClientShim)
+        liftIO $ f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
     renderWithEmaHtmlShims m r =
       renderCatchingErrors m r <> emaStatusHtml
     renderCatchingErrors m r =

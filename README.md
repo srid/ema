@@ -2,7 +2,7 @@
 
 <img width="10%" src="./docs/ema.svg">
 
-Ema is a next-gen **Haskell** library for building [jamstack-style](https://jamstack.org/) static sites, with fast hot reload. See [ema.srid.ca](https://ema.srid.ca/) for documentation.
+Ema is a next-gen **Haskell** library for building [jamstack-style](https://jamstack.org/) static sites, with fast hot reload. See [ema.srid.ca](https://ema.srid.ca/) for further information.
 
 The simplest Ema app looks like this:
 
@@ -10,7 +10,7 @@ The simplest Ema app looks like this:
 main :: IO ()
 main = do
   let name :: Text = "Ema"
-  runEmaPure $
+  runEmaPure $ \_ ->
     encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 

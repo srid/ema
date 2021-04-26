@@ -21,6 +21,7 @@
             inherit name returnShellEnv;
             root = ./.;
             withHoogle = false;
+            overrides = self: super: with pkgs.haskell.lib; { };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
               [
