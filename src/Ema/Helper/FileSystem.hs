@@ -17,6 +17,13 @@ import Control.Monad.Logger
 import Ema.App (MonadEma)
 import System.Directory (canonicalizePath)
 import System.FSNotify
+  ( ActionPredicate,
+    Event (..),
+    StopListening,
+    WatchManager,
+    watchTree,
+    withManager,
+  )
 import System.FilePath (makeRelative)
 import System.FilePattern (FilePattern)
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -27,7 +34,7 @@ type FolderPath = FilePath
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Helper.FileSystem"
 
-filesMatching :: MonadEma m => FolderPath -> [FilePattern] -> m [FilePath]
+filesMatching :: (MonadIO m, MonadLogger m) => FolderPath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
   parent <- liftIO $ canonicalizePath parent'
   log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
