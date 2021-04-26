@@ -20,19 +20,12 @@ import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import Ema.CLI (Action (..), Cli)
 import qualified Ema.CLI as CLI
-import Ema.Class (Ema (..))
+import Ema.Class (Ema (..), MonadEma)
 import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
 import GHC.IO.Handle (BufferMode (LineBuffering), hSetBuffering)
 import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
-import UnliftIO (MonadUnliftIO)
-
-type MonadEma m =
-  ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLogger m
-  )
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -123,4 +116,4 @@ runEmaWithCliInCwd cliAction model render = do
       void $ LVar.get model
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       logInfoN $ "Launching Ema at http://localhost:" <> show port
-      liftIO $ Server.runServerWithWebSocketHotReload port model (render cliAction)
+      Server.runServerWithWebSocketHotReload port model (render cliAction)

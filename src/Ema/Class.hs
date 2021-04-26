@@ -1,10 +1,19 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Ema.Class where
 
+import Control.Monad.Logger (MonadLoggerIO)
 import Ema.Route.Slug (Slug)
+import UnliftIO (MonadUnliftIO)
+
+type MonadEma m =
+  ( MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m
+  )
 
 -- | Enrich a model to work with Ema
 class Ema model route | route -> model where
