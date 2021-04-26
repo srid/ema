@@ -16,6 +16,7 @@ import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
+import Control.Monad.Logger
 import qualified Data.LVar as LVar
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
@@ -95,21 +96,21 @@ main :: IO ()
 main =
   runEma render $ \model -> do
     LVar.set model =<< do
-      putStrLn "Loading .md files"
       mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
-      forM mdFiles readSource
-        <&> Tagged . Map.fromList . catMaybes
+      liftIO $
+        forM mdFiles readSource
+          <&> Tagged . Map.fromList . catMaybes
     FileSystem.onChange "." $ \fp -> \case
       FileSystem.Update ->
         whenJustM (readSource fp) $ \(spath, s) -> do
-          putStrLn $ "Update: " <> show spath
+          logInfoN $ "Update: " <> show spath
           LVar.modify model $ Tagged . Map.insert spath s . untag
       FileSystem.Delete ->
         whenJust (mkMarkdownPath fp) $ \spath -> do
-          putStrLn $ "Delete: " <> show spath
+          logInfoN $ "Delete: " <> show spath
           LVar.modify model $ Tagged . Map.delete spath . untag
   where
-    readSource :: FilePath -> IO (Maybe (MarkdownPath, Pandoc))
+    readSource :: MonadIO m => FilePath -> m (Maybe (MarkdownPath, Pandoc))
     readSource fp =
       runMaybeT $ do
         spath :: MarkdownPath <- MaybeT $ pure $ mkMarkdownPath fp

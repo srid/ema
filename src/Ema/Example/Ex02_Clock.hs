@@ -40,8 +40,8 @@ main :: IO ()
 main = do
   runEma render $ \model ->
     forever $ do
-      LVar.set model =<< getCurrentTime
-      threadDelay $ 1 * 1000000
+      LVar.set model =<< liftIO getCurrentTime
+      liftIO $ threadDelay $ 1 * 1000000
 
 render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
