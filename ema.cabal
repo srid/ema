@@ -68,13 +68,6 @@ library
 
     if flag(with-examples)
       build-depends:
-        , commonmark
-        , commonmark-extensions
-        , commonmark-pandoc
-        , pandoc-types
-        , profunctors
-        , shower
-        , tagged
         , time
 
   mixins:
@@ -119,15 +112,6 @@ library
     exposed-modules:
       Ema.Example.Ex01_HelloWorld
       Ema.Example.Ex02_Clock
-      Ema.Example.Ex03_Documentation
 
   hs-source-dirs:     src
   default-language:   Haskell2010
-
-executable ema-docs
-  hs-source-dirs:   docs
-  default-language: Haskell2010
-  main-is:          Main.hs
-  build-depends:
-    , base
-    , ema

@@ -18,4 +18,8 @@ main = do
 
 ## Hacking
 
-Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the documentation example; modify `./.ghcid` to run a different example, such as the clock example - which updates every second, demonstrating hot reload.
+Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock example (which updates every second, only to demonstrate hot reload); modify `./.ghcid` to run a different example. 
+
+## Getting Started
+
+Use this template: https://github.com/srid/ema-docs
