@@ -27,7 +27,7 @@ import System.FSNotify
 import System.FilePath (makeRelative)
 import System.FilePattern (FilePattern)
 import System.FilePattern.Directory (getDirectoryFiles)
-import UnliftIO (withRunInIO)
+import UnliftIO (MonadUnliftIO, withRunInIO)
 
 type FolderPath = FilePath
 
@@ -43,7 +43,12 @@ filesMatching parent' pats = do
 data FileAction = Update | Delete
   deriving (Eq, Show)
 
-onChange :: forall m. MonadEma m => FolderPath -> (FilePath -> FileAction -> m ()) -> m ()
+onChange ::
+  forall m.
+  (MonadIO m, MonadLogger m, MonadUnliftIO m) =>
+  FolderPath ->
+  (FilePath -> FileAction -> m ()) ->
+  m ()
 onChange parent' f = do
   -- NOTE: It is important to use canonical path, because this will allow us to
   -- transform fsnotify event's (absolute) path into one that is relative to
@@ -62,7 +67,7 @@ onChange parent' f = do
     liftIO $ threadDelay maxBound `finally` stop
 
 withManagerM ::
-  MonadEma m =>
+  (MonadIO m, MonadUnliftIO m) =>
   (WatchManager -> m a) ->
   m a
 withManagerM f = do
@@ -71,7 +76,7 @@ withManagerM f = do
 
 watchTreeM ::
   forall m.
-  MonadEma m =>
+  (MonadIO m, MonadUnliftIO m) =>
   WatchManager ->
   FilePath ->
   ActionPredicate ->
