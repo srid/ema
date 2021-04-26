@@ -14,7 +14,6 @@ where
 import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Monad.Logger
-import Ema.App (MonadEma)
 import System.Directory (canonicalizePath)
 import System.FSNotify
   ( ActionPredicate,

@@ -7,6 +7,8 @@ TODO
 - Any Haskell type
 - Stored in `LVar` to enable hot-reload
 - `LVar.set` and `LVar.modify`
+  - When the program starts up, set the initial value
+  - Over time, use LVar.modify (or LVar.set) to update it based on changes (eg: filesystem)
 - `runEma`
 
 {.last}

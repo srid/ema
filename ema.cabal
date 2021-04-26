@@ -6,7 +6,15 @@ copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 author:             Sridhar Ratnakumar
 category:           Web
-
+synopsis:           Static site generator library with hot reload
+bug-reports:        https://github.com/srid/ema/issues
+homepage:           https://ema.srid.ca/
+description:
+  Ema is a next-gen Haskell library for building jamstack-style static sites.
+  Ema sites are change-aware; in addition to good ol’ static site generation,
+  it provides a live server supporting fast hot-reload in the browser on code
+  or data change.
+  
 flag with-examples
   description: Include examples and their dependencies
   default:     True
@@ -14,15 +22,6 @@ flag with-examples
 flag with-helpers
   description: Include helper modules based on blaze-html
   default:     True
-
--- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
-
--- A URL where users can report bugs.
--- bug-reports:
 
 extra-source-files:
   CHANGELOG.md
@@ -38,7 +37,7 @@ library
   build-depends:
     , aeson
     , async
-    , base                   ^>=4.14.1.0
+    , base                   >=4.13.0.0 && <=4.17.0.0
     , containers
     , data-default
     , directory
