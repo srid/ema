@@ -1,6 +1,6 @@
 # ema
 
-<img width="10%" src="./docs/ema.svg">
+<img width="10%" src="https://ema.srid.ca/ema.svg">
 
 [![Hackage](https://img.shields.io/hackage/v/ema.svg?logo=haskell)](https://hackage.haskell.org/package/ema)
 
