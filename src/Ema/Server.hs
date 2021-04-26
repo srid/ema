@@ -21,6 +21,7 @@ import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
 import Relude.Extra.Foldable1 (foldl1')
+import Text.Printf (printf)
 
 runServerWithWebSocketHotReload ::
   forall model route m.
@@ -32,6 +33,8 @@ runServerWithWebSocketHotReload ::
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
   logger <- askLoggerIO
+
+  logInfoN $ "Launching Ema at http://localhost:" <> show port
   liftIO $
     Warp.runSettings settings $
       assetsMiddleware $
@@ -47,8 +50,8 @@ runServerWithWebSocketHotReload port model render = do
         WS.withPingThread conn 30 (pure ()) $
           flip runLoggingT logger $ do
             subId <- LVar.addListener model
-            let log s = logDebugN $ "[" <> show subId <> "] :: " <> s
-            log "ws:connected"
+            let log s = logDebugNS (toText @String $ printf "WS.Client.%.2d" subId) s
+            log "Connected"
             let askClientForRoute = do
                   msg :: Text <- WS.receiveData conn
                   pure $
@@ -64,7 +67,7 @@ runServerWithWebSocketHotReload port model render = do
                   -- repeats ad infinitum: i.e., the third route is for observing
                   -- changes, the fourth route is for switching to, and so on.
                   watchingRoute <- liftIO askClientForRoute
-                  log $ "[Watch]: <~~ " <> show watchingRoute
+                  log $ "<~~ " <> show watchingRoute
                   -- Listen *until* either we get a new value, or the client requests
                   -- to switch to a new route.
                   liftIO $ do
@@ -73,7 +76,7 @@ runServerWithWebSocketHotReload port model render = do
                         -- The page the user is currently viewing has changed. Send
                         -- the new HTML to them.
                         liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims newHtml watchingRoute
-                        log $ "[Watch]: ~~> " <> show watchingRoute
+                        log $ " ~~> " <> show watchingRoute
                         lift loop
                       Right nextRoute -> do
                         -- The user clicked on a route link; send them the HTML for
@@ -93,14 +96,15 @@ runServerWithWebSocketHotReload port model render = do
     assetsMiddleware = do
       case nonEmpty (staticAssets $ Proxy @route) of
         Nothing -> id
-        Just assets ->
+        Just topLevelPaths ->
           let assetPolicy :: Static.Policy =
-                foldl1' (Static.<|>) $ Static.hasPrefix <$> assets
+                foldl1' (Static.<|>) $ Static.hasPrefix <$> topLevelPaths
            in Static.staticPolicy assetPolicy
     httpApp logger req f = do
       flip runLoggingT logger $ do
-        let mr = routeFromPathInfo (Wai.pathInfo req)
-        logInfoN $ "[http] " <> show mr
+        let path = Wai.pathInfo req
+            mr = routeFromPathInfo path
+        logInfoNS "HTTP" $ show path <> " as " <> show mr
         (status, v) <- case mr of
           Nothing ->
             pure (H.status404, "No route")

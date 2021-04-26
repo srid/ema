@@ -3,6 +3,7 @@
 TODO
 
 - What's a "model"?
+  - Represents all the 'state' in your app.
 - Any Haskell type
 - Stored in `LVar` to enable hot-reload
 - `LVar.set` and `LVar.modify`

@@ -4,7 +4,12 @@
 -- | Helper to read a directory of files, and observe it for changes.
 --
 -- Use @new@ in conjunction with @observe@ in your @runEma@ function call.
-module Ema.Helper.FileSystem where
+module Ema.Helper.FileSystem
+  ( filesMatching,
+    onChange,
+    FileAction (..),
+  )
+where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (finally)

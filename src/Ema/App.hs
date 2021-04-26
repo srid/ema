@@ -115,5 +115,4 @@ runEmaWithCliInCwd cliAction model render = do
     Run -> do
       void $ LVar.get model
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
-      logInfoN $ "Launching Ema at http://localhost:" <> show port
       Server.runServerWithWebSocketHotReload port model (render cliAction)
