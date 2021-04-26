@@ -50,8 +50,9 @@ runServerWithWebSocketHotReload port model render = do
         WS.withPingThread conn 30 (pure ()) $
           flip runLoggingT logger $ do
             subId <- LVar.addListener model
-            let log s = logDebugNS (toText @String $ printf "WS.Client.%.2d" subId) s
-            log "Connected"
+            let log lvl (s :: Text) =
+                  logWithoutLoc (toText @String $ printf "WS.Client.%.2d" subId) lvl s
+            log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
                   let r =
@@ -59,11 +60,11 @@ runServerWithWebSocketHotReload port model render = do
                           & pathInfoFromWsMsg
                           & routeFromPathInfo
                           & fromMaybe (error "invalid route from ws")
-                  log $ "<~~ " <> show r
+                  log LevelDebug $ "<~~ " <> show r
                   pure r
                 sendRouteHtmlToClient r s = do
-                  liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims s r
-                  log $ " ~~> " <> show r
+                  liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims logger s r
+                  log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
                   -- The first route will be the route the client intends to observe
@@ -91,7 +92,7 @@ runServerWithWebSocketHotReload port model render = do
             liftIO (try loop) >>= \case
               Right () -> pure ()
               Left (err :: ConnectionException) -> do
-                log $ "ws:error " <> show err
+                log LevelError $ "Websocket error: " <> show err
                 LVar.removeListener model subId
     assetsMiddleware = do
       case nonEmpty (staticAssets $ Proxy @route) of
@@ -110,19 +111,24 @@ runServerWithWebSocketHotReload port model render = do
             pure (H.status404, "No route")
           Just r -> do
             val <- LVar.get model
-            let html = renderCatchingErrors val r
+            let html = renderCatchingErrors logger val r
             pure (H.status200, html <> emaStatusHtml <> wsClientShim)
         liftIO $ f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
-    renderWithEmaHtmlShims m r =
-      renderCatchingErrors m r <> emaStatusHtml
-    renderCatchingErrors m r =
+    renderWithEmaHtmlShims logger m r =
+      renderCatchingErrors logger m r <> emaStatusHtml
+    renderCatchingErrors logger m r =
       unsafeCatch (render m r) $ \(err :: SomeException) ->
-        encodeUtf8 $
-          "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
-            <> show @Text err
-            <> "</pre><p>Once you fix your code this page will automatically update.</body>"
+        unsafePerformIO $ do
+          -- Log the error first.
+          flip runLoggingT logger $ logErrorNS "App" $ show @Text err
+          pure $
+            encodeUtf8 $
+              "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
+                <> show @Text err
+                <> "</pre><p>Once you fix your code this page will automatically update.</body>"
     routeFromPathInfo =
       decodeRoute @model . fmap (fromString . toString)
+    -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
 
