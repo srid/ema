@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -25,6 +26,8 @@ class Ema model route | route -> model where
   --
   -- This is never used by the dev server.
   staticRoutes :: model -> [route]
+  default staticRoutes :: (Bounded route, Enum route) => model -> [route]
+  staticRoutes _ = [minBound .. maxBound]
 
   -- | List of (top-level) filepaths to serve as static assets
   --

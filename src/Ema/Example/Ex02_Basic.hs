@@ -1,5 +1,4 @@
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | A very simple site with routes, but based on dynamically changing values
 --
@@ -11,7 +10,8 @@ module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
-import Ema (Ema (..), routeUrl, runEma)
+import Ema (Ema (..))
+import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
@@ -23,7 +23,9 @@ data Route
   | About
   deriving (Show, Enum, Bounded)
 
-instance Ema () Route where
+data Model = Model Text
+
+instance Ema Model Route where
   encodeRoute = \case
     Index -> mempty
     About -> one "about"
@@ -31,23 +33,21 @@ instance Ema () Route where
     [] -> Just Index
     ["about"] -> Just About
     _ -> Nothing
-  staticRoutes _ =
-    [minBound .. maxBound]
 
 main :: IO ()
 main = do
-  runEma render $ \model ->
-    forever $ do
-      LVar.set model ()
-      liftIO $ threadDelay maxBound
+  Ema.runEma render $ \model -> do
+    LVar.set model $ Model "Hello World. "
+    liftIO $ threadDelay maxBound
 
-render :: Ema.CLI.Action -> () -> Route -> LByteString
-render emaAction () r =
+render :: Ema.CLI.Action -> Model -> Route -> LByteString
+render emaAction (Model s) r =
   Tailwind.layout emaAction (H.title "Basic site") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of
           Index -> do
+            H.toHtml s
             "You are on the index page. "
             routeElem About "Go to About"
           About -> do
@@ -57,4 +57,4 @@ render emaAction () r =
     routeElem r' w =
       H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ routeUrl r')
+      A.href (fromString . toString $ Ema.routeUrl r')

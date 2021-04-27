@@ -6,6 +6,7 @@
 - Add `Ord` instance to `Slug`
 - Helpers.Tailwind: add overflow-y-scroll to body
 - Add Ex03_Basic.hs example
+- Add default implementation based on Enum for `staticRoute`
 
 ## 0.1.0.0 -- 2021-04-26
 

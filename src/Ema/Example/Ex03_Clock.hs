@@ -33,8 +33,6 @@ instance Ema UTCTime Route where
     [] -> Just Index
     ["time"] -> Just OnlyTime
     _ -> Nothing
-  staticRoutes _ =
-    [minBound .. maxBound]
 
 main :: IO ()
 main = do
