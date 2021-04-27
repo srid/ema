@@ -76,10 +76,10 @@ runServerWithWebSocketHotReload port model render = do
                   -- to switch to a new route.
                   liftIO $ do
                     race (LVar.listenNext model subId) (runLoggingT askClientForRoute logger) >>= \res -> flip runLoggingT logger $ case res of
-                      Left newHtml -> do
+                      Left newModel -> do
                         -- The page the user is currently viewing has changed. Send
                         -- the new HTML to them.
-                        sendRouteHtmlToClient watchingRoute newHtml
+                        sendRouteHtmlToClient watchingRoute newModel
                         lift loop
                       Right nextRoute -> do
                         -- The user clicked on a route link; send them the HTML for

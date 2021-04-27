@@ -7,7 +7,7 @@
 -- generated HTML is automatically updated on the browser. This is only a demo;
 -- usually we render HTML based on files on disk or something accessible outside
 -- of the browser. More advanced examples will demonstrate that.
-module Ema.Example.Ex02_Clock where
+module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
