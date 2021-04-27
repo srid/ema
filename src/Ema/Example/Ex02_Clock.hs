@@ -47,8 +47,12 @@ render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
   Tailwind.layout emaAction (H.title "Clock") $
     H.div ! A.class_ "container mx-auto" $ do
-      H.div ! A.class_ "border-t-1 p-2 tex{-# OPTIONS_GHC -fno-warn-orphans #-}t-center" $ do
-        "The current time is: "
+      H.div ! A.class_ "mt-8 p-2 text-center" $ do
+        case r of
+          Index ->
+            "The current date & time is: "
+          OnlyTime ->
+            "The current time is: "
         H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
           H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do
             let fmt = case r of
