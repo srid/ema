@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
+- Add `Ord` instance to `Slug`
 
 ## 0.1.0.0 -- 2021-04-26
 
