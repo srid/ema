@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Helpers.Tailwind: add overflow-y-scroll to body
 - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
 - Add `Ord` instance to `Slug`
 

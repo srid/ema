@@ -44,7 +44,9 @@ layoutWith lang encoding twindShim appHead appBody = RU.renderHtml $ do
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
       appHead
       twindShim
-    H.body $ do
+    -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
+    -- avoid janky shifts when switching to routes with suddenly scrollable content.
+    H.body ! A.class_ "overflow-y-scroll" $ do
       appBody
 
 -- | Loads full tailwind CSS from CDN (not good for production)
