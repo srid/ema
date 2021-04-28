@@ -16,6 +16,8 @@ main = do
     encodeUtf8 $ "<b>Hello</b>, from " <> name
 ```
 
+https://user-images.githubusercontent.com/3998/116333460-789c1400-a7a1-11eb-8d28-297c349e42c6.mp4
+
 ## Hacking
 
 Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock example (which updates every second, only to demonstrate hot reload); modify `./.ghcid` to run a different example. 
