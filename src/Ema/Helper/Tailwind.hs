@@ -42,8 +42,8 @@ layoutWith lang encoding twindShim appHead appBody = RU.renderHtml $ do
       H.meta ! A.charset encoding
       -- This makes the site mobile friendly by default.
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
-      appHead
       twindShim
+      appHead
     -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
     -- avoid janky shifts when switching to routes with suddenly scrollable content.
     H.body ! A.class_ "overflow-y-scroll" $ do

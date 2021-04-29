@@ -4,7 +4,9 @@
 
 - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
 - Add `Ord` instance to `Slug`
-- Helpers.Tailwind: add overflow-y-scroll to body
+- Helpers.Tailwind
+  - add overflow-y-scroll to body
+  - Add twind shim *before* application's head
 - Add Ex03_Basic.hs example
 - Add default implementation based on Enum for `staticRoute`
 
