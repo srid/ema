@@ -5,7 +5,10 @@
 --
 -- Use @new@ in conjunction with @observe@ in your @runEma@ function call.
 module Ema.Helper.FileSystem
-  ( filesMatching,
+  ( -- | This is typically what you want.
+    mountFileSystemOnLVar,
+    -- | Lower-level utilities
+    filesMatching,
     onChange,
     FileAction (..),
   )
@@ -14,6 +17,9 @@ where
 import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Monad.Logger
+import Data.Default
+import Data.LVar (LVar)
+import qualified Data.LVar as LVar
 import System.Directory (canonicalizePath)
 import System.FSNotify
   ( ActionPredicate,
@@ -24,11 +30,37 @@ import System.FSNotify
     withManager,
   )
 import System.FilePath (makeRelative)
-import System.FilePattern (FilePattern)
+import System.FilePattern (FilePattern, (?==))
 import System.FilePattern.Directory (getDirectoryFiles)
 import UnliftIO (MonadUnliftIO, withRunInIO)
 
 type FolderPath = FilePath
+
+mountFileSystemOnLVar ::
+  forall model m.
+  ( MonadIO m,
+    MonadUnliftIO m,
+    MonadLogger m,
+    Default model
+  ) =>
+  -- | The directory to mount.
+  FilePath ->
+  -- | Only include these files (exclude everything else)
+  [FilePattern] ->
+  -- | The `LVar` onto which to mount.
+  LVar model ->
+  -- | How to update the model given a file action.
+  (FilePath -> FileAction -> m (model -> model)) ->
+  m ()
+mountFileSystemOnLVar folder pats var toAction = do
+  logInfoN $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
+  LVar.set var =<< do
+    fs <- filesMatching folder pats
+    initialActions <- traverse (`toAction` Update) fs
+    pure $ foldl' (flip ($)) def initialActions
+  onChange folder $ \fp change ->
+    when (any (?== fp) pats) $
+      LVar.modify var =<< toAction fp change
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Helper.FileSystem"

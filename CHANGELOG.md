@@ -4,6 +4,8 @@
 
 - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
 - Add `Ord` instance to `Slug`
+- Helpers.FileSystem
+  - add `mountFileSystemOnLVar`
 - Helpers.Tailwind
   - add overflow-y-scroll to body
   - Add twind shim *before* application's head
