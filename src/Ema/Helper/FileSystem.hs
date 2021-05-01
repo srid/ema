@@ -17,7 +17,11 @@ where
 import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Monad.Logger
-import Data.Default
+  ( LogLevel (LevelDebug, LevelInfo),
+    MonadLogger,
+    logWithoutLoc,
+  )
+import Data.Default (Default (..))
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import System.Directory (canonicalizePath)
@@ -53,7 +57,7 @@ mountFileSystemOnLVar ::
   (FilePath -> FileAction -> m (model -> model)) ->
   m ()
 mountFileSystemOnLVar folder pats var toAction = do
-  logInfoN $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
+  log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
     fs <- filesMatching folder pats
     initialActions <- traverse (`toAction` Update) fs
