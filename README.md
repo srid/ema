@@ -3,6 +3,7 @@
 <img width="10%" src="https://ema.srid.ca/ema.svg">
 
 [![Hackage](https://img.shields.io/hackage/v/ema.svg?logo=haskell)](https://hackage.haskell.org/package/ema)
+[![FAIR](https://img.shields.io/badge/FAIR-pledge-blue)](https://www.fairforall.org/about/)
 
 Ema is a next-gen **Haskell** library toolkit for building [jamstack-style](https://jamstack.org/) static sites, with fast hot reload. See [ema.srid.ca](https://ema.srid.ca/) for further information.
 
