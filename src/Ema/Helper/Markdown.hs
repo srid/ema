@@ -4,9 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
--- | Helper to read a directory of files, and observe it for changes.
---
--- Use @new@ in conjunction with @observe@ in your @runEma@ function call.
+-- | Helper to deal with Markdown files
 module Ema.Helper.Markdown
   ( -- Parsing
     parseMarkdownWithFrontMatter,
@@ -26,9 +24,6 @@ import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
-
-newtype BadMarkdown = BadMarkdown Text
-  deriving (Show, Exception)
 
 -- | Parse a Markdown file using commonmark-hs with all extensions enabled
 parseMarkdownWithFrontMatter ::
