@@ -5,6 +5,8 @@
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Helper to deal with Markdown files
+--
+-- TODO: Publish this to hackage as `Text.Markdown.Simple`?
 module Ema.Helper.Markdown
   ( -- Parsing
     parseMarkdownWithFrontMatter,

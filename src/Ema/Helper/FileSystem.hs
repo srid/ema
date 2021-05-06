@@ -3,7 +3,8 @@
 
 -- | Helper to read a directory of files, and observe it for changes.
 --
--- Use @new@ in conjunction with @observe@ in your @runEma@ function call.
+-- TODO: Publish this to hackage as an addon library for `lvar` (after renaming
+-- lvar package)?
 module Ema.Helper.FileSystem
   ( -- | This is typically what you want.
     mountOnLVar,
