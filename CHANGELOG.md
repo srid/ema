@@ -1,9 +1,11 @@
 # Revision history for ema
 
-## Unreleased
+## Unreleased (0.2.0.0)
 
-- Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
-- Add `Ord` instance to `Slug`
+- `Ema.Slug`
+  - Add `Ord` instance to `Slug`
+  - Unicode normalize slugs using NFC
+- Add default implementation based on Enum for `staticRoute`
 - Helpers.FileSystem
   - add `mountOnLVar`
 - Helpers.Tailwind
@@ -11,8 +13,9 @@
   - Add twind shim *before* application's head
 - Helpers.Markdown
   - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
-- Add Ex03_Basic.hs example
-- Add default implementation based on Enum for `staticRoute`
+- Examples
+  - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
+  - Add Ex03_Basic.hs example
 
 ## 0.1.0.0 -- 2021-04-26
 

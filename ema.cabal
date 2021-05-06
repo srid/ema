@@ -56,6 +56,7 @@ library
     , unliftio
     , wai
     , wai-middleware-static
+    , unicode-transforms
     , wai-websockets
     , warp
     , websockets
