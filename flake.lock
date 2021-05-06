@@ -31,35 +31,19 @@
         "type": "github"
       }
     },
-    "lvar": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1619458516,
-        "narHash": "sha256-4nuuDSKPWDIdjmZDxne9EDJvVcivPRaPRZ92dmhjb0Q=",
-        "owner": "srid",
-        "repo": "lvar",
-        "rev": "e68489533fcb67b7404c945b443bb58cdc23b710",
-        "type": "github"
-      },
-      "original": {
-        "owner": "srid",
-        "repo": "lvar",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1618909122,
-        "narHash": "sha256-rvbQKioaJli21xlPXAUO/pxO/3zL98TloG5QZmJmZKI=",
+        "lastModified": 1620243660,
+        "narHash": "sha256-bsdpknqK7Rpw9t17EqT3slfnyVpf1RVMu2WNsfchZtw=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "8389dcb67d934ee72c1d1e7228d92be9b3f71bad",
+        "rev": "c5173fe20851def75a5676a69a0d09b9d24ae428",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "8389dcb67d934ee72c1d1e7228d92be9b3f71bad",
+        "rev": "c5173fe20851def75a5676a69a0d09b9d24ae428",
         "type": "github"
       }
     },
@@ -67,7 +51,6 @@
       "inputs": {
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
-        "lvar": "lvar",
         "nixpkgs": "nixpkgs"
       }
     }
