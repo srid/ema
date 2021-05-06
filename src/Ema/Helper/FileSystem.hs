@@ -6,7 +6,7 @@
 -- Use @new@ in conjunction with @observe@ in your @runEma@ function call.
 module Ema.Helper.FileSystem
   ( -- | This is typically what you want.
-    mountFileSystemOnLVar,
+    mountOnLVar,
     -- | Lower-level utilities
     filesMatching,
     onChange,
@@ -40,7 +40,10 @@ import UnliftIO (MonadUnliftIO, withRunInIO)
 
 type FolderPath = FilePath
 
-mountFileSystemOnLVar ::
+-- | Mount the given directory on to the given LVar such that any filesystem
+-- events (represented by `FileAction`) are made to be reflected in the LVar
+-- model using the given model update function.
+mountOnLVar ::
   forall model m.
   ( MonadIO m,
     MonadUnliftIO m,
@@ -56,7 +59,7 @@ mountFileSystemOnLVar ::
   -- | How to update the model given a file action.
   (FilePath -> FileAction -> m (model -> model)) ->
   m ()
-mountFileSystemOnLVar folder pats var toAction = do
+mountOnLVar folder pats var toAction = do
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
     fs <- filesMatching folder pats
@@ -65,9 +68,6 @@ mountFileSystemOnLVar folder pats var toAction = do
   onChange folder $ \fp change ->
     when (any (?== fp) pats) $
       LVar.modify var =<< toAction fp change
-
-log :: MonadLogger m => LogLevel -> Text -> m ()
-log = logWithoutLoc "Helper.FileSystem"
 
 filesMatching :: (MonadIO m, MonadLogger m) => FolderPath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
@@ -120,3 +120,6 @@ watchTreeM ::
 watchTreeM wm fp pr f =
   withRunInIO $ \run ->
     watchTree wm fp pr $ \evt -> run (f evt)
+
+log :: MonadLogger m => LogLevel -> Text -> m ()
+log = logWithoutLoc "Helper.FileSystem"
