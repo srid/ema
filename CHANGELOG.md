@@ -9,6 +9,8 @@
 - Helpers.Tailwind
   - add overflow-y-scroll to body
   - Add twind shim *before* application's head
+- Helpers.Markdown
+  - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
 - Add Ex03_Basic.hs example
 - Add default implementation based on Enum for `staticRoute`
 
