@@ -8,23 +8,18 @@
 --
 -- Use @new@ in conjunction with @observe@ in your @runEma@ function call.
 module Ema.Helper.Markdown
-  ( -- | This is typically what you want.
+  ( -- Parsing
+    parseMarkdownWithFrontMatter,
+    parseMarkdown,
+    -- Utilities
+    plainify,
   )
 where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
-import Control.Exception (throw)
 import Control.Monad.Combinators (manyTill)
-import Control.Monad.Logger
-import Data.Default (Default (..))
-import qualified Data.List as List
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Map.Strict as Map
-import qualified Data.Text as T
-import Data.Tree (Tree (Node))
-import qualified Data.Tree as Tree
 import qualified Data.YAML as Y
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as M
@@ -129,3 +124,17 @@ parseYaml n (encodeUtf8 -> v) = do
   let mkError (loc, emsg) =
         toText $ n <> ":" <> Y.prettyPosWithSource loc v " error" <> emsg
   first mkError $ Y.decode1 v
+
+-- | Convert Pandoc AST inlines to raw text.
+plainify :: [B.Inline] -> Text
+plainify = W.query $ \case
+  B.Str x -> x
+  B.Code _attr x -> x
+  B.Space -> " "
+  B.SoftBreak -> " "
+  B.LineBreak -> " "
+  B.RawInline _fmt s -> s
+  B.Math _mathTyp s -> s
+  -- Ignore the rest of AST nodes, as they are recursively defined in terms of
+  -- `Inline` which `W.query` will traverse again.
+  _ -> ""
