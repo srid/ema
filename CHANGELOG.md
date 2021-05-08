@@ -6,13 +6,15 @@
   - Add `Ord` instance to `Slug`
   - Unicode normalize slugs using NFC
 - Add default implementation based on Enum for `staticRoute`
-- Helpers.FileSystem
+- Helpers
+  - Helpers.FileSystem
   - add `mountOnLVar`
-- Helpers.Tailwind
-  - add overflow-y-scroll to body
-  - Add twind shim *before* application's head
-- Helpers.Markdown
-  - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
+  - Helpers.Tailwind
+    - add overflow-y-scroll to body
+    - Add twind shim *before* application's head
+  - Helpers.Markdown
+    - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
+  - Add `Ema.Helper.PathTree`
 - Examples
   - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
   - Add Ex03_Basic.hs example
