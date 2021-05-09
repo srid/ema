@@ -10,13 +10,12 @@ import qualified Network.URI.Encode as UE
 newtype Slug = Slug {unSlug :: Text}
   deriving (Eq, Show, Ord)
 
--- | Decode an URL component into a Slug
---
--- Replace '%20' etc with appropriate text.
+-- | Decode an URL component into a `Slug` using `Network.URI.Encode`
 decodeSlug :: Text -> Slug
 decodeSlug =
   fromString . UE.decode . toString
 
+-- | Encode a `Slug` into an URL component using `Network.URI.Encode`
 encodeSlug :: Slug -> Text
 encodeSlug =
   UE.encodeText . unSlug
