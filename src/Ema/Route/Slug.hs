@@ -4,10 +4,21 @@ module Ema.Route.Slug where
 
 import qualified Data.Text as T
 import qualified Data.Text.Normalize as UT
+import qualified Network.URI.Encode as UE
 
 -- | An URL path is made of multiple slugs, separated by '/'
 newtype Slug = Slug {unSlug :: Text}
   deriving (Eq, Show, Ord)
+
+-- | Decode an URL component into a `Slug` using `Network.URI.Encode`
+decodeSlug :: Text -> Slug
+decodeSlug =
+  fromString . UE.decode . toString
+
+-- | Encode a `Slug` into an URL component using `Network.URI.Encode`
+encodeSlug :: Slug -> Text
+encodeSlug =
+  UE.encodeText . unSlug
 
 instance IsString Slug where
   fromString :: HasCallStack => String -> Slug

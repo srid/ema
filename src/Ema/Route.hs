@@ -5,13 +5,15 @@ module Ema.Route
   ( routeUrl,
     routeFile,
     Slug (unSlug),
+    decodeSlug,
+    encodeSlug,
     UrlStrategy (..),
   )
 where
 
 import Data.Default (def)
 import Ema.Class
-import Ema.Route.Slug (Slug (unSlug))
+import Ema.Route.Slug (Slug (unSlug), decodeSlug, encodeSlug)
 import Ema.Route.UrlStrategy
   ( UrlStrategy (..),
     slugFileWithStrategy,
