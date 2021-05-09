@@ -5,6 +5,7 @@
 - `Ema.Slug`
   - Add `Ord` instance to `Slug`
   - Unicode normalize slugs using NFC
+  - Add `decodeSlug` and `encodeSlug`
 - Add default implementation based on Enum for `staticRoute`
 - Helpers
   - Helpers.FileSystem
