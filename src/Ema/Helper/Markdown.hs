@@ -3,22 +3,29 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Helper to deal with Markdown files
 --
--- TODO: Publish this to hackage as `Text.Markdown.Simple`?
+-- TODO: Publish this eventually to Hackage.
 module Ema.Helper.Markdown
   ( -- Parsing
+    -- TODO: Publish to Hackage as commonmark-pandoc-simple?
     parseMarkdownWithFrontMatter,
     parseMarkdown,
+    fullMarkdownSpec,
     -- Utilities
     plainify,
+    -- TODO: Publish to Hackage as commonmark-wikilink?
+    wikilinkSpec,
+    WikiLinkType (..),
   )
 where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
+import qualified Commonmark.TokParsers as CT
 import Control.Monad.Combinators (manyTill)
 import qualified Data.YAML as Y
 import qualified Text.Megaparsec as M
@@ -26,24 +33,29 @@ import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
+import qualified Text.Parsec as P
 
 -- | Parse a Markdown file using commonmark-hs with all extensions enabled
 parseMarkdownWithFrontMatter ::
-  forall meta.
-  Y.FromYAML meta =>
+  forall meta m il bl.
+  ( Y.FromYAML meta,
+    m ~ Either CM.ParseError,
+    bl ~ CP.Cm () B.Blocks,
+    il ~ CP.Cm () B.Inlines
+  ) =>
+  CM.SyntaxSpec m il bl ->
   -- | Path to file associated with this Markdown
   FilePath ->
   -- | Markdown text to parse
   Text ->
   Either Text (Maybe meta, Pandoc)
-parseMarkdownWithFrontMatter fn s = do
+parseMarkdownWithFrontMatter spec fn s = do
   (mMeta, markdown) <- partitionMarkdown fn s
   mMetaVal <- parseYaml fn `traverse` mMeta
-  blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) fullMarkdownSpec fn markdown
+  blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) spec fn markdown
   let doc = Pandoc mempty $ B.toList . CP.unCm @() @B.Blocks $ blocks
   pure (mMetaVal, doc)
 
--- | Like `parseMarkdownWithFrontMatter` but assumes that no YAML frontmatter is present.
 parseMarkdown :: FilePath -> Text -> Either Text Pandoc
 parseMarkdown fn s = do
   cmBlocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) fullMarkdownSpec fn s
@@ -70,6 +82,7 @@ type SyntaxSpec' m il bl =
     CE.HasSpan il
   )
 
+-- | GFM + official commonmark extensions
 fullMarkdownSpec ::
   SyntaxSpec' m il bl =>
   CM.SyntaxSpec m il bl
@@ -135,3 +148,73 @@ plainify = W.query $ \case
   -- Ignore the rest of AST nodes, as they are recursively defined in terms of
   -- `Inline` which `W.query` will traverse again.
   _ -> ""
+
+-- | A # prefix or suffix allows semantically distinct wikilinks
+--
+-- Typically called branching link or a tag link, when used with #.
+data WikiLinkType
+  = -- | [[Foo]]
+    WikiLinkNormal
+  | -- | [[Foo]]#
+    WikiLinkBranch
+  | -- | #[[Foo]]
+    WikiLinkTag
+  deriving (Eq, Show)
+
+class HasWikiLink il where
+  wikilink :: WikiLinkType -> Text -> il -> il
+
+instance CM.Rangeable (CM.Html a) => HasWikiLink (CM.Html a) where
+  wikilink typ url il =
+    -- Store `typ` in link title, for later lookup.
+    CM.link url (show typ) il
+
+instance
+  (HasWikiLink il, Semigroup il, Monoid il) =>
+  HasWikiLink (CM.WithSourceMap il)
+  where
+  wikilink typ url il = (wikilink typ url <$> il) <* CM.addName "wikilink"
+
+instance HasWikiLink (CP.Cm b B.Inlines) where
+  wikilink typ t il = CP.Cm $ B.link t (show typ) $ CP.unCm il
+
+-- | Like `Commonmark.Extensions.Wikilinks.wikilinkSpec` but Zettelkasten-friendly.
+--
+-- Compared with the official extension, this has two differences:
+--
+-- - Supports flipped inner text, eg: `[[Foo | some inner text]]`
+-- - Supports neuron folgezettel, i.e.: #[[Foo]] or [[Foo]]#
+wikilinkSpec ::
+  (Monad m, CM.IsInline il, HasWikiLink il) =>
+  CM.SyntaxSpec m il bl
+wikilinkSpec =
+  mempty
+    { CM.syntaxInlineParsers =
+        [ P.try $
+            P.choice
+              [ P.try (CT.symbol '#' *> pWikilink WikiLinkTag),
+                P.try (pWikilink WikiLinkBranch <* CT.symbol '#'),
+                P.try (pWikilink WikiLinkNormal)
+              ]
+        ]
+    }
+  where
+    pWikilink typ = do
+      replicateM_ 2 $ CT.symbol '['
+      P.notFollowedBy (CT.symbol '[')
+      url <-
+        CM.untokenize
+          <$> many
+            ( CT.satisfyTok
+                ( \t ->
+                    not (CT.hasType (CM.Symbol '|') t || CT.hasType (CM.Symbol ']') t)
+                )
+            )
+      title <-
+        M.option url $
+          CM.untokenize
+            <$> ( CT.symbol '|'
+                    *> many (CT.satisfyTok (not . CT.hasType (CM.Symbol ']')))
+                )
+      replicateM_ 2 $ CT.symbol ']'
+      return $ wikilink typ url (CM.str title)

@@ -73,6 +73,7 @@ library
       , HsYAML
       , megaparsec
       , pandoc-types
+      , parsec
       , parser-combinators
 
     if flag(with-examples)

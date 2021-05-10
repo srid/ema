@@ -13,8 +13,9 @@
   - Helpers.Tailwind
     - add overflow-y-scroll to body
     - Add twind shim *before* application's head
-  - Helpers.Markdown
+  - Helpers.Markdown (to be moved to Hackage eventually)
     - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
+    - add wikilink helpers
   - Add `Ema.Helper.PathTree`
 - Examples
   - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
