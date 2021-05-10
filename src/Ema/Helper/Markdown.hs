@@ -17,13 +17,12 @@ module Ema.Helper.Markdown
     -- TODO: Move to different module or package
     fullMarkdownSpec,
     wikilinksSpec,
-    wikiLinkSpec,
+    WikiLinkType (..),
   )
 where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
-import qualified Commonmark.Inlines as CM
 import qualified Commonmark.Pandoc as CP
 import qualified Commonmark.TokParsers as CT
 import Control.Monad.Combinators (manyTill)
@@ -215,45 +214,3 @@ wikilinksSpec =
                 )
       replicateM_ 2 $ CT.symbol ']'
       return $ wikilink typ url (CM.str title)
-
--- | Commonmark parser extension for wikilinks
---
--- Convert `[[Foo]]` into `[Foo](Foo.md)`. In addition the link's title is set
--- to the `show` value of `WikiLinkType` for later decoding.
-wikiLinkSpec ::
-  (Monad m, CM.IsBlock il bl, CM.IsInline il) =>
-  CM.SyntaxSpec m il bl
-wikiLinkSpec =
-  mempty
-    { CM.syntaxInlineParsers = [pLink]
-    }
-  where
-    pLink ::
-      (Monad m, CM.IsInline il) =>
-      CM.InlineParser m il
-    pLink =
-      P.try $
-        P.choice
-          [ cmAutoLink WikiLinkTag
-              <$> P.try (CT.symbol '#' *> wikiLinkP),
-            cmAutoLink WikiLinkBranch
-              <$> P.try (wikiLinkP <* CT.symbol '#'),
-            cmAutoLink WikiLinkNormal
-              <$> P.try wikiLinkP
-          ]
-    wikiLinkP :: Monad m => P.ParsecT [CM.Tok] s m Text
-    wikiLinkP = do
-      let open = '['
-          close = ']'
-          parenP = replicateM_ 2 . CT.symbol
-          innerP = fmap CM.untokenize $ some $ CT.noneOfToks [CM.Symbol open, CM.Symbol close, CM.LineEnd]
-      parenP '[' *> innerP <* parenP ']'
-    cmAutoLink :: CM.IsInline a => WikiLinkType -> Text -> a
-    cmAutoLink typ wikiLinkText =
-      CM.link url title $ CM.str wikiLinkText
-      where
-        -- Store connetion type in 'title' attribute for later lookup.
-        -- TODO: Put it in attrs instead; requires PR to commonmark
-        title = show typ
-        -- If [[Foo]], use url Foo.md
-        url = wikiLinkText <> ".md"
