@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Helper to deal with Markdown files
 --
@@ -15,6 +16,7 @@ module Ema.Helper.Markdown
     plainify,
     -- TODO: Move to different module or package
     fullMarkdownSpec,
+    wikilinksSpec,
     wikiLinkSpec,
   )
 where
@@ -151,6 +153,52 @@ data WikiLinkType
   | -- | #[[Foo]]
     WikiLinkTag
   deriving (Eq, Show)
+
+class HasWikilinks il where
+  wikilink :: Text -> il -> il
+
+instance CM.Rangeable (CM.Html a) => HasWikilinks (CM.Html a) where
+  wikilink url il = CM.link url "wikilink" il
+
+instance
+  (HasWikilinks il, Semigroup il, Monoid il) =>
+  HasWikilinks (CM.WithSourceMap il)
+  where
+  wikilink url il = (wikilink url <$> il) <* CM.addName "wikilink"
+
+-- | Like `Commonmark.Extensions.Wikilinks.wikilinksSpec` but Zettelkasten-friendly.
+--
+-- Compared with the official extension, this has two differences:
+--
+-- - Supports flipped inner text, eg: `[[Foo | some inner text]]`
+-- - Supports neuron folgezettel, i.e.: #[[Foo]] or [[Foo]]#
+wikilinksSpec ::
+  (Monad m, CM.IsInline il, HasWikilinks il) =>
+  CM.SyntaxSpec m il bl
+wikilinksSpec =
+  mempty
+    { CM.syntaxInlineParsers = [pWikilink]
+    }
+  where
+    pWikilink = do
+      replicateM_ 2 $ CT.symbol '['
+      P.notFollowedBy (CT.symbol '[')
+      title <-
+        CM.untokenize
+          <$> many
+            ( CT.satisfyTok
+                ( \t ->
+                    not (CT.hasType (CM.Symbol '|') t || CT.hasType (CM.Symbol ']') t)
+                )
+            )
+      url <-
+        M.option title $
+          CM.untokenize
+            <$> ( CT.symbol '|'
+                    *> many (CT.satisfyTok (not . CT.hasType (CM.Symbol ']')))
+                )
+      replicateM_ 2 $ CT.symbol ']'
+      return $ wikilink url (CM.str title)
 
 -- | Commonmark parser extension for wikilinks
 --
