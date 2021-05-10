@@ -34,7 +34,7 @@ import System.FSNotify
     watchTree,
     withManager,
   )
-import System.FilePath (makeRelative)
+import System.FilePath (isRelative, makeRelative)
 import System.FilePattern (FilePattern, (?==))
 import System.FilePattern.Directory (getDirectoryFiles)
 import UnliftIO (MonadUnliftIO, withRunInIO)
@@ -66,8 +66,16 @@ mountOnLVar folder pats var toAction = do
     fs <- filesMatching folder pats
     initialActions <- traverse (`toAction` Update) fs
     pure $ foldl' (flip ($)) def initialActions
-  onChange folder $ \fp change ->
-    when (any (?== fp) pats) $
+  onChange folder $ \fp change -> do
+    let allow =
+          if isRelative fp
+            then any (?== fp) pats
+            else -- `fp` is an absolute path (because of use of symlinks), so let's
+            -- be more lenient in matching it. Note that this does meat we might
+            -- match files the user may not have originally intended. This is
+            -- the trade offs with using symlinks.
+              any (?== fp) $ fmap ("**/" <>) pats
+    when allow $
       LVar.modify var =<< toAction fp change
 
 filesMatching :: (MonadIO m, MonadLogger m) => FolderPath -> [FilePattern] -> m [FilePath]
@@ -83,6 +91,8 @@ onChange ::
   forall m.
   (MonadIO m, MonadLogger m, MonadUnliftIO m) =>
   FolderPath ->
+  -- | The filepath is relative to the folder being monitored, unless if its
+  -- ancestor is a symlink.
   (FilePath -> FileAction -> m ()) ->
   m ()
 onChange parent' f = do
