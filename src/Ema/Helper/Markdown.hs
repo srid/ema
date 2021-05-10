@@ -183,7 +183,7 @@ wikilinksSpec =
     pWikilink = do
       replicateM_ 2 $ CT.symbol '['
       P.notFollowedBy (CT.symbol '[')
-      title <-
+      url <-
         CM.untokenize
           <$> many
             ( CT.satisfyTok
@@ -191,8 +191,8 @@ wikilinksSpec =
                     not (CT.hasType (CM.Symbol '|') t || CT.hasType (CM.Symbol ']') t)
                 )
             )
-      url <-
-        M.option title $
+      title <-
+        M.option url $
           CM.untokenize
             <$> ( CT.symbol '|'
                     *> many (CT.satisfyTok (not . CT.hasType (CM.Symbol ']')))
