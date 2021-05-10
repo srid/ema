@@ -13,12 +13,17 @@ module Ema.Helper.Markdown
     parseMarkdown,
     -- Utilities
     plainify,
+    -- TODO: Move to different module or package
+    fullMarkdownSpec,
+    wikiLinkSpec,
   )
 where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
+import qualified Commonmark.Inlines as CM
 import qualified Commonmark.Pandoc as CP
+import Commonmark.TokParsers (noneOfToks, symbol)
 import Control.Monad.Combinators (manyTill)
 import qualified Data.YAML as Y
 import qualified Text.Megaparsec as M
@@ -26,24 +31,25 @@ import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
+import qualified Text.Parsec as P
 
 -- | Parse a Markdown file using commonmark-hs with all extensions enabled
 parseMarkdownWithFrontMatter ::
   forall meta.
-  Y.FromYAML meta =>
+  (Y.FromYAML meta) =>
+  (forall m il bl. SyntaxSpec' m il bl => CM.SyntaxSpec m il bl) ->
   -- | Path to file associated with this Markdown
   FilePath ->
   -- | Markdown text to parse
   Text ->
   Either Text (Maybe meta, Pandoc)
-parseMarkdownWithFrontMatter fn s = do
+parseMarkdownWithFrontMatter spec fn s = do
   (mMeta, markdown) <- partitionMarkdown fn s
   mMetaVal <- parseYaml fn `traverse` mMeta
-  blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) fullMarkdownSpec fn markdown
+  blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) spec fn markdown
   let doc = Pandoc mempty $ B.toList . CP.unCm @() @B.Blocks $ blocks
   pure (mMetaVal, doc)
 
--- | Like `parseMarkdownWithFrontMatter` but assumes that no YAML frontmatter is present.
 parseMarkdown :: FilePath -> Text -> Either Text Pandoc
 parseMarkdown fn s = do
   cmBlocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) fullMarkdownSpec fn s
@@ -135,3 +141,45 @@ plainify = W.query $ \case
   -- Ignore the rest of AST nodes, as they are recursively defined in terms of
   -- `Inline` which `W.query` will traverse again.
   _ -> ""
+
+data WikiLinkType
+  = -- | [[Foo]]
+    WikiLinkNormal
+  | -- | [[Foo]]#
+    WikiLinkBranch
+  | -- | #[[Foo]]
+    WikiLinkTag
+  deriving (Eq, Show)
+
+-- | Parse wiki links to normal link.
+wikiLinkSpec ::
+  (Monad m, CM.IsBlock il bl, CM.IsInline il) =>
+  CM.SyntaxSpec m il bl
+wikiLinkSpec =
+  mempty
+    { CM.syntaxInlineParsers = [pLink]
+    }
+  where
+    pLink ::
+      (Monad m, CM.IsInline il) =>
+      CM.InlineParser m il
+    pLink =
+      P.try $
+        P.choice
+          [ cmAutoLink WikiLinkTag <$> P.try (symbol '#' *> wikiLinkP 2),
+            cmAutoLink WikiLinkBranch <$> P.try (wikiLinkP 2 <* symbol '#'),
+            cmAutoLink WikiLinkNormal <$> P.try (wikiLinkP 2)
+          ]
+    wikiLinkP :: Monad m => Int -> P.ParsecT [CM.Tok] s m Text
+    wikiLinkP n = do
+      void $ M.count n $ symbol '['
+      s <- fmap CM.untokenize $ some $ noneOfToks [CM.Symbol ']', CM.Symbol '[', CM.LineEnd]
+      void $ M.count n $ symbol ']'
+      pure s
+    cmAutoLink :: CM.IsInline a => WikiLinkType -> Text -> a
+    cmAutoLink conn url =
+      CM.link url title $ CM.str url
+      where
+        -- Store connetion type in 'title' attribute for latter lookup.
+        -- TODO: Put it in attrs instead; requires PR to commonmark
+        title = show conn
