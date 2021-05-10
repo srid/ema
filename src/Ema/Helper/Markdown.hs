@@ -142,7 +142,7 @@ plainify = W.query $ \case
   -- `Inline` which `W.query` will traverse again.
   _ -> ""
 
--- TODO: Probably not a good idea to force users to deal with folgezettels.
+-- TODO: Probably not a good idea to force users to deal with folgezettels?
 data WikiLinkType
   = -- | [[Foo]]
     WikiLinkNormal
@@ -179,10 +179,11 @@ wikiLinkSpec =
           ]
     wikiLinkP :: Monad m => P.ParsecT [CM.Tok] s m Text
     wikiLinkP = do
-      void $ CT.satisfyWord (== "[[")
-      s <- fmap CM.untokenize $ some $ CT.noneOfToks [CM.Symbol ']', CM.Symbol '[', CM.LineEnd]
-      void $ CT.satisfyWord (== "]]")
-      pure s
+      let open = '['
+          close = ']'
+          parenP = replicateM_ 2 . CT.symbol
+          innerP = fmap CM.untokenize $ some $ CT.noneOfToks [CM.Symbol open, CM.Symbol close, CM.LineEnd]
+      parenP '[' *> innerP <* parenP ']'
     cmAutoLink :: CM.IsInline a => WikiLinkType -> Text -> a
     cmAutoLink typ wikiLinkText =
       CM.link url title $ CM.str wikiLinkText
