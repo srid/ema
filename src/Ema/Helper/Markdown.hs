@@ -37,9 +37,13 @@ import qualified Text.Parsec as P
 
 -- | Parse a Markdown file using commonmark-hs with all extensions enabled
 parseMarkdownWithFrontMatter ::
-  forall meta.
-  (Y.FromYAML meta) =>
-  (forall m il bl. SyntaxSpec' m il bl => CM.SyntaxSpec m il bl) ->
+  forall meta m il bl.
+  ( Y.FromYAML meta,
+    m ~ Either CM.ParseError,
+    bl ~ CP.Cm () B.Blocks,
+    il ~ CP.Cm () B.Inlines
+  ) =>
+  CM.SyntaxSpec m il bl ->
   -- | Path to file associated with this Markdown
   FilePath ->
   -- | Markdown text to parse
@@ -167,6 +171,9 @@ instance
   HasWikilinks (CM.WithSourceMap il)
   where
   wikilink typ url il = (wikilink typ url <$> il) <* CM.addName "wikilink"
+
+instance HasWikilinks (CP.Cm b B.Inlines) where
+  wikilink typ t il = CP.Cm $ B.link t (show typ) $ CP.unCm il
 
 -- | Like `Commonmark.Extensions.Wikilinks.wikilinksSpec` but Zettelkasten-friendly.
 --
