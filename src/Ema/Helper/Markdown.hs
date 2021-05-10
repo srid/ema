@@ -155,16 +155,18 @@ data WikiLinkType
   deriving (Eq, Show)
 
 class HasWikilinks il where
-  wikilink :: Text -> il -> il
+  wikilink :: WikiLinkType -> Text -> il -> il
 
 instance CM.Rangeable (CM.Html a) => HasWikilinks (CM.Html a) where
-  wikilink url il = CM.link url "wikilink" il
+  wikilink typ url il =
+    -- Store `typ` in link title, for later lookup.
+    CM.link url (show typ) il
 
 instance
   (HasWikilinks il, Semigroup il, Monoid il) =>
   HasWikilinks (CM.WithSourceMap il)
   where
-  wikilink url il = (wikilink url <$> il) <* CM.addName "wikilink"
+  wikilink typ url il = (wikilink typ url <$> il) <* CM.addName "wikilink"
 
 -- | Like `Commonmark.Extensions.Wikilinks.wikilinksSpec` but Zettelkasten-friendly.
 --
@@ -177,10 +179,17 @@ wikilinksSpec ::
   CM.SyntaxSpec m il bl
 wikilinksSpec =
   mempty
-    { CM.syntaxInlineParsers = [pWikilink]
+    { CM.syntaxInlineParsers =
+        [ P.try $
+            P.choice
+              [ P.try (CT.symbol '#' *> pWikilink WikiLinkTag),
+                P.try (pWikilink WikiLinkBranch <* CT.symbol '#'),
+                P.try (pWikilink WikiLinkNormal)
+              ]
+        ]
     }
   where
-    pWikilink = do
+    pWikilink typ = do
       replicateM_ 2 $ CT.symbol '['
       P.notFollowedBy (CT.symbol '[')
       url <-
@@ -198,7 +207,7 @@ wikilinksSpec =
                     *> many (CT.satisfyTok (not . CT.hasType (CM.Symbol ']')))
                 )
       replicateM_ 2 $ CT.symbol ']'
-      return $ wikilink url (CM.str title)
+      return $ wikilink typ url (CM.str title)
 
 -- | Commonmark parser extension for wikilinks
 --
