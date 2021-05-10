@@ -23,7 +23,7 @@ import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Inlines as CM
 import qualified Commonmark.Pandoc as CP
-import Commonmark.TokParsers (noneOfToks, symbol)
+import qualified Commonmark.TokParsers as CT
 import Control.Monad.Combinators (manyTill)
 import qualified Data.YAML as Y
 import qualified Text.Megaparsec as M
@@ -142,6 +142,7 @@ plainify = W.query $ \case
   -- `Inline` which `W.query` will traverse again.
   _ -> ""
 
+-- TODO: Probably not a good idea to force users to deal with folgezettels.
 data WikiLinkType
   = -- | [[Foo]]
     WikiLinkNormal
@@ -151,7 +152,10 @@ data WikiLinkType
     WikiLinkTag
   deriving (Eq, Show)
 
--- | Parse wiki links to normal link.
+-- | Commonmark parser extension for wikilinks
+--
+-- Convert `[[Foo]]` into `[Foo](Foo.md)`. In addition the link's title is set
+-- to the `show` value of `WikiLinkType` for later decoding.
 wikiLinkSpec ::
   (Monad m, CM.IsBlock il bl, CM.IsInline il) =>
   CM.SyntaxSpec m il bl
@@ -166,21 +170,24 @@ wikiLinkSpec =
     pLink =
       P.try $
         P.choice
-          [ cmAutoLink WikiLinkTag <$> P.try (symbol '#' *> wikiLinkP 2),
-            cmAutoLink WikiLinkBranch <$> P.try (wikiLinkP 2 <* symbol '#'),
-            cmAutoLink WikiLinkNormal <$> P.try (wikiLinkP 2)
+          [ cmAutoLink WikiLinkTag
+              <$> P.try (CT.symbol '#' *> wikiLinkP),
+            cmAutoLink WikiLinkBranch
+              <$> P.try (wikiLinkP <* CT.symbol '#'),
+            cmAutoLink WikiLinkNormal
+              <$> P.try wikiLinkP
           ]
-    wikiLinkP :: Monad m => Int -> P.ParsecT [CM.Tok] s m Text
-    wikiLinkP n = do
-      void $ M.count n $ symbol '['
-      s <- fmap CM.untokenize $ some $ noneOfToks [CM.Symbol ']', CM.Symbol '[', CM.LineEnd]
-      void $ M.count n $ symbol ']'
+    wikiLinkP :: Monad m => P.ParsecT [CM.Tok] s m Text
+    wikiLinkP = do
+      void $ CT.satisfyWord (== "[[")
+      s <- fmap CM.untokenize $ some $ CT.noneOfToks [CM.Symbol ']', CM.Symbol '[', CM.LineEnd]
+      void $ CT.satisfyWord (== "]]")
       pure s
     cmAutoLink :: CM.IsInline a => WikiLinkType -> Text -> a
     cmAutoLink typ wikiLinkText =
       CM.link url title $ CM.str wikiLinkText
       where
-        -- Store connetion type in 'title' attribute for latter lookup.
+        -- Store connetion type in 'title' attribute for later lookup.
         -- TODO: Put it in attrs instead; requires PR to commonmark
         title = show typ
         -- If [[Foo]], use url Foo.md
