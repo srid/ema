@@ -7,6 +7,7 @@
   - Unicode normalize slugs using NFC
   - Add `decodeSlug` and `encodeSlug`
 - Add default implementation based on Enum for `staticRoute`
+- Warn, without failing, on missing `staticAssets` during static generation
 - Helpers
   - Helpers.FileSystem
   - add `mountOnLVar`
