@@ -177,9 +177,11 @@ wikiLinkSpec =
       void $ M.count n $ symbol ']'
       pure s
     cmAutoLink :: CM.IsInline a => WikiLinkType -> Text -> a
-    cmAutoLink conn url =
-      CM.link url title $ CM.str url
+    cmAutoLink typ wikiLinkText =
+      CM.link url title $ CM.str wikiLinkText
       where
         -- Store connetion type in 'title' attribute for latter lookup.
         -- TODO: Put it in attrs instead; requires PR to commonmark
-        title = show conn
+        title = show typ
+        -- If [[Foo]], use url Foo.md
+        url = wikiLinkText <> ".md"
