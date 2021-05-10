@@ -7,16 +7,17 @@
 
 -- | Helper to deal with Markdown files
 --
--- TODO: Publish this to hackage as `Text.Markdown.Simple`?
+-- TODO: Publish this eventually to Hackage.
 module Ema.Helper.Markdown
   ( -- Parsing
+    -- TODO: Publish to Hackage as commonmark-pandoc-simple?
     parseMarkdownWithFrontMatter,
     parseMarkdown,
+    fullMarkdownSpec,
     -- Utilities
     plainify,
-    -- TODO: Move to different module or package
-    fullMarkdownSpec,
-    wikilinksSpec,
+    -- TODO: Publish to Hackage as commonmark-wikilink?
+    wikilinkSpec,
     WikiLinkType (..),
   )
 where
@@ -81,6 +82,7 @@ type SyntaxSpec' m il bl =
     CE.HasSpan il
   )
 
+-- | GFM + official commonmark extensions
 fullMarkdownSpec ::
   SyntaxSpec' m il bl =>
   CM.SyntaxSpec m il bl
@@ -147,7 +149,9 @@ plainify = W.query $ \case
   -- `Inline` which `W.query` will traverse again.
   _ -> ""
 
--- TODO: Probably not a good idea to force users to deal with folgezettels?
+-- | A # prefix or suffix allows semantically distinct wikilinks
+--
+-- Typically called branching link or a tag link, when used with #.
 data WikiLinkType
   = -- | [[Foo]]
     WikiLinkNormal
@@ -157,33 +161,33 @@ data WikiLinkType
     WikiLinkTag
   deriving (Eq, Show)
 
-class HasWikilinks il where
+class HasWikiLink il where
   wikilink :: WikiLinkType -> Text -> il -> il
 
-instance CM.Rangeable (CM.Html a) => HasWikilinks (CM.Html a) where
+instance CM.Rangeable (CM.Html a) => HasWikiLink (CM.Html a) where
   wikilink typ url il =
     -- Store `typ` in link title, for later lookup.
     CM.link url (show typ) il
 
 instance
-  (HasWikilinks il, Semigroup il, Monoid il) =>
-  HasWikilinks (CM.WithSourceMap il)
+  (HasWikiLink il, Semigroup il, Monoid il) =>
+  HasWikiLink (CM.WithSourceMap il)
   where
   wikilink typ url il = (wikilink typ url <$> il) <* CM.addName "wikilink"
 
-instance HasWikilinks (CP.Cm b B.Inlines) where
+instance HasWikiLink (CP.Cm b B.Inlines) where
   wikilink typ t il = CP.Cm $ B.link t (show typ) $ CP.unCm il
 
--- | Like `Commonmark.Extensions.Wikilinks.wikilinksSpec` but Zettelkasten-friendly.
+-- | Like `Commonmark.Extensions.Wikilinks.wikilinkSpec` but Zettelkasten-friendly.
 --
 -- Compared with the official extension, this has two differences:
 --
 -- - Supports flipped inner text, eg: `[[Foo | some inner text]]`
 -- - Supports neuron folgezettel, i.e.: #[[Foo]] or [[Foo]]#
-wikilinksSpec ::
-  (Monad m, CM.IsInline il, HasWikilinks il) =>
+wikilinkSpec ::
+  (Monad m, CM.IsInline il, HasWikiLink il) =>
   CM.SyntaxSpec m il bl
-wikilinksSpec =
+wikilinkSpec =
   mempty
     { CM.syntaxInlineParsers =
         [ P.try $
