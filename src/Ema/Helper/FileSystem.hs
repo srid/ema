@@ -76,17 +76,17 @@ mountOnLVar folder pats var toAction' = do
   onChange folder $ \fp change -> do
     whenJust (getTag pats fp) $ \tag ->
       LVar.modify var =<< toAction (tag, fp) change
-
--- | Log and ignore exceptions
-interceptExceptions :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => a -> m a -> m a
-interceptExceptions default_ f = do
-  f' <- toIO f
-  liftIO (try f') >>= \case
-    Left (ex :: SomeException) -> do
-      log LevelError $ "User exception: " <> show ex
-      pure default_
-    Right v ->
-      pure v
+  where
+    -- Log and ignore exceptions
+    interceptExceptions :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => a -> m a -> m a
+    interceptExceptions default_ f = do
+      f' <- toIO f
+      liftIO (try f') >>= \case
+        Left (ex :: SomeException) -> do
+          log LevelError $ "User exception: " <> show ex
+          pure default_
+        Right v ->
+          pure v
 
 filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
