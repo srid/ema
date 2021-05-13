@@ -16,9 +16,9 @@ module Ema.Helper.FileSystem
 where
 
 import Control.Concurrent (threadDelay)
-import Control.Exception (finally)
+import Control.Exception (finally, try)
 import Control.Monad.Logger
-  ( LogLevel (LevelDebug, LevelInfo),
+  ( LogLevel (LevelDebug, LevelError, LevelInfo),
     MonadLogger,
     logWithoutLoc,
   )
@@ -37,7 +37,7 @@ import System.FSNotify
 import System.FilePath (isRelative, makeRelative)
 import System.FilePattern (FilePattern, matchMany)
 import System.FilePattern.Directory (getDirectoryFiles)
-import UnliftIO (MonadUnliftIO, withRunInIO)
+import UnliftIO (MonadUnliftIO, toIO, withRunInIO)
 
 -- | Mount the given directory on to the given LVar such that any filesystem
 -- events (represented by `FileAction`) are made to be reflected in the LVar
@@ -62,9 +62,12 @@ mountOnLVar ::
   -- `FilePath`. `FileAction` is the operation performed on this path. This
   -- should return a function (in monadic context) that will update the model,
   -- to reflect the given `FileAction`.
+  --
+  -- If the action throws an exception, it will be logged and ignored.
   ((b, FilePath) -> FileAction -> m (model -> model)) ->
   m ()
-mountOnLVar folder pats var toAction = do
+mountOnLVar folder pats var toAction' = do
+  let toAction x = interceptExceptions id . toAction' x
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
     fs <- filesMatchingWithTag folder pats
@@ -73,6 +76,17 @@ mountOnLVar folder pats var toAction = do
   onChange folder $ \fp change -> do
     whenJust (getTag pats fp) $ \tag ->
       LVar.modify var =<< toAction (tag, fp) change
+  where
+    -- Log and ignore exceptions
+    interceptExceptions :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => a -> m a -> m a
+    interceptExceptions default_ f = do
+      f' <- toIO f
+      liftIO (try f') >>= \case
+        Left (ex :: SomeException) -> do
+          log LevelError $ "User exception: " <> show ex
+          pure default_
+        Right v ->
+          pure v
 
 filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
