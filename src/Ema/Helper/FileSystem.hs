@@ -35,50 +35,55 @@ import System.FSNotify
     withManager,
   )
 import System.FilePath (isRelative, makeRelative)
-import System.FilePattern (FilePattern, (?==))
+import System.FilePattern (FilePattern, matchMany)
 import System.FilePattern.Directory (getDirectoryFiles)
 import UnliftIO (MonadUnliftIO, withRunInIO)
-
-type FolderPath = FilePath
 
 -- | Mount the given directory on to the given LVar such that any filesystem
 -- events (represented by `FileAction`) are made to be reflected in the LVar
 -- model using the given model update function.
 mountOnLVar ::
-  forall model m.
+  forall model m b.
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLogger m,
-    Default model
+    Default model,
+    Show b
   ) =>
   -- | The directory to mount.
   FilePath ->
   -- | Only include these files (exclude everything else)
-  [FilePattern] ->
+  [(b, FilePattern)] ->
   -- | The `LVar` onto which to mount.
   LVar model ->
   -- | How to update the model given a file action.
-  (FilePath -> FileAction -> m (model -> model)) ->
+  ((b, FilePath) -> FileAction -> m (model -> model)) ->
   m ()
 mountOnLVar folder pats var toAction = do
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
-    fs <- filesMatching folder pats
+    fs <-
+      filesMatching folder (snd <$> pats) <&> \xs ->
+        mapMaybe (\x -> (,x) <$> getTag x) xs
     initialActions <- traverse (`toAction` Update) fs
     pure $ foldl' (flip ($)) def initialActions
   onChange folder $ \fp change -> do
-    let allow =
-          if isRelative fp
-            then any (?== fp) pats
+    whenJust (getTag fp) $ \tag ->
+      LVar.modify var =<< toAction (tag, fp) change
+  where
+    getTag :: FilePath -> Maybe b
+    getTag fp =
+      let pull patterns =
+            fmap (\(x, _, _) -> x) $ listToMaybe $ matchMany patterns (one ((), fp))
+       in if isRelative fp
+            then pull pats
             else -- `fp` is an absolute path (because of use of symlinks), so let's
             -- be more lenient in matching it. Note that this does meat we might
             -- match files the user may not have originally intended. This is
             -- the trade offs with using symlinks.
-              any (?== fp) $ fmap ("**/" <>) pats
-    when allow $
-      LVar.modify var =<< toAction fp change
+              pull $ second ("**/" <>) <$> pats
 
-filesMatching :: (MonadIO m, MonadLogger m) => FolderPath -> [FilePattern] -> m [FilePath]
+filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
   parent <- liftIO $ canonicalizePath parent'
   log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
@@ -90,7 +95,7 @@ data FileAction = Update | Delete
 onChange ::
   forall m.
   (MonadIO m, MonadLogger m, MonadUnliftIO m) =>
-  FolderPath ->
+  FilePath ->
   -- | The filepath is relative to the folder being monitored, unless if its
   -- ancestor is a symlink.
   (FilePath -> FileAction -> m ()) ->
