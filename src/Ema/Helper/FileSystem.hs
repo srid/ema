@@ -57,37 +57,47 @@ mountOnLVar ::
   -- | The `LVar` onto which to mount.
   LVar model ->
   -- | How to update the model given a file action.
+  --
+  -- `b` is the tag associated with the `FilePattern` that selected this
+  -- `FilePath`. `FileAction` is the operation performed on this path. This
+  -- should return a function (in monadic context) that will update the model,
+  -- to reflect the given `FileAction`.
   ((b, FilePath) -> FileAction -> m (model -> model)) ->
   m ()
 mountOnLVar folder pats var toAction = do
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
-    fs <-
-      filesMatching folder (snd <$> pats) <&> \xs ->
-        mapMaybe (\x -> (,x) <$> getTag x) xs
+    fs <- filesMatchingWithTag folder pats
     initialActions <- traverse (`toAction` Update) fs
     pure $ foldl' (flip ($)) def initialActions
   onChange folder $ \fp change -> do
-    whenJust (getTag fp) $ \tag ->
+    whenJust (getTag pats fp) $ \tag ->
       LVar.modify var =<< toAction (tag, fp) change
-  where
-    getTag :: FilePath -> Maybe b
-    getTag fp =
-      let pull patterns =
-            fmap (\(x, _, _) -> x) $ listToMaybe $ matchMany patterns (one ((), fp))
-       in if isRelative fp
-            then pull pats
-            else -- `fp` is an absolute path (because of use of symlinks), so let's
-            -- be more lenient in matching it. Note that this does meat we might
-            -- match files the user may not have originally intended. This is
-            -- the trade offs with using symlinks.
-              pull $ second ("**/" <>) <$> pats
 
 filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats = do
   parent <- liftIO $ canonicalizePath parent'
   log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
   liftIO $ getDirectoryFiles parent pats
+
+-- | Like `filesMatching` but with a tag associated with a pattern so as to be
+-- able to tell which pattern a resulting filepath is associated with.
+filesMatchingWithTag :: (MonadIO m, MonadLogger m) => FilePath -> [(b, FilePattern)] -> m [(b, FilePath)]
+filesMatchingWithTag parent' pats = do
+  filesMatching parent' (snd <$> pats) <&> \xs ->
+    mapMaybe (\x -> (,x) <$> getTag pats x) xs
+
+getTag :: [(b, FilePattern)] -> FilePath -> Maybe b
+getTag pats fp =
+  let pull patterns =
+        fmap (\(x, (), _) -> x) $ listToMaybe $ matchMany patterns (one ((), fp))
+   in if isRelative fp
+        then pull pats
+        else -- `fp` is an absolute path (because of use of symlinks), so let's
+        -- be more lenient in matching it. Note that this does meat we might
+        -- match files the user may not have originally intended. This is
+        -- the trade offs with using symlinks.
+          pull $ second ("**/" <>) <$> pats
 
 data FileAction = Update | Delete
   deriving (Eq, Show)
