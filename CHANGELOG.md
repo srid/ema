@@ -3,7 +3,7 @@
 ## Unreleased (0.2.0.0)
 
 - `Ema.Slug`
-  - Add `Ord` instance to `Slug`
+  - Add `Ord`, `Generic` and `Data` instances to `Slug`
   - Unicode normalize slugs using NFC
   - TODO(doc) Add `decodeSlug` and `encodeSlug`
 - Add default implementation based on Enum for `staticRoute`
