@@ -6,6 +6,7 @@
   - Add `Ord`, `Generic`, `Data` and Aeson instances to `Slug`
   - Unicode normalize slugs using NFC
   - TODO(doc) Add `decodeSlug` and `encodeSlug`
+- Unicode normalize `routeUrl` (via `decodeSlug`)
 - Add default implementation based on Enum for `staticRoute`
 - Warn, without failing, on missing `staticAssets` during static generation
 - Helpers
