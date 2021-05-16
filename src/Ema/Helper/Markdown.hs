@@ -27,7 +27,8 @@ import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import qualified Commonmark.TokParsers as CT
 import Control.Monad.Combinators (manyTill)
-import qualified Data.YAML as Y
+import Data.Aeson (FromJSON)
+import qualified Data.Yaml as Y
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B
@@ -38,7 +39,7 @@ import qualified Text.Parsec as P
 -- | Parse a Markdown file using commonmark-hs with all extensions enabled
 parseMarkdownWithFrontMatter ::
   forall meta m il bl.
-  ( Y.FromYAML meta,
+  ( FromJSON meta,
     m ~ Either CM.ParseError,
     bl ~ CP.Cm () B.Blocks,
     il ~ CP.Cm () B.Inlines
@@ -51,7 +52,7 @@ parseMarkdownWithFrontMatter ::
   Either Text (Maybe meta, Pandoc)
 parseMarkdownWithFrontMatter spec fn s = do
   (mMeta, markdown) <- partitionMarkdown fn s
-  mMetaVal <- parseYaml fn `traverse` mMeta
+  mMetaVal <- first show $ (Y.decodeEither' . encodeUtf8) `traverse` mMeta
   blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) spec fn markdown
   let doc = Pandoc mempty $ B.toList . CP.unCm @() @B.Blocks $ blocks
   pure (mMetaVal, doc)
@@ -126,14 +127,6 @@ partitionMarkdown =
     parse p fn s =
       first (toText . M.errorBundlePretty) $
         M.parse (p <* M.eof) fn s
-
--- NOTE: HsYAML parsing is rather slow due to its use of DList.
--- See https://github.com/haskell-hvr/HsYAML/issues/40
-parseYaml :: Y.FromYAML a => FilePath -> Text -> Either Text a
-parseYaml n (encodeUtf8 -> v) = do
-  let mkError (loc, emsg) =
-        toText $ n <> ":" <> Y.prettyPosWithSource loc v " error" <> emsg
-  first mkError $ Y.decode1 v
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text

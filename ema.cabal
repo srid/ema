@@ -70,7 +70,7 @@ library
       , commonmark-extensions
       , commonmark-pandoc
       , fsnotify
-      , HsYAML
+      , yaml
       , megaparsec
       , pandoc-types
       , parsec
