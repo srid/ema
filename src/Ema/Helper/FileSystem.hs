@@ -25,6 +25,7 @@ import Control.Monad.Logger
 import Data.Default (Default (..))
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
+import qualified Data.Map.Strict as Map
 import System.Directory (canonicalizePath)
 import System.FSNotify
   ( ActionPredicate,
@@ -48,7 +49,8 @@ mountOnLVar ::
     MonadUnliftIO m,
     MonadLogger m,
     Default model,
-    Show b
+    Show b,
+    Ord b
   ) =>
   -- | The directory to mount.
   FilePath ->
@@ -64,18 +66,18 @@ mountOnLVar ::
   -- to reflect the given `FileAction`.
   --
   -- If the action throws an exception, it will be logged and ignored.
-  ((b, FilePath) -> FileAction -> m (model -> model)) ->
+  ([(b, [FilePath])] -> FileAction -> m (model -> model)) ->
   m ()
 mountOnLVar folder pats var toAction' = do
   let toAction x = interceptExceptions id . toAction' x
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
     fs <- filesMatchingWithTag folder pats
-    initialActions <- traverse (`toAction` Update) fs
-    pure $ foldl' (flip ($)) def initialActions
+    initialAction <- toAction fs Update
+    pure $ initialAction def
   onChange folder $ \fp change -> do
     whenJust (getTag pats fp) $ \tag ->
-      LVar.modify var =<< toAction (tag, fp) change
+      LVar.modify var =<< toAction (one (tag, one fp)) change
   where
     -- Log and ignore exceptions
     interceptExceptions :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => a -> m a -> m a
@@ -96,10 +98,14 @@ filesMatching parent' pats = do
 
 -- | Like `filesMatching` but with a tag associated with a pattern so as to be
 -- able to tell which pattern a resulting filepath is associated with.
-filesMatchingWithTag :: (MonadIO m, MonadLogger m) => FilePath -> [(b, FilePattern)] -> m [(b, FilePath)]
+filesMatchingWithTag :: (MonadIO m, MonadLogger m, Ord b) => FilePath -> [(b, FilePattern)] -> m [(b, [FilePath])]
 filesMatchingWithTag parent' pats = do
-  filesMatching parent' (snd <$> pats) <&> \xs ->
-    mapMaybe (\x -> (,x) <$> getTag pats x) xs
+  fs <- filesMatching parent' (snd <$> pats)
+  let m = Map.fromListWith (<>) $
+        flip mapMaybe fs $ \fp -> do
+          tag <- getTag pats fp
+          pure (tag, one fp)
+  pure $ Map.toList m
 
 getTag :: [(b, FilePattern)] -> FilePath -> Maybe b
 getTag pats fp =
