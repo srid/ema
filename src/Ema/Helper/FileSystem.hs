@@ -48,7 +48,6 @@ mountOnLVar ::
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLogger m,
-    Default model,
     Show b,
     Ord b
   ) =>
@@ -57,7 +56,12 @@ mountOnLVar ::
   -- | Only include these files (exclude everything else)
   [(b, FilePattern)] ->
   -- | The `LVar` onto which to mount.
+  --
+  -- NOTE: It must not be set already. Otherwise, the value will be overriden
+  -- with the initial value argument (next).
   LVar model ->
+  -- | Initial value of model, onto which to apply updates.
+  model ->
   -- | How to update the model given a file action.
   --
   -- `b` is the tag associated with the `FilePattern` that selected this
@@ -68,13 +72,13 @@ mountOnLVar ::
   -- If the action throws an exception, it will be logged and ignored.
   ([(b, [FilePath])] -> FileAction -> m (model -> model)) ->
   m ()
-mountOnLVar folder pats var toAction' = do
+mountOnLVar folder pats var var0 toAction' = do
   let toAction x = interceptExceptions id . toAction' x
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
     fs <- filesMatchingWithTag folder pats
     initialAction <- toAction fs Update
-    pure $ initialAction def
+    pure $ initialAction var0
   onChange folder $ \fp change -> do
     whenJust (getTag pats fp) $ \tag -> do
       -- TODO: We should probably debounce and group frequently-firing events
