@@ -76,8 +76,13 @@ mountOnLVar folder pats var toAction' = do
     initialAction <- toAction fs Update
     pure $ initialAction def
   onChange folder $ \fp change -> do
-    whenJust (getTag pats fp) $ \tag ->
-      LVar.modify var =<< toAction (one (tag, one fp)) change
+    whenJust (getTag pats fp) $ \tag -> do
+      -- TODO: We should probably debounce and group frequently-firing events
+      -- here, but do so such that `change` is the same for the events in the
+      -- group.
+      let groupOfOne = one (tag, one fp)
+      action <- toAction groupOfOne change
+      LVar.modify var action
   where
     -- Log and ignore exceptions
     interceptExceptions :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => a -> m a -> m a
