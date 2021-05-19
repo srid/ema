@@ -1,7 +1,7 @@
 # Ema
 
 :::{.avatar}
-![](/ema.svg){.w-32 .h-32}
+![](/favicon.svg){.w-32 .h-32 .float-right}
 :::
 
 {.text-xl .mb-8}
@@ -19,9 +19,9 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 
 :::{.flex .justify-center .items-center .mb-8}
 <video autoplay loop muted>
-  <source src="/ema-demo.mp4" type="video/mp4">
+  <source src="/static/ema-demo.mp4" type="video/mp4">
   <p>Your browser doesn't support HTML5 video. Here is
-     a <a href="/ema-demo.mp4">link to the video</a> instead.</p>
+     a <a href="/static/ema-demo.mp4">link to the video</a> instead.</p>
 </video>
 :::
 
