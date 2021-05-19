@@ -12,12 +12,11 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build emanote site 🔧
       run: |
-        pushd ./docs
         mkdir -p output 
-        docker run -v $PWD:/data sridca/emanote emanote gen /data/output
+        docker run -v $PWD:/data sridca/emanote emanote -C /data/docs gen /data/output
     - name: Deploy to gh-pages 🚀
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/output/
+        publish_dir: ./output/
         cname: dev.ema.srid.ca
