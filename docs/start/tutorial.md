@@ -1,8 +1,8 @@
 # Tutorial
 
-Make sure that you have have followed [the previous section](start.md) in order to have the [template repo](https://github.com/srid/ema-docs) checked out and running locally. Here, **our goal** is to replace the source code of the template repo and write a basic site from scratch.
+Make sure that you have have followed [the previous section](start.md) in order to have the [template repo](https://github.com/srid/ema-template) checked out and running locally. Here, **our goal** is to replace the source code of the template repo and write a basic site from scratch.
 
-1. Follow the template repo's [README](https://github.com/srid/ema-docs#getting-started) and have it open in Visual Studio Code while running the dev server. Your website should be viewable at <http://localhost:9001/>
+1. Follow the template repo's [README](https://github.com/srid/ema-template#getting-started) and have it open in Visual Studio Code while running the dev server. Your website should be viewable at <http://localhost:9001/>
 1. Open `src/Main.hs`
 1. Delete everything in it, and replace it with the following
 

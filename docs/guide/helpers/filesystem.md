@@ -53,4 +53,4 @@ Ema.runEma render $ \model -> do
       pure $ Map.delete fp
 ```
 
-[Full example here](https://github.com/srid/ema-docs/blob/master/src/Main.hs).
+[Full example here](https://github.com/srid/ema-template/blob/master/src/Main.hs).

@@ -48,11 +48,6 @@
         # Used by `nix develop`
         devShell = emaProject true;
 
-        # Used by `nix run` (for docs)
-        apps.${name} = flake-utils.lib.mkApp {
-          drv = ema;
-          exePath = "/bin/ema-docs";
-        };
         defaultApp = apps.${name};
       });
 }

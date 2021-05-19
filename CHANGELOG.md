@@ -21,7 +21,7 @@
     - add wikilink helpers
   - TODO(doc) Add `Ema.Helper.PathTree`
 - Examples
-  - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
+  - ~~Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)~~ Back to ./docs, but using Emanote.
   - Add Ex03_Basic.hs example
 
 ## 0.1.0.0 -- 2021-04-26
