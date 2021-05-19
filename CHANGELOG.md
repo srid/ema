@@ -2,6 +2,8 @@
 
 ## Unreleased (0.2.0.0)
 
+- `routeUrl`: now returns relative URLs (ie. without the leading `/`)
+  - Use the `<base>` tag to specify an explicit prefix for relative URLs in generated HTML. This way hosting on GitHub Pages without CNAME will continue to have functional links.
 - `Ema.Slug`
   - Add `Ord`, `Generic`, `Data` and Aeson instances to `Slug`
   - Unicode normalize slugs using NFC
@@ -21,7 +23,7 @@
     - add wikilink helpers
   - TODO(doc) Add `Ema.Helper.PathTree`
 - Examples
-  - Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)
+  - ~~Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)~~ Back to ./docs, but using Emanote.
   - Add Ex03_Basic.hs example
 
 ## 0.1.0.0 -- 2021-04-26

@@ -1,0 +1,28 @@
+template:
+  theme: pink
+  iconUrl: /favicon.svg
+  # Disable collapsing of folders since we don't have large number of notes.
+  sidebar:
+    collapsed: false
+
+pandoc:
+  rewriteClass:
+    # The "Next" navigation in series
+    last: mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded
+    next: py-2 text-xl italic font-bold
+    # For description of items in guide listing
+    item-intro: text-gray-500
+
+# Put page-specific metadata here. Override them in Markdown frontmatter or
+# per-folder YAML as necessary.
+page:
+  siteName: Ema
+  siteTitle: Ema
+  description: | 
+    Ema static site generator (Jamstack) in Haskell with live server and reload.
+  headHtml: |
+    <link rel="manifest" href="/static/manifest.json" />
+    <meta name="theme-color" content="#DB2777" />
+    <!-- Syntax highlighting -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/combine/npm/prismjs@1.23.0/prism.min.js,npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>

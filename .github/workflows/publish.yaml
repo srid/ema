@@ -1,0 +1,22 @@
+
+name: "Publish"
+on:
+  # Run only when pushing to master branch
+  push:
+    branches:
+      - master
+jobs:
+  neuron:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build emanote site 🔧
+      run: |
+        mkdir -p output 
+        docker run -v $PWD:/data sridca/emanote emanote -C /data/docs gen /data/output
+    - name: Deploy to gh-pages 🚀
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./output/
+        cname: ema.srid.ca

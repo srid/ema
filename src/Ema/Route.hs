@@ -17,12 +17,16 @@ import Ema.Route.Slug (Slug (unSlug), decodeSlug, encodeSlug)
 import Ema.Route.UrlStrategy
   ( UrlStrategy (..),
     slugFileWithStrategy,
-    slugUrlWithStrategy,
+    slugRelUrlWithStrategy,
   )
 
+-- | Return the relative URL of the given route
+--
+-- As the returned URL is relative, you will have to either make it absolute (by
+-- prepending with `/`) or set the `<base>` URL in your HTML head element.
 routeUrl :: forall a r. Ema a r => r -> Text
 routeUrl r =
-  slugUrlWithStrategy def (encodeRoute @a r)
+  slugRelUrlWithStrategy def (encodeRoute @a r)
 
 routeFile :: forall a r. Ema a r => r -> FilePath
 routeFile r =

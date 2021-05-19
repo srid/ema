@@ -19,17 +19,17 @@ data UrlStrategy
 instance Default UrlStrategy where
   def = UrlStrategy_HtmlOnlySansExt
 
-slugUrlWithStrategy :: UrlStrategy -> [Slug] -> Text
-slugUrlWithStrategy strat slugs =
+slugRelUrlWithStrategy :: UrlStrategy -> [Slug] -> Text
+slugRelUrlWithStrategy strat slugs =
   case strat of
     UrlStrategy_FolderOnly ->
-      "/" <> T.intercalate "/" (encodeSlug <$> slugs)
+      T.intercalate "/" (encodeSlug <$> slugs)
     UrlStrategy_HtmlOnlySansExt ->
       case nonEmpty slugs of
         Nothing ->
-          "/"
+          ""
         Just (removeLastIf (decodeSlug "index") -> slugsWithoutIndex) ->
-          "/" <> T.intercalate "/" (encodeSlug <$> slugsWithoutIndex)
+          T.intercalate "/" (encodeSlug <$> slugsWithoutIndex)
   where
     removeLastIf :: Eq a => a -> NonEmpty a -> [a]
     removeLastIf x xs =
