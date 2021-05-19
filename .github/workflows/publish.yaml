@@ -6,7 +6,7 @@ on:
     branches:
       - master
 jobs:
-  neuron:
+  emanote:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
