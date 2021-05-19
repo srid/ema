@@ -1,6 +1,6 @@
 # ema
 
-<img width="10%" src="https://ema.srid.ca/ema.svg">
+<img width="10%" src="https://ema.srid.ca/favicon.svg">
 
 [![Hackage](https://img.shields.io/hackage/v/ema.svg?logo=haskell)](https://hackage.haskell.org/package/ema)
 [![FAIR](https://img.shields.io/badge/FAIR-pledge-blue)](https://www.fairforall.org/about/)

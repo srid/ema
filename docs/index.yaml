@@ -1,7 +1,7 @@
 template:
-  # Use file "${template.name}.tpl" to render HTML
   theme: pink
-  faviconUrl: /favicon.svg
+  iconUrl: /favicon.svg
+  # Disable collapsing of folders since we don't have large number of notes.
   sidebar:
     collapsed: false
 
