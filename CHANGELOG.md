@@ -2,6 +2,7 @@
 
 ## Unreleased (0.2.0.0)
 
+- `routeUrl`: now returns relative URLs (ie. without the leading `/`)
 - `Ema.Slug`
   - Add `Ord`, `Generic`, `Data` and Aeson instances to `Slug`
   - Unicode normalize slugs using NFC
