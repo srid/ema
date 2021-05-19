@@ -57,10 +57,10 @@ layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
 -- | Loads full tailwind CSS from CDN (not good for production)
 twindShimCdn :: H.Html
 twindShimCdn =
-  H.unsafeByteString . encodeUtf8 $
-    [text|
-    <link href="https://unpkg.com/tailwindcss@2.1.2/dist/tailwind.min.css" rel="stylesheet" type="text/css">
-    |]
+  H.link
+    ! A.href "https://unpkg.com/tailwindcss@2.1.2/dist/tailwind.min.css"
+    ! A.rel "stylesheet"
+    ! A.type_ "text/css"
 
 -- | This shim may not work with hot reload.
 twindShimOfficial :: H.Html
