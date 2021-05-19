@@ -9,6 +9,7 @@ module Ema.Helper.Tailwind
     layoutWith,
 
     -- * Tailwind shims
+    twindShim,
     twindShimCdn,
     twindShimOfficial,
     twindShimUnofficial,
@@ -25,7 +26,11 @@ import qualified Text.Blaze.Html5.Attributes as A
 -- | A simple and off-the-shelf layout using Tailwind CSS
 layout :: Ema.CLI.Action -> H.Html -> H.Html -> LByteString
 layout action =
-  layoutWith "en" "UTF-8" $ case action of
+  layoutWith "en" "UTF-8" $ twindShim action
+
+twindShim :: Ema.CLI.Action -> H.Html
+twindShim action =
+  case action of
     Ema.CLI.Generate _ ->
       twindShimUnofficial
     _ ->
@@ -35,14 +40,14 @@ layout action =
 
 -- | Like @layout@, but pick your own language, encoding and tailwind shim.
 layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> H.Html -> LByteString
-layoutWith lang encoding twindShim appHead appBody = RU.renderHtml $ do
+layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
   H.docType
   H.html ! A.lang lang $ do
     H.head $ do
       H.meta ! A.charset encoding
       -- This makes the site mobile friendly by default.
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
-      twindShim
+      tshim
       appHead
     -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
     -- avoid janky shifts when switching to routes with suddenly scrollable content.
@@ -54,7 +59,7 @@ twindShimCdn :: H.Html
 twindShimCdn =
   H.unsafeByteString . encodeUtf8 $
     [text|
-    <link href="https://unpkg.com/tailwindcss@2.1.1/dist/tailwind.min.css" rel="stylesheet" type="text/css">
+    <link href="https://unpkg.com/tailwindcss@2.1.2/dist/tailwind.min.css" rel="stylesheet" type="text/css">
     |]
 
 -- | This shim may not work with hot reload.
