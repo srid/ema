@@ -3,6 +3,7 @@
 ## Unreleased (0.2.0.0)
 
 - `routeUrl`: now returns relative URLs (ie. without the leading `/`)
+  - Use the `<base>` tag to specify an explicit prefix for relative URLs in generated HTML. This way hosting on GitHub Pages without CNAME will continue to have functional links.
 - `Ema.Slug`
   - Add `Ord`, `Generic`, `Data` and Aeson instances to `Slug`
   - Unicode normalize slugs using NFC

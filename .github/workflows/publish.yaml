@@ -4,7 +4,7 @@ on:
   # Run only when pushing to master branch
   push:
     branches:
-      - emanote-docs
+      - master
 jobs:
   neuron:
     runs-on: ubuntu-latest
@@ -19,4 +19,4 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./output/
-        cname: dev.ema.srid.ca
+        cname: ema.srid.ca
