@@ -47,7 +47,5 @@
 
         # Used by `nix develop`
         devShell = emaProject true;
-
-        defaultApp = apps.${name};
       });
 }
