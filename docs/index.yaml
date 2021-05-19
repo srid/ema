@@ -5,6 +5,14 @@ template:
   sidebar:
     collapsed: false
 
+pandoc:
+  rewriteClass:
+    # The "Next" navigation in series
+    last: mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded
+    next: py-2 text-xl italic font-bold
+    # For description of items in guide listing
+    item-intro: text-gray-500
+
 # Put page-specific metadata here. Override them in Markdown frontmatter or
 # per-folder YAML as necessary.
 page:
