@@ -22,13 +22,6 @@ class Ema model route | route -> model where
   encodeRoute :: route -> [Slug]
   decodeRoute :: [Slug] -> Maybe route
 
-  -- | Routes to use when generating the static site
-  --
-  -- This is never used by the dev server.
-  staticRoutes :: model -> [route]
-  default staticRoutes :: (Bounded route, Enum route) => model -> [route]
-  staticRoutes _ = [minBound .. maxBound]
-
   -- | List of (top-level) filepaths to serve as static assets
   --
   -- These will be copied over as-is during static site generation
@@ -41,4 +34,3 @@ instance Ema () () where
   decodeRoute = \case
     [] -> Just ()
     _ -> Nothing
-  staticRoutes () = one ()

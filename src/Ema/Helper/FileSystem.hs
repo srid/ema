@@ -22,7 +22,6 @@ import Control.Monad.Logger
     MonadLogger,
     logWithoutLoc,
   )
-import Data.Default (Default (..))
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map

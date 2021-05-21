@@ -36,7 +36,8 @@ instance Ema UTCTime Route where
 
 main :: IO ()
 main = do
-  runEma render $ \model ->
+  let routes = [minBound .. maxBound]
+  runEma (const routes) render $ \model ->
     forever $ do
       LVar.set model =<< liftIO getCurrentTime
       liftIO $ threadDelay $ 1 * 1000000
