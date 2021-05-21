@@ -1,6 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -17,7 +16,7 @@ type MonadEma m =
   )
 
 -- | Enrich a model to work with Ema
-class Ema model route | route -> model where
+class Ema route where
   -- How to convert URLs to/from routes
   encodeRoute :: route -> [Slug]
   decodeRoute :: [Slug] -> Maybe route
@@ -29,7 +28,7 @@ class Ema model route | route -> model where
   staticAssets Proxy = mempty
 
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.
-instance Ema () () where
+instance Ema () where
   encodeRoute () = []
   decodeRoute = \case
     [] -> Just ()

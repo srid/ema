@@ -24,10 +24,10 @@ import Ema.Route.UrlStrategy
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
-routeUrl :: forall a r. Ema a r => r -> Text
+routeUrl :: forall r. Ema r => r -> Text
 routeUrl r =
-  slugRelUrlWithStrategy def (encodeRoute @a r)
+  slugRelUrlWithStrategy def (encodeRoute r)
 
-routeFile :: forall a r. Ema a r => r -> FilePath
+routeFile :: forall r. Ema r => r -> FilePath
 routeFile r =
-  slugFileWithStrategy def (encodeRoute @a r)
+  slugFileWithStrategy def (encodeRoute r)

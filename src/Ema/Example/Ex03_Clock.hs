@@ -25,7 +25,7 @@ data Route
   | OnlyTime
   deriving (Show, Enum, Bounded)
 
-instance Ema UTCTime Route where
+instance Ema Route where
   encodeRoute = \case
     Index -> mempty
     OnlyTime -> one "time"

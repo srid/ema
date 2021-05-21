@@ -25,7 +25,7 @@ data Route
 
 data Model = Model Text
 
-instance Ema Model Route where
+instance Ema Route where
   encodeRoute = \case
     Index -> mempty
     About -> one "about"

@@ -25,7 +25,7 @@ import Text.Printf (printf)
 
 runServerWithWebSocketHotReload ::
   forall model route m.
-  (Ema model route, Show route, MonadEma m) =>
+  (Ema route, Show route, MonadEma m) =>
   Int ->
   LVar model ->
   (model -> route -> LByteString) ->
@@ -127,7 +127,7 @@ runServerWithWebSocketHotReload port model render = do
                 <> show @Text err
                 <> "</pre><p>Once you fix your code this page will automatically update.</body>"
     routeFromPathInfo =
-      decodeRoute @model . fmap Slug.decodeSlug
+      decodeRoute @route . fmap Slug.decodeSlug
     -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)

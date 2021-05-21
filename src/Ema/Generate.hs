@@ -17,7 +17,7 @@ log = logWithoutLoc "Generate"
 
 generate ::
   forall model route m.
-  (MonadEma m, Ema model route) =>
+  (MonadEma m, Ema route) =>
   FilePath ->
   model ->
   [route] ->
@@ -28,7 +28,7 @@ generate dest model routes render = do
     error $ "Destination does not exist: " <> toText dest
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   forM_ routes $ \r -> do
-    let fp = dest </> routeFile @model r
+    let fp = dest </> routeFile r
     log LevelInfo $ toText $ "W " <> fp
     let !s = render model r
     liftIO $ do

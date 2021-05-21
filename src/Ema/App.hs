@@ -48,7 +48,7 @@ runEmaPure render = do
 -- exits, and vice-versa.
 runEma ::
   forall model route.
-  (Ema model route, Show route) =>
+  (Ema route, Show route) =>
   (model -> [route]) ->
   -- | How to render a route, given the model
   (CLI.Action -> model -> route -> LByteString) ->
@@ -65,7 +65,7 @@ runEma staticRoutes render runModel = do
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
   forall model route.
-  (Ema model route, Show route) =>
+  (Ema route, Show route) =>
   Cli ->
   (model -> [route]) ->
   -- | How to render a route, given the model
@@ -91,7 +91,7 @@ runEmaWithCli cli staticRoutes render runModel = do
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
   forall model route m.
-  (MonadEma m, Ema model route, Show route) =>
+  (MonadEma m, Ema route, Show route) =>
   -- | CLI arguments
   CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
