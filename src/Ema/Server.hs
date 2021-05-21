@@ -34,10 +34,9 @@ runServerWithWebSocketHotReload ::
   ) =>
   Int ->
   LVar model ->
-  [FilePath] ->
   (model -> route -> LByteString) ->
   m ()
-runServerWithWebSocketHotReload port model staticAssets render = do
+runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
   logger <- askLoggerIO
 
@@ -103,12 +102,13 @@ runServerWithWebSocketHotReload port model staticAssets render = do
                 log LevelError $ "Websocket error: " <> show err
                 LVar.removeListener model subId
     assetsMiddleware = do
-      case nonEmpty staticAssets of
+      {- case nonEmpty staticAssets of
         Nothing -> id
         Just topLevelPaths ->
           let assetPolicy :: Static.Policy =
                 foldl1' (Static.<|>) $ Static.hasPrefix <$> topLevelPaths
-           in Static.staticPolicy assetPolicy
+           in Static.staticPolicy assetPolicy -}
+      Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do
         let path = Wai.pathInfo req
