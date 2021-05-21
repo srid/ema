@@ -62,6 +62,7 @@ runServerWithWebSocketHotReload port model staticAssets render = do
             log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
+                  -- TODO: Let non-html routes pass through.
                   let r =
                         msg
                           & pathInfoFromWsMsg

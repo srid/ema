@@ -3,6 +3,7 @@
 
 module Ema.Route
   ( FileRoute (..),
+    htmlSlugs,
     routeUrl,
     routeFile,
     Slug (unSlug),
@@ -29,6 +30,9 @@ class FileRoute route where
   -- | Decode a slug path into a route. The final component of the slug path
   -- will contain the extension if there is any.
   decodeRoute :: [Slug] -> Maybe route
+
+htmlSlugs :: [Slug] -> ([Slug], String)
+htmlSlugs = (,".html")
 
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.
 instance FileRoute () where
