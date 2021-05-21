@@ -35,8 +35,8 @@ import System.FSNotify
     withManager,
   )
 import System.FilePath (isRelative, makeRelative)
-import System.FilePattern (FilePattern, matchMany)
-import System.FilePattern.Directory (getDirectoryFiles)
+import System.FilePattern (FilePattern, matchMany, (?==))
+import System.FilePattern.Directory (getDirectoryFilesIgnore)
 import UnliftIO (MonadUnliftIO, toIO, withRunInIO)
 
 -- | Mount the given directory on to the given LVar such that any filesystem
@@ -54,6 +54,8 @@ mountOnLVar ::
   FilePath ->
   -- | Only include these files (exclude everything else)
   [(b, FilePattern)] ->
+  -- | Ignore these patterns
+  [FilePattern] ->
   -- | The `LVar` onto which to mount.
   --
   -- NOTE: It must not be set already. Otherwise, the value will be overriden
@@ -71,15 +73,16 @@ mountOnLVar ::
   -- If the action throws an exception, it will be logged and ignored.
   ([(b, [FilePath])] -> FileAction -> m (model -> model)) ->
   m ()
-mountOnLVar folder pats var var0 toAction' = do
+mountOnLVar folder pats ignore var var0 toAction' = do
   let toAction x = interceptExceptions id . toAction' x
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   LVar.set var =<< do
-    fs <- filesMatchingWithTag folder pats
+    fs <- filesMatchingWithTag folder pats ignore
     initialAction <- toAction fs Update
     pure $ initialAction var0
   onChange folder $ \fp change -> do
-    whenJust (getTag pats fp) $ \tag -> do
+    let shouldIgnore = any (fp ?==) ignore
+    whenJust (guard (not shouldIgnore) >> getTag pats fp) $ \tag -> do
       -- TODO: We should probably debounce and group frequently-firing events
       -- here, but do so such that `change` is the same for the events in the
       -- group.
@@ -98,17 +101,17 @@ mountOnLVar folder pats var var0 toAction' = do
         Right v ->
           pure v
 
-filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> m [FilePath]
-filesMatching parent' pats = do
+filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> [FilePattern] -> m [FilePath]
+filesMatching parent' pats ignore = do
   parent <- liftIO $ canonicalizePath parent'
   log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
-  liftIO $ getDirectoryFiles parent pats
+  liftIO $ getDirectoryFilesIgnore parent pats ignore
 
 -- | Like `filesMatching` but with a tag associated with a pattern so as to be
 -- able to tell which pattern a resulting filepath is associated with.
-filesMatchingWithTag :: (MonadIO m, MonadLogger m, Ord b) => FilePath -> [(b, FilePattern)] -> m [(b, [FilePath])]
-filesMatchingWithTag parent' pats = do
-  fs <- filesMatching parent' (snd <$> pats)
+filesMatchingWithTag :: (MonadIO m, MonadLogger m, Ord b) => FilePath -> [(b, FilePattern)] -> [FilePattern] -> m [(b, [FilePath])]
+filesMatchingWithTag parent' pats ignore = do
+  fs <- filesMatching parent' (snd <$> pats) ignore
   let m = Map.fromListWith (<>) $
         flip mapMaybe fs $ \fp -> do
           tag <- getTag pats fp
