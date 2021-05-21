@@ -20,7 +20,7 @@ import qualified Data.LVar as LVar
 import Ema.CLI (Action (..), Cli)
 import qualified Ema.CLI as CLI
 import qualified Ema.Generate as Generate
-import Ema.Route (HtmlRoute (..))
+import Ema.Route (FileRoute (..))
 import qualified Ema.Server as Server
 import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
@@ -48,7 +48,7 @@ runEmaPure render = do
 -- exits, and vice-versa.
 runEma ::
   forall model route.
-  (HtmlRoute route, Show route) =>
+  (FileRoute route, Show route) =>
   [FilePath] ->
   (model -> [route]) ->
   -- | How to render a route, given the model
@@ -66,7 +66,7 @@ runEma staticAssets staticRoutes render runModel = do
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
   forall model route.
-  (HtmlRoute route, Show route) =>
+  (FileRoute route, Show route) =>
   Cli ->
   [FilePath] ->
   (model -> [route]) ->
@@ -93,7 +93,7 @@ runEmaWithCli cli staticAssets staticRoutes render runModel = do
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
   forall model route m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, HtmlRoute route, Show route) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, FileRoute route, Show route) =>
   -- | CLI arguments
   CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over

@@ -19,8 +19,8 @@ data UrlStrategy
 instance Default UrlStrategy where
   def = UrlStrategy_HtmlOnlySansExt
 
-slugRelUrlWithStrategy :: UrlStrategy -> [Slug] -> Text
-slugRelUrlWithStrategy strat slugs =
+slugRelUrlWithStrategy :: UrlStrategy -> ([Slug], String) -> Text
+slugRelUrlWithStrategy strat (slugs, ".html") =
   case strat of
     UrlStrategy_FolderOnly ->
       T.intercalate "/" (encodeSlug <$> slugs)
@@ -36,12 +36,14 @@ slugRelUrlWithStrategy strat slugs =
       if NE.last xs == x
         then NE.init xs
         else toList xs
+slugRelUrlWithStrategy _ (slugs, ext) =
+  T.intercalate "/" (encodeSlug <$> slugs) <> toText ext
 
-slugFileWithStrategy :: UrlStrategy -> [Slug] -> FilePath
-slugFileWithStrategy strat slugs =
+slugFileWithStrategy :: UrlStrategy -> ([Slug], String) -> FilePath
+slugFileWithStrategy strat (slugs, ext) =
   case strat of
     UrlStrategy_FolderOnly ->
-      joinPath $ fmap (toString . unSlug) slugs <> ["index.html"]
+      joinPath $ fmap (toString . unSlug) slugs <> ["index" <> ext]
     UrlStrategy_HtmlOnlySansExt ->
       let (term :| (reverse -> parts)) = fromMaybe ("index" :| []) $ nonEmpty (reverse $ fmap (toString . unSlug) slugs)
-       in joinPath $ parts <> [term <> ".html"]
+       in joinPath $ parts <> [term <> ext]

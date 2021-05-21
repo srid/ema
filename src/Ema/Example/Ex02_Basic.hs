@@ -10,7 +10,7 @@ module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
-import Ema (HtmlRoute (..))
+import Ema (FileRoute (..))
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
@@ -25,10 +25,10 @@ data Route
 
 data Model = Model Text
 
-instance HtmlRoute Route where
+instance FileRoute Route where
   encodeRoute = \case
     Index -> mempty
-    About -> one "about"
+    About -> (one "about", ".html")
   decodeRoute = \case
     [] -> Just Index
     ["about"] -> Just About

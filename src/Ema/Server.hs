@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Route (HtmlRoute (..))
+import Ema.Route (FileRoute (..))
 import qualified Ema.Route.Slug as Slug
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -26,7 +26,7 @@ import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
   forall model route m.
-  ( HtmlRoute route,
+  ( FileRoute route,
     Show route,
     MonadIO m,
     MonadUnliftIO m,

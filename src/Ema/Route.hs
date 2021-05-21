@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 
 module Ema.Route
-  ( HtmlRoute (..),
+  ( FileRoute (..),
     routeUrl,
     routeFile,
     Slug (unSlug),
@@ -20,15 +20,19 @@ import Ema.Route.UrlStrategy
     slugRelUrlWithStrategy,
   )
 
--- | Route to the generated HTML file.
-class HtmlRoute route where
-  -- How to convert URLs to/from routes
-  encodeRoute :: route -> [Slug]
+-- | Route to a generated file.
+class FileRoute route where
+  -- | Slug path as well as the extension of the file corresponding to this
+  -- route.
+  encodeRoute :: route -> ([Slug], String)
+
+  -- | Decode a slug path into a route. The final component of the slug path
+  -- will contain the extension if there is any.
   decodeRoute :: [Slug] -> Maybe route
 
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.
-instance HtmlRoute () where
-  encodeRoute () = []
+instance FileRoute () where
+  encodeRoute () = ([], ".html")
   decodeRoute = \case
     [] -> Just ()
     _ -> Nothing
@@ -37,10 +41,10 @@ instance HtmlRoute () where
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
-routeUrl :: forall r. HtmlRoute r => r -> Text
+routeUrl :: forall r. FileRoute r => r -> Text
 routeUrl r =
   slugRelUrlWithStrategy def (encodeRoute r)
 
-routeFile :: forall r. HtmlRoute r => r -> FilePath
+routeFile :: forall r. FileRoute r => r -> FilePath
 routeFile r =
   slugFileWithStrategy def (encodeRoute r)

@@ -13,7 +13,7 @@ import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Ema (HtmlRoute (..), routeUrl, runEma)
+import Ema (FileRoute (..), routeUrl, runEma)
 import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
@@ -25,10 +25,10 @@ data Route
   | OnlyTime
   deriving (Show, Enum, Bounded)
 
-instance HtmlRoute Route where
+instance FileRoute Route where
   encodeRoute = \case
     Index -> mempty
-    OnlyTime -> one "time"
+    OnlyTime -> (one "time", ".html")
   decodeRoute = \case
     [] -> Just Index
     ["time"] -> Just OnlyTime

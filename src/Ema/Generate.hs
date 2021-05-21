@@ -6,7 +6,7 @@ module Ema.Generate where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Ema.Route (HtmlRoute, routeFile)
+import Ema.Route (FileRoute, routeFile)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -20,7 +20,7 @@ generate ::
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    HtmlRoute route
+    FileRoute route
   ) =>
   FilePath ->
   model ->
