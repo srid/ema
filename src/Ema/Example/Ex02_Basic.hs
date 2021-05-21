@@ -37,7 +37,7 @@ instance Ema Route where
 main :: IO ()
 main = do
   let routes = [minBound .. maxBound]
-  Ema.runEma (const routes) render $ \model -> do
+  Ema.runEma mempty (const routes) render $ \model -> do
     LVar.set model $ Model "Hello World. "
     liftIO $ threadDelay maxBound
 

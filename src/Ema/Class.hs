@@ -21,12 +21,6 @@ class Ema route where
   encodeRoute :: route -> [Slug]
   decodeRoute :: [Slug] -> Maybe route
 
-  -- | List of (top-level) filepaths to serve as static assets
-  --
-  -- These will be copied over as-is during static site generation
-  staticAssets :: Proxy route -> [FilePath]
-  staticAssets Proxy = mempty
-
 -- | The unit model is useful when using Ema in pure fashion (see @Ema.runEmaPure@) with a single route (index.html) only.
 instance Ema () where
   encodeRoute () = []

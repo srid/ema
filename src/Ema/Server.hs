@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Class (Ema (decodeRoute, staticAssets), MonadEma)
+import Ema.Class (Ema (decodeRoute), MonadEma)
 import qualified Ema.Route.Slug as Slug
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -28,9 +28,10 @@ runServerWithWebSocketHotReload ::
   (Ema route, Show route, MonadEma m) =>
   Int ->
   LVar model ->
+  [FilePath] ->
   (model -> route -> LByteString) ->
   m ()
-runServerWithWebSocketHotReload port model render = do
+runServerWithWebSocketHotReload port model staticAssets render = do
   let settings = Warp.setPort port Warp.defaultSettings
   logger <- askLoggerIO
 
@@ -95,7 +96,7 @@ runServerWithWebSocketHotReload port model render = do
                 log LevelError $ "Websocket error: " <> show err
                 LVar.removeListener model subId
     assetsMiddleware = do
-      case nonEmpty (staticAssets $ Proxy @route) of
+      case nonEmpty staticAssets of
         Nothing -> id
         Just topLevelPaths ->
           let assetPolicy :: Static.Policy =
