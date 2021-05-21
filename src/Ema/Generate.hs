@@ -6,18 +6,22 @@ module Ema.Generate where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Ema.Class (Ema, MonadEma)
-import Ema.Route (routeFile)
+import Ema.Route (HtmlRoute, routeFile)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
+import UnliftIO (MonadUnliftIO)
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
 
 generate ::
   forall model route m.
-  (MonadEma m, Ema route) =>
+  ( MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m,
+    HtmlRoute route
+  ) =>
   FilePath ->
   model ->
   [FilePath] ->
@@ -46,7 +50,10 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving (Show, Exception)
 
 copyDirRecursively ::
-  MonadEma m =>
+  ( MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m
+  ) =>
   -- | Source file or directory relative to CWD that will be copied
   FilePath ->
   -- | Directory *under* which the source file/dir will be copied

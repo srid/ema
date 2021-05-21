@@ -8,7 +8,6 @@ module Ema.App
   ( runEma,
     runEmaPure,
     runEmaWithCli,
-    MonadEma,
   )
 where
 
@@ -20,11 +19,12 @@ import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import Ema.CLI (Action (..), Cli)
 import qualified Ema.CLI as CLI
-import Ema.Class (Ema (..), MonadEma)
 import qualified Ema.Generate as Generate
+import Ema.Route (HtmlRoute (..))
 import qualified Ema.Server as Server
 import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
+import UnliftIO (MonadUnliftIO)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -48,14 +48,14 @@ runEmaPure render = do
 -- exits, and vice-versa.
 runEma ::
   forall model route.
-  (Ema route, Show route) =>
+  (HtmlRoute route, Show route) =>
   [FilePath] ->
   (model -> [route]) ->
   -- | How to render a route, given the model
   (CLI.Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. MonadEma m => LVar model -> m ()) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
   IO ()
 runEma staticAssets staticRoutes render runModel = do
   cli <- CLI.cliAction
@@ -66,7 +66,7 @@ runEma staticAssets staticRoutes render runModel = do
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
   forall model route.
-  (Ema route, Show route) =>
+  (HtmlRoute route, Show route) =>
   Cli ->
   [FilePath] ->
   (model -> [route]) ->
@@ -74,7 +74,7 @@ runEmaWithCli ::
   (CLI.Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. MonadEma m => LVar model -> m ()) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
   IO ()
 runEmaWithCli cli staticAssets staticRoutes render runModel = do
   model <- LVar.empty
@@ -93,7 +93,7 @@ runEmaWithCli cli staticAssets staticRoutes render runModel = do
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
   forall model route m.
-  (MonadEma m, Ema route, Show route) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, HtmlRoute route, Show route) =>
   -- | CLI arguments
   CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over

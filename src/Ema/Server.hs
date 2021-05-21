@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Class (Ema (decodeRoute), MonadEma)
+import Ema.Route (HtmlRoute (..))
 import qualified Ema.Route.Slug as Slug
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -22,10 +22,16 @@ import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
 import Relude.Extra.Foldable1 (foldl1')
 import Text.Printf (printf)
+import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
   forall model route m.
-  (Ema route, Show route, MonadEma m) =>
+  ( HtmlRoute route,
+    Show route,
+    MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m
+  ) =>
   Int ->
   LVar model ->
   [FilePath] ->
