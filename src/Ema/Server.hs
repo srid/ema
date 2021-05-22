@@ -33,7 +33,7 @@ runServerWithWebSocketHotReload ::
   ) =>
   Int ->
   LVar model ->
-  (model -> route -> LByteString) ->
+  (model -> route -> Either FilePath LByteString) ->
   m ()
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
@@ -69,7 +69,12 @@ runServerWithWebSocketHotReload port model render = do
                   log LevelDebug $ "<~~ " <> show r
                   pure r
                 sendRouteHtmlToClient r s = do
-                  liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims logger s r
+                  case renderWithEmaHtmlShims logger s r of
+                    Left staticPath ->
+                      -- TODO
+                      undefined
+                    Right html ->
+                      liftIO $ WS.sendTextData conn html
                   log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -107,26 +112,31 @@ runServerWithWebSocketHotReload port model render = do
         let path = Wai.pathInfo req
             mr = routeFromPathInfo path
         logInfoNS "HTTP" $ show path <> " as " <> show mr
-        (status, v) <- case mr of
+        case mr of
           Nothing ->
-            pure (H.status404, "No route")
+            liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/plain")] "No route"
           Just r -> do
             val <- LVar.get model
-            let html = renderCatchingErrors logger val r
-            pure (H.status200, html <> emaStatusHtml <> wsClientShim)
-        liftIO $ f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
+            case renderCatchingErrors logger val r of
+              Left staticPath -> do
+                let mimeType = Static.getMimeType staticPath
+                liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
+              Right html -> do
+                let s = html <> emaStatusHtml <> wsClientShim
+                liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
     renderWithEmaHtmlShims logger m r =
-      renderCatchingErrors logger m r <> emaStatusHtml
+      renderCatchingErrors logger m r <&> (<> emaStatusHtml)
     renderCatchingErrors logger m r =
       unsafeCatch (render m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
           pure $
-            encodeUtf8 $
-              "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
-                <> show @Text err
-                <> "</pre><p>Once you fix your code this page will automatically update.</body>"
+            Right $
+              encodeUtf8 $
+                "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
+                  <> show @Text err
+                  <> "</pre><p>Once you fix your code this page will automatically update.</body>"
     routeFromPathInfo =
       decodeUrlRoute @route . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.

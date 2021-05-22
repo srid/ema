@@ -37,7 +37,7 @@ runEmaPure ::
   (CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  runEma (const $ one $ Right ()) (\act () () -> render act) $ \model -> do
+  runEma (const $ one ()) (\act () () -> Right $ render act) $ \model -> do
     LVar.set model ()
     liftIO $ threadDelay maxBound
 
@@ -49,9 +49,9 @@ runEmaPure render = do
 runEma ::
   forall model route.
   (FileRoute route, Show route) =>
-  (model -> [Either FilePath route]) ->
+  (model -> [route]) ->
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> Either FilePath LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
@@ -67,9 +67,9 @@ runEmaWithCli ::
   forall model route.
   (FileRoute route, Show route) =>
   Cli ->
-  (model -> [Either FilePath route]) ->
+  (model -> [route]) ->
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> Either FilePath LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
@@ -101,11 +101,11 @@ runEmaWithCliInCwd ::
   -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
   -- site as this model data changes.
   LVar model ->
-  (model -> [Either FilePath route]) ->
+  (model -> [route]) ->
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (Action -> model -> route -> LByteString) ->
+  (Action -> model -> route -> Either FilePath LByteString) ->
   m ()
 runEmaWithCliInCwd cliAction model allRoutes render = do
   case cliAction of
