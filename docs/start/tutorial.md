@@ -37,7 +37,7 @@ Next, let's define a [model](guide/model.md). A model will hold the state of our
 data Model = Model { speaker :: Text }
 ```
 
-We should now tell Ema how to convert our `Route` to actual URL paths. Let's do that by making an instance of the `Ema` [class](guide/class.md):
+We should now tell Ema how to convert our `Route` to actual file paths (which is used to determine the URL too). Let's do that by making an instance of the `Ema` [class](guide/class.md):
 
 ```haskell
 import Ema (Ema (..))
@@ -83,6 +83,7 @@ render _emaAction model r = Ema.AssetGeneratred Ema.Html . RU.renderHtml $
   H.html $ do
     H.head $ do 
       H.title "Basic site"
+      H.base ! A.href "/" -- This is important.
     H.body $ do
       H.div ! A.class_ "container" $ do
         case r of

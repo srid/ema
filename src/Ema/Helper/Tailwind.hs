@@ -45,7 +45,6 @@ layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
   H.html ! A.lang lang $ do
     H.head $ do
       H.meta ! A.charset encoding
-      H.base ! A.href "/" -- Base routeUrl returns relative URL
       -- This makes the site mobile friendly by default.
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
       tshim

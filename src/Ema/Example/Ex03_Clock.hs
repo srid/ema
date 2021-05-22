@@ -44,7 +44,7 @@ main = do
 
 render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
-  Tailwind.layout emaAction (H.title "Clock") $
+  Tailwind.layout emaAction (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

@@ -43,7 +43,7 @@ main = do
 
 render :: Ema.CLI.Action -> Model -> Route -> LByteString
 render emaAction (Model s) r =
-  Tailwind.layout emaAction (H.title "Basic site") $
+  Tailwind.layout emaAction (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

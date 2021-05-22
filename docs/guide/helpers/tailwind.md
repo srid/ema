@@ -11,7 +11,7 @@ To use the layout helper in your [render](guide/render.md) function:
 render :: Ema.CLI.Action -> MyModel -> MyRoute -> Asset LByteString
 render emaAction model route = do
   AssetGenerated Html $ 
-    Tailwind.layout emaAction (H.title "My site") $ do 
+    Tailwind.layout emaAction (H.title "My site" >> H.base ! A.href "/") $ do 
       H.p "Hello world"
 ```
 

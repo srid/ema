@@ -21,6 +21,7 @@ render model route = AssetGenerated Html . Blaze.renderHtml $
   H.html $ do 
     H.head $ do 
       H.title "My site"
+      H.base ! A.href "/"  -- This is important
     H.body $ do 
       H.h1 "My site"
       case route of 
