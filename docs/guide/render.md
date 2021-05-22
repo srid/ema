@@ -3,19 +3,21 @@ order: 4
 ---
 # Rendering HTML
 
-Once you have [model](guide/model.md) and [routes](guide/routes.md) in place and [constrained](guide/class.md), the last piece of the puzzle is to write a function that takes both as arguments and returns the HTML string (lazy bytestring, to be exact). This function can be as simple as the following:
+Once you have [model](guide/model.md) and [routes](guide/routes.md) in place and [constrained](guide/class.md), the last piece of the puzzle is to write a function that takes both as arguments and returns file content (lazy bytestring, to be exact) to generate. This function can be as simple as the following:
 
 ```haskell
-render :: MyModel -> Route -> ByteString
+render :: MyModel -> Route -> Asset ByteString
 render model route =
-  "<b>Hello</b>, world!"
+  AssetGenerated Html "<b>Hello</b>, world!"
 ```
+
+The `AssetGenerated Html` tells Ema that you are generating HTML content, which will be appropriately handled by the [[hot-reload]] of the live server.
 
 Of course we want it to be real, by using our model value, as well as generate the HTML based on the route. We will also use the [blaze-html](https://hackage.haskell.org/package/blaze-html) library to make writing HTML in Haskell palatable (see also [the layout helper](guide/helpers/tailwind.md)). A more realistic starting point (if not the finishing product) would be:
 
 ```haskell
-render :: MyModel -> Route -> ByteString 
-render model route = Blaze.renderHtml $ 
+render :: MyModel -> Route -> Asset ByteString 
+render model route = AssetGenerated Html . Blaze.renderHtml $ 
   H.html $ do 
     H.head $ do 
       H.title "My site"

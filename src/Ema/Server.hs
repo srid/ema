@@ -9,8 +9,8 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Class (Ema (decodeRoute, staticAssets), MonadEma)
-import qualified Ema.Route.Slug as Slug
+import Ema.Asset
+import Ema.Class (Ema (..))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
@@ -20,21 +20,29 @@ import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
-import Relude.Extra.Foldable1 (foldl1')
+import System.FilePath ((</>))
 import Text.Printf (printf)
+import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
   forall model route m.
-  (Ema model route, Show route, MonadEma m) =>
+  ( Ema model route,
+    Show route,
+    MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m
+  ) =>
   Int ->
   LVar model ->
-  (model -> route -> LByteString) ->
+  (model -> route -> Asset LByteString) ->
   m ()
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
   logger <- askLoggerIO
 
-  logInfoN $ "Launching Ema at http://localhost:" <> show port
+  logInfoN "============================================"
+  logInfoN $ "Running live server at http://localhost:" <> show port
+  logInfoN "============================================"
   liftIO $
     Warp.runSettings settings $
       assetsMiddleware $
@@ -55,15 +63,27 @@ runServerWithWebSocketHotReload port model render = do
             log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
+                  val <- LVar.get model
+                  -- TODO: Let non-html routes pass through.
                   let r =
                         msg
                           & pathInfoFromWsMsg
-                          & routeFromPathInfo
+                          & routeFromPathInfo val
                           & fromMaybe (error "invalid route from ws")
                   log LevelDebug $ "<~~ " <> show r
                   pure r
                 sendRouteHtmlToClient r s = do
-                  liftIO $ WS.sendTextData conn $ renderWithEmaHtmlShims logger s r
+                  case renderCatchingErrors logger s r of
+                    AssetStatic staticPath ->
+                      -- HACK: Websocket client should check for REDIRECT prefix.
+                      -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
+                    AssetGenerated Html html ->
+                      liftIO $ WS.sendTextData conn $ html <> emaStatusHtml
+                    AssetGenerated Other _s ->
+                      -- HACK: Websocket client should check for REDIRECT prefix.
+                      -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute r)
                   log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -94,40 +114,41 @@ runServerWithWebSocketHotReload port model render = do
               Left (err :: ConnectionException) -> do
                 log LevelError $ "Websocket error: " <> show err
                 LVar.removeListener model subId
-    assetsMiddleware = do
-      case nonEmpty (staticAssets $ Proxy @route) of
-        Nothing -> id
-        Just topLevelPaths ->
-          let assetPolicy :: Static.Policy =
-                foldl1' (Static.<|>) $ Static.hasPrefix <$> topLevelPaths
-           in Static.staticPolicy assetPolicy
+    assetsMiddleware =
+      Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do
+        val <- LVar.get model
         let path = Wai.pathInfo req
-            mr = routeFromPathInfo path
+            mr = routeFromPathInfo val path
         logInfoNS "HTTP" $ show path <> " as " <> show mr
-        (status, v) <- case mr of
+        case mr of
           Nothing ->
-            pure (H.status404, "No route")
+            liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/plain")] "No route"
           Just r -> do
-            val <- LVar.get model
-            let html = renderCatchingErrors logger val r
-            pure (H.status200, html <> emaStatusHtml <> wsClientShim)
-        liftIO $ f $ Wai.responseLBS status [(H.hContentType, "text/html")] v
-    renderWithEmaHtmlShims logger m r =
-      renderCatchingErrors logger m r <> emaStatusHtml
+            case renderCatchingErrors logger val r of
+              AssetStatic staticPath -> do
+                let mimeType = Static.getMimeType staticPath
+                liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
+              AssetGenerated Html html -> do
+                let s = html <> emaStatusHtml <> wsClientShim
+                liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
+              AssetGenerated Other s -> do
+                let mimeType = Static.getMimeType $ encodeRoute r
+                liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       unsafeCatch (render m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
           pure $
-            encodeUtf8 $
-              "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
-                <> show @Text err
-                <> "</pre><p>Once you fix your code this page will automatically update.</body>"
-    routeFromPathInfo =
-      decodeRoute @model . fmap Slug.decodeSlug
+            AssetGenerated Html $
+              encodeUtf8 $
+                "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
+                  <> show @Text err
+                  <> "</pre><p>Once you fix your code this page will automatically update.</body>"
+    routeFromPathInfo m =
+      decodeUrlRoute m . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
@@ -137,6 +158,15 @@ runServerWithWebSocketHotReload port model render = do
 pathInfoFromWsMsg :: Text -> [Text]
 pathInfoFromWsMsg =
   filter (/= "") . T.splitOn "/" . T.drop 1
+
+-- | Decode a URL path into a route
+--
+-- This function is used only in live server.
+decodeUrlRoute :: forall model route. Ema model route => model -> Text -> Maybe route
+decodeUrlRoute model (toString -> s) = do
+  decodeRoute @model @route model s
+    <|> decodeRoute @model @route model (s <> ".html")
+    <|> decodeRoute @model @route model (s </> "index.html")
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientShim :: LByteString
@@ -252,9 +282,13 @@ wsClientShim =
 
           ws.onmessage = evt => {
             console.log("ema: ✍ Patching DOM")
-            setHtml(document.documentElement, evt.data);
-            // reloadScripts(document.documentElement);
-            watchCurrentRoute();
+            if (evt.data.startsWith("REDIRECT ")) {
+              document.location.href = evt.data.slice("REDIRECT ".length);
+            } else {
+              setHtml(document.documentElement, evt.data);
+              // reloadScripts(document.documentElement);
+              watchCurrentRoute();
+            };
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };

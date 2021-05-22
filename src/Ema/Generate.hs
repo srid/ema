@@ -6,37 +6,49 @@ module Ema.Generate where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Ema.Class (Ema (staticAssets, staticRoutes), MonadEma)
-import Ema.Route (routeFile)
+import Ema.Asset
+import Ema.Class
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
+import UnliftIO (MonadUnliftIO)
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
 
 generate ::
   forall model route m.
-  (MonadEma m, Ema model route) =>
+  ( MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m,
+    Ema model route
+  ) =>
   FilePath ->
   model ->
-  (model -> route -> LByteString) ->
+  (model -> route -> Asset LByteString) ->
   m ()
 generate dest model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
-  let routes = staticRoutes model
+  let routes = allRoutes model
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
-  forM_ routes $ \r -> do
-    let fp = dest </> routeFile @model r
+  let (staticPaths, generatedPaths) =
+        lefts &&& rights $
+          routes <&> \r ->
+            case render model r of
+              AssetStatic fp -> Left (r, fp)
+              AssetGenerated _fmt s -> Right (encodeRoute r, s)
+  forM_ generatedPaths $ \(relPath, !s) -> do
+    let fp = dest </> relPath
     log LevelInfo $ toText $ "W " <> fp
-    let !s = render model r
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory fp)
       writeFileLBS fp s
-  forM_ (staticAssets $ Proxy @route) $ \staticPath -> do
+  forM_ staticPaths $ \(_, staticPath) -> do
     liftIO (doesPathExist staticPath) >>= \case
       True ->
+        -- TODO: In current branch, we don't expect this to be a directory.
+        -- Although the user may pass it, but review before merge.
         copyDirRecursively staticPath dest
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
@@ -45,7 +57,10 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving (Show, Exception)
 
 copyDirRecursively ::
-  MonadEma m =>
+  ( MonadIO m,
+    MonadUnliftIO m,
+    MonadLoggerIO m
+  ) =>
   -- | Source file or directory relative to CWD that will be copied
   FilePath ->
   -- | Directory *under* which the source file/dir will be copied

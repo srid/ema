@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
@@ -8,7 +9,6 @@ module Ema.App
   ( runEma,
     runEmaPure,
     runEmaWithCli,
-    MonadEma,
   )
 where
 
@@ -18,13 +18,15 @@ import Control.Monad.Logger
 import Control.Monad.Logger.Extras
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
-import Ema.CLI (Action (..), Cli)
+import Ema.Asset (Asset (AssetGenerated), Format (Html))
+import Ema.CLI (Cli)
 import qualified Ema.CLI as CLI
-import Ema.Class (Ema (..), MonadEma)
+import Ema.Class (Ema)
 import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
 import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
+import UnliftIO (MonadUnliftIO)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -37,7 +39,7 @@ runEmaPure ::
   (CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  runEma (\act () () -> render act) $ \model -> do
+  runEma (\act () () -> AssetGenerated Html $ render act) $ \model -> do
     LVar.set model ()
     liftIO $ threadDelay maxBound
 
@@ -50,10 +52,10 @@ runEma ::
   forall model route.
   (Ema model route, Show route) =>
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. MonadEma m => LVar model -> m ()) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
   IO ()
 runEma render runModel = do
   cli <- CLI.cliAction
@@ -67,10 +69,10 @@ runEmaWithCli ::
   (Ema model route, Show route) =>
   Cli ->
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. MonadEma m => LVar model -> m ()) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
   IO ()
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
@@ -79,9 +81,8 @@ runEmaWithCli cli render runModel = do
   withCurrentDirectory (CLI.workingDir cli) $ do
     cwd <- getCurrentDirectory
     flip runLoggerLoggingT logger $ do
-      logInfoN $ "Running Ema under: " <> toText cwd
-      logInfoN "Waiting for initial site model ..."
-      logInfoN "  stuck here? set a model value using `LVar.set`"
+      logInfoN $ "Launching Ema under: " <> toText cwd
+      logInfoN "Waiting for initial model ..."
     race_
       (flip runLoggerLoggingT logger $ runModel model)
       (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
@@ -89,7 +90,7 @@ runEmaWithCli cli render runModel = do
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
   forall model route m.
-  (MonadEma m, Ema model route, Show route) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema model route, Show route) =>
   -- | CLI arguments
   CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
@@ -102,14 +103,14 @@ runEmaWithCliInCwd ::
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (Action -> model -> route -> LByteString) ->
+  (CLI.Action -> model -> route -> Asset LByteString) ->
   m ()
 runEmaWithCliInCwd cliAction model render = do
+  val <- LVar.get model
+  logInfoN "... initial model is now available."
   case cliAction of
-    Generate dest -> do
-      val <- LVar.get model
+    CLI.Generate dest -> do
       Generate.generate dest val (render cliAction)
-    Run -> do
-      void $ LVar.get model
+    CLI.Run -> do
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       Server.runServerWithWebSocketHotReload port model (render cliAction)

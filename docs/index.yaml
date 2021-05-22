@@ -12,6 +12,7 @@ pandoc:
     next: py-2 text-xl italic font-bold
     # For description of items in guide listing
     item-intro: text-gray-500
+    note: bg-gray-100 px-4 py-1 rounded italic
 
 # Put page-specific metadata here. Override them in Markdown frontmatter or
 # per-folder YAML as necessary.

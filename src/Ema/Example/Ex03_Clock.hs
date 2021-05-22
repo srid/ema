@@ -13,7 +13,8 @@ import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Ema (Ema (..), routeUrl, runEma)
+import Ema (Ema (..))
+import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
@@ -27,16 +28,16 @@ data Route
 
 instance Ema UTCTime Route where
   encodeRoute = \case
-    Index -> mempty
-    OnlyTime -> one "time"
-  decodeRoute = \case
-    [] -> Just Index
-    ["time"] -> Just OnlyTime
+    Index -> "index.html"
+    OnlyTime -> "time.html"
+  decodeRoute _time = \case
+    "index.html" -> Just Index
+    "time.html" -> Just OnlyTime
     _ -> Nothing
 
 main :: IO ()
 main = do
-  runEma render $ \model ->
+  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model ->
     forever $ do
       LVar.set model =<< liftIO getCurrentTime
       liftIO $ threadDelay $ 1 * 1000000
@@ -67,7 +68,7 @@ render emaAction now r =
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ routeUrl r')
+      A.href (fromString . toString $ Ema.routeUrl r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]

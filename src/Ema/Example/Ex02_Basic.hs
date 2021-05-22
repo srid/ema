@@ -26,17 +26,18 @@ data Route
 data Model = Model Text
 
 instance Ema Model Route where
-  encodeRoute = \case
-    Index -> mempty
-    About -> one "about"
-  decodeRoute = \case
-    [] -> Just Index
-    ["about"] -> Just About
+  encodeRoute =
+    \case
+      Index -> "index.html"
+      About -> "about.html"
+  decodeRoute _model = \case
+    "index.html" -> Just Index
+    "about.html" -> Just About
     _ -> Nothing
 
 main :: IO ()
 main = do
-  Ema.runEma render $ \model -> do
+  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model -> do
     LVar.set model $ Model "Hello World. "
     liftIO $ threadDelay maxBound
 
