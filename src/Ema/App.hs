@@ -37,7 +37,7 @@ runEmaPure ::
   (CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  runEma (const []) (const $ one ()) (\act () () -> render act) $ \model -> do
+  runEma (const $ one $ Right ()) (\act () () -> render act) $ \model -> do
     LVar.set model ()
     liftIO $ threadDelay maxBound
 
@@ -49,17 +49,16 @@ runEmaPure render = do
 runEma ::
   forall model route.
   (FileRoute route, Show route) =>
-  (model -> [FilePath]) ->
-  (model -> [route]) ->
+  (model -> [Either FilePath route]) ->
   -- | How to render a route, given the model
   (CLI.Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
   IO ()
-runEma staticAssets staticRoutes render runModel = do
+runEma allRoutes render runModel = do
   cli <- CLI.cliAction
-  runEmaWithCli cli staticAssets staticRoutes render runModel
+  runEmaWithCli cli allRoutes render runModel
 
 -- | Like @runEma@ but takes the CLI action
 --
@@ -68,15 +67,14 @@ runEmaWithCli ::
   forall model route.
   (FileRoute route, Show route) =>
   Cli ->
-  (model -> [FilePath]) ->
-  (model -> [route]) ->
+  (model -> [Either FilePath route]) ->
   -- | How to render a route, given the model
   (CLI.Action -> model -> route -> LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
   IO ()
-runEmaWithCli cli staticAssets staticRoutes render runModel = do
+runEmaWithCli cli allRoutes render runModel = do
   model <- LVar.empty
   -- TODO: Allow library users to control logging levels
   let logger = colorize logToStdout
@@ -88,7 +86,7 @@ runEmaWithCli cli staticAssets staticRoutes render runModel = do
       logInfoN "  stuck here? set a model value using `LVar.set`"
     race_
       (flip runLoggerLoggingT logger $ runModel model)
-      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model staticAssets staticRoutes render)
+      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model allRoutes render)
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
@@ -103,18 +101,17 @@ runEmaWithCliInCwd ::
   -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
   -- site as this model data changes.
   LVar model ->
-  (model -> [FilePath]) ->
-  (model -> [route]) ->
+  (model -> [Either FilePath route]) ->
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
   (Action -> model -> route -> LByteString) ->
   m ()
-runEmaWithCliInCwd cliAction model staticAssets staticRoutes render = do
+runEmaWithCliInCwd cliAction model allRoutes render = do
   case cliAction of
     Generate dest -> do
       val <- LVar.get model
-      Generate.generate dest val (staticAssets val) (staticRoutes val) (render cliAction)
+      Generate.generate dest val (allRoutes val) (render cliAction)
     Run -> do
       void $ LVar.get model
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"

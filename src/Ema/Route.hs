@@ -28,6 +28,16 @@ instance FileRoute () where
   encodeFileRoute () = "index.html"
   decodeFileRoute = guard . (== "index.html")
 
+-- | For file route type extendeded to let raw filepaths pass through.
+--
+-- Useful in combining with static path routes that are not to be generated.
+instance FileRoute r => FileRoute (Either FilePath r) where
+  encodeFileRoute =
+    either id encodeFileRoute
+  decodeFileRoute s =
+    fmap Right (decodeFileRoute s)
+      <|> fmap Left (Just s)
+
 -- | Return the relative URL of the given route
 --
 -- As the returned URL is relative, you will have to either make it absolute (by

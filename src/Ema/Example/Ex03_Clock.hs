@@ -38,7 +38,7 @@ instance FileRoute Route where
 main :: IO ()
 main = do
   let routes = [minBound .. maxBound]
-  Ema.runEma mempty (const routes) render $ \model ->
+  Ema.runEma (const $ Right <$> routes) render $ \model ->
     forever $ do
       LVar.set model =<< liftIO getCurrentTime
       liftIO $ threadDelay $ 1 * 1000000

@@ -24,22 +24,21 @@ generate ::
   ) =>
   FilePath ->
   model ->
-  [FilePath] ->
-  [route] ->
+  [Either FilePath route] ->
   (model -> route -> LByteString) ->
   m ()
-generate dest model staticAssets routes render = do
+generate dest model allRoutes render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
-  log LevelInfo $ "Writing " <> show (length routes) <> " routes"
-  forM_ routes $ \r -> do
+  log LevelInfo $ "Writing " <> show (length allRoutes) <> " routes"
+  forM_ (rights allRoutes) $ \r -> do
     let fp = dest </> encodeFileRoute r
     log LevelInfo $ toText $ "W " <> fp
     let !s = render model r
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory fp)
       writeFileLBS fp s
-  forM_ staticAssets $ \staticPath -> do
+  forM_ (lefts allRoutes) $ \staticPath -> do
     liftIO (doesPathExist staticPath) >>= \case
       True ->
         -- TODO: In current branch, we don't expect this to be a directory.
