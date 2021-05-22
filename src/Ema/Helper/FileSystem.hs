@@ -120,15 +120,21 @@ filesMatchingWithTag parent' pats ignore = do
 
 getTag :: [(b, FilePattern)] -> FilePath -> Maybe b
 getTag pats fp =
-  let pull patterns =
+  let pull :: [(b, FilePattern)] -> Maybe b
+      pull patterns =
         fmap (\(x, (), _) -> x) $ listToMaybe $ matchMany patterns (one ((), fp))
+      pullInOrder patterns =
+        listToMaybe $
+          flip mapMaybe patterns $ \(tag, pattern) -> do
+            guard $ fp ?== pattern
+            pure tag
    in if isRelative fp
-        then pull pats
+        then pullInOrder pats
         else -- `fp` is an absolute path (because of use of symlinks), so let's
         -- be more lenient in matching it. Note that this does meat we might
         -- match files the user may not have originally intended. This is
         -- the trade offs with using symlinks.
-          pull $ second ("**/" <>) <$> pats
+          pullInOrder $ second ("**/" <>) <$> pats
 
 data FileAction = Update | Delete
   deriving (Eq, Show)
