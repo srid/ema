@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Route (FileRoute (..), decodeUrlRoute)
+import Ema.Route (FileRoute (..))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
@@ -19,6 +19,7 @@ import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
+import System.FilePath ((</>))
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
@@ -137,6 +138,15 @@ runServerWithWebSocketHotReload port model render = do
 pathInfoFromWsMsg :: Text -> [Text]
 pathInfoFromWsMsg =
   filter (/= "") . T.splitOn "/" . T.drop 1
+
+-- | Decode a URL path into a route
+--
+-- This function is used only in live server.
+decodeUrlRoute :: FileRoute route => Text -> Maybe route
+decodeUrlRoute (toString -> s) =
+  decodeFileRoute s
+    <|> decodeFileRoute (s <> ".html")
+    <|> decodeFileRoute (s </> "index.html")
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientShim :: LByteString
