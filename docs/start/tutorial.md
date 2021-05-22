@@ -44,12 +44,12 @@ import Ema (Ema (..))
 
 instance Ema Model Route where
   encodeRoute = \case
-    Index -> []         -- To /
-    About -> ["about"]  -- To /about
+    Index -> "index.html"  -- To /
+    About -> "about.html"  -- To /about
   decodeRoute = \case
-    [] -> Just Index         -- From /
-    ["about"] -> Just About  -- From /about
-    _ -> Nothing             -- Everything else, are bad routes
+    "index.html" -> Just Index  -- From /
+    "about.html" -> Just About  -- From /about
+    _ -> Nothing                -- Everything else, are bad routes
 ```
 
 Now, we write the `main` entry point:
@@ -70,6 +70,7 @@ The `runEma` function is explained [here](guide/class.md), but in brief: it take
 On final piece of the puzzle is to write the aforementioned `render` function:
 
 ```haskell
+import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
@@ -77,8 +78,8 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import qualified Text.Blaze.Html.Renderer.Utf8 as RU
 
-render :: Ema.CLI.Action -> Model -> Route -> LByteString
-render _emaAction model r = RU.renderHtml $
+render :: Ema.CLI.Action -> Model -> Route -> Ema.Asset LByteString
+render _emaAction model r = Ema.AssetGeneratred Ema.Html . RU.renderHtml $
   H.html $ do
     H.head $ do 
       H.title "Basic site"

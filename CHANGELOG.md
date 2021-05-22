@@ -2,15 +2,22 @@
 
 ## Unreleased (0.2.0.0)
 
-- `routeUrl`: now returns relative URLs (ie. without the leading `/`)
-  - Use the `<base>` tag to specify an explicit prefix for relative URLs in generated HTML. This way hosting on GitHub Pages without CNAME will continue to have functional links.
+- `Asset` type
+  - Introduce the `Asset` type to distinguishing between static files and generated files. The later can be one of `Html` or `Other`, allowing the live server to handle them sensibly.
+  - `Ema` typeclass: 
+    - Drop `staticAssets` in favour of `allRoutes` (renamed from `staticRoutes`) returning all routes including both generated and static routes.
+    - Drop `Slug` and use plain `FilePath`. Route encoder and decoder deal directly with the on-disk path of the generated (or static) files.
+  - Make the render function (which `runEma` takes) return a `Asset LByteString` instead of `LByteString` such that it can handle all routes, and handle static files as well as generation of non-HTML content (eg: RSS)
+- `routeUrl`: 
+  - Unicode normalize as well URI encode route URLs
+  - now returns relative URLs (ie. without the leading `/`)
+    - Use the `<base>` tag to specify an explicit prefix for relative URLs in generated HTML. This way hosting on GitHub Pages without CNAME will continue to have functional links.
 - `Ema.Slug`
   - Add `Ord`, `Generic`, `Data` and Aeson instances to `Slug`
   - Unicode normalize slugs using NFC
-  - TODO(doc) Add `decodeSlug` and `encodeSlug`
-- Unicode normalize `routeUrl` (via `decodeSlug`)
-- Add default implementation based on Enum for `staticRoute`
-- Warn, without failing, on missing `staticAssets` during static generation
+  - Add `decodeSlug` and `encodeSlug`
+- Add default implementation based on Enum for `allRoutes`
+- Warn, without failing, on missing static assets during static generation
 - Helpers
   - Helpers.FileSystem
     - add `mountOnLVar`
