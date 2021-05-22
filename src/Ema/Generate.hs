@@ -71,7 +71,7 @@ copyDirRecursively srcRel destParent =
     True -> do
       let b = destParent </> srcRel
       log LevelInfo $ toText $ "C " <> b
-      liftIO $ copyFile srcRel b
+      copyFileCreatingParents srcRel b
     False ->
       liftIO (doesDirectoryExist srcRel) >>= \case
         False ->
@@ -82,6 +82,9 @@ copyDirRecursively srcRel destParent =
             let a = srcRel </> fp
                 b = destParent </> srcRel </> fp
             log LevelInfo $ toText $ "C " <> b
-            liftIO $ do
-              createDirectoryIfMissing True (takeDirectory b)
-              copyFile a b
+            copyFileCreatingParents a b
+  where
+    copyFileCreatingParents a b =
+      liftIO $ do
+        createDirectoryIfMissing True (takeDirectory b)
+        copyFile a b
