@@ -6,7 +6,7 @@ module Ema.Generate where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Ema.Route (FileRoute, routeFile)
+import Ema.Route (FileRoute (encodeFileRoute))
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -33,7 +33,7 @@ generate dest model staticAssets routes render = do
     error $ "Destination does not exist: " <> toText dest
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   forM_ routes $ \r -> do
-    let fp = dest </> routeFile r
+    let fp = dest </> encodeFileRoute r
     log LevelInfo $ toText $ "W " <> fp
     let !s = render model r
     liftIO $ do

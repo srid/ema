@@ -26,13 +26,13 @@ data Route
 data Model = Model Text
 
 instance FileRoute Route where
-  encodeRoute =
-    Ema.htmlSlugs . \case
-      Index -> mempty
-      About -> one "about"
-  decodeRoute = \case
-    [] -> Just Index
-    ["about"] -> Just About
+  encodeFileRoute =
+    \case
+      Index -> "index.html"
+      About -> "about.html"
+  decodeFileRoute = \case
+    "index.html" -> Just Index
+    "about.html" -> Just About
     _ -> Nothing
 
 main :: IO ()

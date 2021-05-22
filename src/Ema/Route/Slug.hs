@@ -31,7 +31,8 @@ instance IsString Slug where
     if "/" `T.isInfixOf` s
       then error ("Slug cannot contain a slash: " <> s)
       else Slug (unicodeNormalize s)
-    where
-      -- Normalize varying non-ascii strings (in filepaths / slugs) to one
-      -- representation, so that they can be reliably linked to.
-      unicodeNormalize = UT.normalize UT.NFC . toText
+
+-- Normalize varying non-ascii strings (in filepaths / slugs) to one
+-- representation, so that they can be reliably linked to.
+unicodeNormalize :: Text -> Text
+unicodeNormalize = UT.normalize UT.NFC . toText

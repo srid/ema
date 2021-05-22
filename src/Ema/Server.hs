@@ -9,8 +9,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
-import Ema.Route (FileRoute (..))
-import qualified Ema.Route.Slug as Slug
+import Ema.Route (FileRoute (..), decodeUrlRoute)
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
@@ -128,7 +127,7 @@ runServerWithWebSocketHotReload port model render = do
                 <> show @Text err
                 <> "</pre><p>Once you fix your code this page will automatically update.</body>"
     routeFromPathInfo =
-      decodeRoute @route . fmap Slug.decodeSlug
+      decodeUrlRoute @route . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)

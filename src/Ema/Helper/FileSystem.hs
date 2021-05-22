@@ -35,7 +35,7 @@ import System.FSNotify
     withManager,
   )
 import System.FilePath (isRelative, makeRelative)
-import System.FilePattern (FilePattern, matchMany, (?==))
+import System.FilePattern (FilePattern, (?==))
 import System.FilePattern.Directory (getDirectoryFilesIgnore)
 import UnliftIO (MonadUnliftIO, toIO, withRunInIO)
 

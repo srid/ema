@@ -115,7 +115,6 @@ library
     Ema.Generate
     Ema.Route
     Ema.Route.Slug
-    Ema.Route.UrlStrategy
     Ema.Server
 
   if flag(with-examples)

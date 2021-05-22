@@ -27,13 +27,12 @@ data Route
   deriving (Show, Enum, Bounded)
 
 instance FileRoute Route where
-  encodeRoute =
-    Ema.htmlSlugs . \case
-      Index -> mempty
-      OnlyTime -> one "time"
-  decodeRoute = \case
-    [] -> Just Index
-    ["time"] -> Just OnlyTime
+  encodeFileRoute = \case
+    Index -> "index.html"
+    OnlyTime -> "time.html"
+  decodeFileRoute = \case
+    "index.html" -> Just Index
+    "time.html" -> Just OnlyTime
     _ -> Nothing
 
 main :: IO ()
