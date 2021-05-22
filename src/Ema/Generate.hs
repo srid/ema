@@ -42,6 +42,8 @@ generate dest model staticAssets routes render = do
   forM_ staticAssets $ \staticPath -> do
     liftIO (doesPathExist staticPath) >>= \case
       True ->
+        -- TODO: In current branch, we don't expect this to be a directory.
+        -- Although the user may pass it, but review before merge.
         copyDirRecursively staticPath dest
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
