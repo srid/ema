@@ -20,7 +20,6 @@ import qualified Network.Wai.Handler.WebSockets as WaiWs
 import qualified Network.Wai.Middleware.Static as Static
 import Network.WebSockets (ConnectionException)
 import qualified Network.WebSockets as WS
-import Relude.Extra.Foldable1 (foldl1')
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
@@ -101,13 +100,7 @@ runServerWithWebSocketHotReload port model render = do
               Left (err :: ConnectionException) -> do
                 log LevelError $ "Websocket error: " <> show err
                 LVar.removeListener model subId
-    assetsMiddleware = do
-      {- case nonEmpty staticAssets of
-        Nothing -> id
-        Just topLevelPaths ->
-          let assetPolicy :: Static.Policy =
-                foldl1' (Static.<|>) $ Static.hasPrefix <$> topLevelPaths
-           in Static.staticPolicy assetPolicy -}
+    assetsMiddleware =
       Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do

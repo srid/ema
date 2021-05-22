@@ -81,6 +81,8 @@ mountOnLVar folder pats ignore var var0 toAction' = do
     initialAction <- toAction fs Update
     pure $ initialAction var0
   onChange folder $ \fp change -> do
+    -- TODO: Should refactor the ignore part to be integral to pats, and be part
+    -- of `getTag`
     let shouldIgnore = any (?== fp) ignore
     whenJust (guard (not shouldIgnore) >> getTag pats fp) $ \tag -> do
       -- TODO: We should probably debounce and group frequently-firing events
@@ -120,21 +122,18 @@ filesMatchingWithTag parent' pats ignore = do
 
 getTag :: [(b, FilePattern)] -> FilePath -> Maybe b
 getTag pats fp =
-  let pull :: [(b, FilePattern)] -> Maybe b
-      pull patterns =
-        fmap (\(x, (), _) -> x) $ listToMaybe $ matchMany patterns (one ((), fp))
-      pullInOrder patterns =
+  let pull patterns =
         listToMaybe $
           flip mapMaybe patterns $ \(tag, pattern) -> do
             guard $ pattern ?== fp
             pure tag
    in if isRelative fp
-        then pullInOrder pats
+        then pull pats
         else -- `fp` is an absolute path (because of use of symlinks), so let's
         -- be more lenient in matching it. Note that this does meat we might
         -- match files the user may not have originally intended. This is
         -- the trade offs with using symlinks.
-          pullInOrder $ second ("**/" <>) <$> pats
+          pull $ second ("**/" <>) <$> pats
 
 data FileAction = Update | Delete
   deriving (Eq, Show)
