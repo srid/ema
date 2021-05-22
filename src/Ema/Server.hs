@@ -283,7 +283,7 @@ wsClientShim =
           ws.onmessage = evt => {
             console.log("ema: ✍ Patching DOM")
             if (evt.data.startsWith("REDIRECT ")) {
-              document.location.href = evt.data.str.slice("REDIRECT ".length);
+              document.location.href = evt.data.slice("REDIRECT ".length);
             } else {
               setHtml(document.documentElement, evt.data);
               // reloadScripts(document.documentElement);

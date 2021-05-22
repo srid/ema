@@ -13,9 +13,9 @@ import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
+import Ema (Ema (..))
 import qualified Ema
 import qualified Ema.CLI
-import Ema.Class (Ema (..))
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
