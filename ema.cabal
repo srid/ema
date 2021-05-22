@@ -70,11 +70,11 @@ library
       , commonmark-extensions
       , commonmark-pandoc
       , fsnotify
-      , yaml
       , megaparsec
       , pandoc-types
       , parsec
       , parser-combinators
+      , yaml
 
     if flag(with-examples)
       build-depends: time
@@ -112,6 +112,7 @@ library
 
   other-modules:
     Ema.App
+    Ema.Asset
     Ema.Generate
     Ema.Route
     Ema.Route.Slug

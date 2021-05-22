@@ -9,6 +9,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
+import Ema.Asset
 import Ema.Route (FileRoute (..))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -33,13 +34,15 @@ runServerWithWebSocketHotReload ::
   ) =>
   Int ->
   LVar model ->
-  (model -> route -> Either FilePath LByteString) ->
+  (model -> route -> Asset LByteString) ->
   m ()
 runServerWithWebSocketHotReload port model render = do
   let settings = Warp.setPort port Warp.defaultSettings
   logger <- askLoggerIO
 
-  logInfoN $ "Launching Ema at http://localhost:" <> show port
+  logInfoN "============================================"
+  logInfoN $ "Running live server at http://localhost:" <> show port
+  logInfoN "============================================"
   liftIO $
     Warp.runSettings settings $
       assetsMiddleware $
@@ -69,13 +72,17 @@ runServerWithWebSocketHotReload port model render = do
                   log LevelDebug $ "<~~ " <> show r
                   pure r
                 sendRouteHtmlToClient r s = do
-                  case renderWithEmaHtmlShims logger s r of
-                    Left staticPath ->
+                  case renderCatchingErrors logger s r of
+                    AssetStatic staticPath ->
                       -- HACK: Websocket client should check for REDIRECT prefix.
                       -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
                       liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
-                    Right html ->
-                      liftIO $ WS.sendTextData conn html
+                    AssetGenerated Html html ->
+                      liftIO $ WS.sendTextData conn $ html <> emaStatusHtml
+                    AssetGenerated Other _s ->
+                      -- HACK: Websocket client should check for REDIRECT prefix.
+                      -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeFileRoute r)
                   log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -119,21 +126,22 @@ runServerWithWebSocketHotReload port model render = do
           Just r -> do
             val <- LVar.get model
             case renderCatchingErrors logger val r of
-              Left staticPath -> do
+              AssetStatic staticPath -> do
                 let mimeType = Static.getMimeType staticPath
                 liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
-              Right html -> do
+              AssetGenerated Html html -> do
                 let s = html <> emaStatusHtml <> wsClientShim
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
-    renderWithEmaHtmlShims logger m r =
-      renderCatchingErrors logger m r <&> (<> emaStatusHtml)
+              AssetGenerated Other s -> do
+                let mimeType = Static.getMimeType $ encodeFileRoute r
+                liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       unsafeCatch (render m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
           pure $
-            Right $
+            AssetGenerated Html $
               encodeUtf8 $
                 "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
                   <> show @Text err

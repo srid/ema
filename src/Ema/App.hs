@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
@@ -17,6 +18,7 @@ import Control.Monad.Logger
 import Control.Monad.Logger.Extras
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
+import Ema.Asset
 import Ema.CLI (Action (..), Cli)
 import qualified Ema.CLI as CLI
 import qualified Ema.Generate as Generate
@@ -37,7 +39,7 @@ runEmaPure ::
   (CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  runEma (const $ one ()) (\act () () -> Right $ render act) $ \model -> do
+  runEma (const $ one ()) (\act () () -> AssetGenerated Html $ render act) $ \model -> do
     LVar.set model ()
     liftIO $ threadDelay maxBound
 
@@ -51,7 +53,7 @@ runEma ::
   (FileRoute route, Show route) =>
   (model -> [route]) ->
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> Either FilePath LByteString) ->
+  (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
@@ -69,7 +71,7 @@ runEmaWithCli ::
   Cli ->
   (model -> [route]) ->
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> Either FilePath LByteString) ->
+  (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
@@ -81,9 +83,8 @@ runEmaWithCli cli allRoutes render runModel = do
   withCurrentDirectory (CLI.workingDir cli) $ do
     cwd <- getCurrentDirectory
     flip runLoggerLoggingT logger $ do
-      logInfoN $ "Running Ema under: " <> toText cwd
-      logInfoN "Waiting for initial site model ..."
-      logInfoN "  stuck here? set a model value using `LVar.set`"
+      logInfoN $ "Launching Ema under: " <> toText cwd
+      logInfoN "Waiting for initial model ..."
     race_
       (flip runLoggerLoggingT logger $ runModel model)
       (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model allRoutes render)
@@ -105,14 +106,14 @@ runEmaWithCliInCwd ::
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (Action -> model -> route -> Either FilePath LByteString) ->
+  (Action -> model -> route -> Asset LByteString) ->
   m ()
 runEmaWithCliInCwd cliAction model allRoutes render = do
+  val <- LVar.get model
+  logInfoN "... initial model is now available."
   case cliAction of
     Generate dest -> do
-      val <- LVar.get model
       Generate.generate dest val (allRoutes val) (render cliAction)
     Run -> do
-      void $ LVar.get model
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       Server.runServerWithWebSocketHotReload port model (render cliAction)
