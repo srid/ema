@@ -81,7 +81,7 @@ mountOnLVar folder pats ignore var var0 toAction' = do
     initialAction <- toAction fs Update
     pure $ initialAction var0
   onChange folder $ \fp change -> do
-    let shouldIgnore = any (fp ?==) ignore
+    let shouldIgnore = any (?== fp) ignore
     whenJust (guard (not shouldIgnore) >> getTag pats fp) $ \tag -> do
       -- TODO: We should probably debounce and group frequently-firing events
       -- here, but do so such that `change` is the same for the events in the
@@ -104,7 +104,7 @@ mountOnLVar folder pats ignore var var0 toAction' = do
 filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats ignore = do
   parent <- liftIO $ canonicalizePath parent'
-  log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats
+  log LevelInfo $ toText $ "Traversing " <> parent <> " for files matching " <> show pats <> ", ignoring " <> show ignore
   liftIO $ getDirectoryFilesIgnore parent pats ignore
 
 -- | Like `filesMatching` but with a tag associated with a pattern so as to be
@@ -126,7 +126,7 @@ getTag pats fp =
       pullInOrder patterns =
         listToMaybe $
           flip mapMaybe patterns $ \(tag, pattern) -> do
-            guard $ fp ?== pattern
+            guard $ pattern ?== fp
             pure tag
    in if isRelative fp
         then pullInOrder pats
