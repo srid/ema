@@ -71,8 +71,9 @@ runServerWithWebSocketHotReload port model render = do
                 sendRouteHtmlToClient r s = do
                   case renderWithEmaHtmlShims logger s r of
                     Left staticPath ->
-                      -- TODO
-                      undefined
+                      -- HACK: Websocket client should check for REDIRECT prefix.
+                      -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
                     Right html ->
                       liftIO $ WS.sendTextData conn html
                   log LevelDebug $ " ~~> " <> show r
@@ -272,9 +273,13 @@ wsClientShim =
 
           ws.onmessage = evt => {
             console.log("ema: ✍ Patching DOM")
-            setHtml(document.documentElement, evt.data);
-            // reloadScripts(document.documentElement);
-            watchCurrentRoute();
+            if evt.data.startsWith("REDIRECT ") {
+              document.location.href = evt.data.str.slice("REDIRECT ".length);
+            } else {
+              setHtml(document.documentElement, evt.data);
+              // reloadScripts(document.documentElement);
+              watchCurrentRoute();
+            };
           };
           window.onbeforeunload = evt => { ws.close(); };
           window.onpagehide = evt => { ws.close(); };
