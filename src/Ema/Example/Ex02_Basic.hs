@@ -10,9 +10,9 @@ module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
-import Ema (FileRoute (..))
 import qualified Ema
 import qualified Ema.CLI
+import Ema.Class (Ema (..))
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -25,20 +25,19 @@ data Route
 
 data Model = Model Text
 
-instance FileRoute Route where
-  encodeFileRoute =
+instance Ema Model Route where
+  encodeRoute =
     \case
       Index -> "index.html"
       About -> "about.html"
-  decodeFileRoute = \case
+  decodeRoute _model = \case
     "index.html" -> Just Index
     "about.html" -> Just About
     _ -> Nothing
 
 main :: IO ()
 main = do
-  let routes = [minBound .. maxBound]
-  Ema.runEma (const routes) (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model -> do
+  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model -> do
     LVar.set model $ Model "Hello World. "
     liftIO $ threadDelay maxBound
 

@@ -10,7 +10,7 @@ import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
 import Ema.Asset
-import Ema.Route (FileRoute (..))
+import Ema.Class (Ema (..))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import qualified Network.HTTP.Types as H
@@ -26,7 +26,7 @@ import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
   forall model route m.
-  ( FileRoute route,
+  ( Ema model route,
     Show route,
     MonadIO m,
     MonadUnliftIO m,
@@ -63,11 +63,12 @@ runServerWithWebSocketHotReload port model render = do
             log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
+                  val <- LVar.get model
                   -- TODO: Let non-html routes pass through.
                   let r =
                         msg
                           & pathInfoFromWsMsg
-                          & routeFromPathInfo
+                          & routeFromPathInfo val
                           & fromMaybe (error "invalid route from ws")
                   log LevelDebug $ "<~~ " <> show r
                   pure r
@@ -82,7 +83,7 @@ runServerWithWebSocketHotReload port model render = do
                     AssetGenerated Other _s ->
                       -- HACK: Websocket client should check for REDIRECT prefix.
                       -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeFileRoute r)
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute r)
                   log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -117,14 +118,14 @@ runServerWithWebSocketHotReload port model render = do
       Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do
+        val <- LVar.get model
         let path = Wai.pathInfo req
-            mr = routeFromPathInfo path
+            mr = routeFromPathInfo val path
         logInfoNS "HTTP" $ show path <> " as " <> show mr
         case mr of
           Nothing ->
             liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/plain")] "No route"
           Just r -> do
-            val <- LVar.get model
             case renderCatchingErrors logger val r of
               AssetStatic staticPath -> do
                 let mimeType = Static.getMimeType staticPath
@@ -133,7 +134,7 @@ runServerWithWebSocketHotReload port model render = do
                 let s = html <> emaStatusHtml <> wsClientShim
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
-                let mimeType = Static.getMimeType $ encodeFileRoute r
+                let mimeType = Static.getMimeType $ encodeRoute r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       unsafeCatch (render m r) $ \(err :: SomeException) ->
@@ -146,8 +147,8 @@ runServerWithWebSocketHotReload port model render = do
                 "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
                   <> show @Text err
                   <> "</pre><p>Once you fix your code this page will automatically update.</body>"
-    routeFromPathInfo =
-      decodeUrlRoute @route . T.intercalate "/"
+    routeFromPathInfo m =
+      decodeUrlRoute m . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
@@ -161,11 +162,11 @@ pathInfoFromWsMsg =
 -- | Decode a URL path into a route
 --
 -- This function is used only in live server.
-decodeUrlRoute :: FileRoute route => Text -> Maybe route
-decodeUrlRoute (toString -> s) =
-  decodeFileRoute s
-    <|> decodeFileRoute (s <> ".html")
-    <|> decodeFileRoute (s </> "index.html")
+decodeUrlRoute :: forall model route. Ema model route => model -> Text -> Maybe route
+decodeUrlRoute model (toString -> s) = do
+  decodeRoute @model @route model s
+    <|> decodeRoute @model @route model (s <> ".html")
+    <|> decodeRoute @model @route model (s </> "index.html")
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientShim :: LByteString

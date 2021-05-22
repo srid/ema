@@ -13,9 +13,9 @@ import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Ema (FileRoute (..))
 import qualified Ema
 import qualified Ema.CLI
+import Ema.Class (Ema (..))
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -26,19 +26,18 @@ data Route
   | OnlyTime
   deriving (Show, Enum, Bounded)
 
-instance FileRoute Route where
-  encodeFileRoute = \case
+instance Ema UTCTime Route where
+  encodeRoute = \case
     Index -> "index.html"
     OnlyTime -> "time.html"
-  decodeFileRoute = \case
+  decodeRoute _time = \case
     "index.html" -> Just Index
     "time.html" -> Just OnlyTime
     _ -> Nothing
 
 main :: IO ()
 main = do
-  let routes = [minBound .. maxBound]
-  Ema.runEma (const routes) (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model ->
+  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model ->
     forever $ do
       LVar.set model =<< liftIO getCurrentTime
       liftIO $ threadDelay $ 1 * 1000000

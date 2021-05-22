@@ -7,7 +7,7 @@ module Ema.Generate where
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Ema.Asset
-import Ema.Route (FileRoute (encodeFileRoute))
+import Ema.Class
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -21,23 +21,23 @@ generate ::
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    FileRoute route
+    Ema model route
   ) =>
   FilePath ->
   model ->
-  [route] ->
   (model -> route -> Asset LByteString) ->
   m ()
-generate dest model allRoutes render = do
+generate dest model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
-  log LevelInfo $ "Writing " <> show (length allRoutes) <> " routes"
+  let routes = allRoutes model
+  log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   let (staticPaths, generatedPaths) =
         lefts &&& rights $
-          allRoutes <&> \r ->
+          routes <&> \r ->
             case render model r of
               AssetStatic fp -> Left (r, fp)
-              AssetGenerated _fmt s -> Right (encodeFileRoute r, s)
+              AssetGenerated _fmt s -> Right (encodeRoute r, s)
   forM_ generatedPaths $ \(relPath, !s) -> do
     let fp = dest </> relPath
     log LevelInfo $ toText $ "W " <> fp

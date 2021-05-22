@@ -113,6 +113,7 @@ library
   other-modules:
     Ema.App
     Ema.Asset
+    Ema.Class
     Ema.Generate
     Ema.Route
     Ema.Route.Slug
