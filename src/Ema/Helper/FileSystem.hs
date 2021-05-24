@@ -82,16 +82,22 @@ mountOnLVar ::
   m ()
 mountOnLVar mFallbackFolder folder pats ignore var var0 toAction' = do
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
-  folderCanonical <- liftIO $ canonicalizePath folder
-  let relToFolder = makeRelative folderCanonical
-      toAction x = interceptExceptions id . toAction' x
+  let toAction x = interceptExceptions id . toAction' x
   -- NOTE: We read the fallback files only once. Auto reload is not supported, yet.
-  fbFiles <- maybe (pure mempty) (\path -> filesMatchingWithTag path pats ignore) mFallbackFolder
-  let fallbacks :: Map FilePath (FilePath, b) =
-        Map.fromList $
-          flip concatMap fbFiles $ \(t, fs) ->
-            fs <&> \fp ->
-              (relToFolder fp, (fp, t))
+  (fbFiles, fallbacks) <-
+    case mFallbackFolder of
+      Nothing ->
+        pure (mempty, mempty)
+      Just fallbackFolder -> do
+        canonical <- liftIO $ canonicalizePath fallbackFolder
+        log LevelInfo $ "Mount base: " <> toText canonical
+        fbFiles <- maybe (pure mempty) (\path -> filesMatchingWithTag path pats ignore) mFallbackFolder
+        let fallbacks :: Map FilePath (FilePath, b) =
+              Map.fromList $
+                flip concatMap fbFiles $ \(t, fs) ->
+                  fs <&> \fp ->
+                    (makeRelative canonical fp, (fp, t))
+        pure (fbFiles, fallbacks)
   LVar.set var =<< do
     fbFilesF <- toAction fbFiles Update
     fs <- filesMatchingWithTag folder pats ignore
