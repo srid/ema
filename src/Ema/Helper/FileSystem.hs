@@ -4,7 +4,7 @@
 -- | Helper to read a directory of files, and observe it for changes.
 --
 -- TODO: Publish this to hackage as an addon library for `lvar` (after renaming
--- lvar package)?
+-- lvar package)? Consider a bit if we can dissociate from lvar.
 module Ema.Helper.FileSystem
   ( -- | This is typically what you want.
     mountOnLVar,
@@ -25,7 +25,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
-import System.Directory (canonicalizePath)
+import System.Directory (canonicalizePath, makeAbsolute)
 import System.FSNotify
   ( ActionPredicate,
     Event (..),
@@ -34,7 +34,7 @@ import System.FSNotify
     watchTree,
     withManager,
   )
-import System.FilePath (isRelative, makeRelative)
+import System.FilePath (isRelative, makeRelative, (</>))
 import System.FilePattern (FilePattern, (?==))
 import System.FilePattern.Directory (getDirectoryFilesIgnore)
 import UnliftIO (MonadUnliftIO, toIO, withRunInIO)
@@ -90,7 +90,7 @@ mountOnLVar mFallbackFolder folder pats ignore var var0 toAction' = do
         pure (mempty, mempty, id)
       Just fallbackFolder -> do
         canonical <- liftIO $ canonicalizePath fallbackFolder
-        let mkRel = makeRelative canonical
+        let mkRel = (canonical </>)
         log LevelInfo $ "Mount base: " <> toText canonical
         fbFiles <- maybe (pure mempty) (\path -> filesMatchingWithTag path pats ignore) mFallbackFolder
         let fallbacks :: Map FilePath (FilePath, b) =
