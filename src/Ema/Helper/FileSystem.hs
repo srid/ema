@@ -4,7 +4,9 @@
 -- | Helper to read a directory of files, and observe it for changes.
 --
 -- TODO: Publish this to hackage as an addon library for `lvar` (after renaming
--- lvar package)? Consider a bit if we can dissociate from lvar.
+-- lvar package)?
+--
+-- TODO: Consider a bit if we can dissociate from lvar. Use MonadState.
 module Ema.Helper.FileSystem
   ( -- | This is typically what you want.
     mountOnLVar,
@@ -25,7 +27,7 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
-import System.Directory (canonicalizePath, makeAbsolute)
+import System.Directory (canonicalizePath)
 import System.FSNotify
   ( ActionPredicate,
     Event (..),
@@ -43,7 +45,7 @@ import UnliftIO (MonadUnliftIO, toIO, withRunInIO)
 -- events (represented by `FileAction`) are made to be reflected in the LVar
 -- model using the given model update function.
 mountOnLVar ::
-  forall model m b.
+  forall model m b s.
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLogger m,
@@ -53,9 +55,9 @@ mountOnLVar ::
   -- | The base directory of files to use as "fallback" if the corresponding path is missing (or gets removed) in the mounted directory.
   --
   -- NOTE: Auto reload is not supported on this directory (yet)
-  Maybe FilePath ->
+  Maybe (s, FilePath) ->
   -- | The directory to mount.
-  FilePath ->
+  (s, FilePath) ->
   -- | Only include these files (exclude everything else)
   [(b, FilePattern)] ->
   -- | Ignore these patterns
@@ -78,31 +80,31 @@ mountOnLVar ::
   -- is returned (or a symlink is found), which would be absolute.
   --
   -- If the action throws an exception, it will be logged and ignored.
-  ([(b, [FilePath])] -> FileAction -> m (model -> model)) ->
+  ([(b, [(s, FilePath)])] -> FileAction -> m (model -> model)) ->
   m ()
-mountOnLVar mFallbackFolder folder pats ignore var var0 toAction' = do
+mountOnLVar mFallbackFolder (stag, folder) pats ignore var var0 toAction' = do
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
   let toAction x = interceptExceptions id . toAction' x
   -- NOTE: We read the fallback files only once. Auto reload is not supported, yet.
-  (fbFiles, fallbacks, relToFallback) <-
+  (fbFiles, fallbacks, relToFallback, stagBase) <-
     case mFallbackFolder of
       Nothing ->
-        pure (mempty, mempty, id)
-      Just fallbackFolder -> do
+        pure (mempty, mempty, id, stag)
+      Just (stagBase, fallbackFolder) -> do
         canonical <- liftIO $ canonicalizePath fallbackFolder
         let mkRel = (canonical </>)
         log LevelInfo $ "Mount base: " <> toText canonical
-        fbFiles <- maybe (pure mempty) (\path -> filesMatchingWithTag path pats ignore) mFallbackFolder
+        fbFiles <- maybe (pure mempty) (\(_, path) -> filesMatchingWithTag path pats ignore) mFallbackFolder
         let fallbacks :: Map FilePath (FilePath, b) =
               Map.fromList $
                 flip concatMap fbFiles $ \(t, fs) ->
                   fs <&> \fp ->
                     (mkRel fp, (fp, t))
-        pure (fbFiles, fallbacks, mkRel)
+        pure (fbFiles, fallbacks, mkRel, stagBase)
   LVar.set var =<< do
-    fbFilesF <- toAction (second (fmap relToFallback) <$> fbFiles) Update
+    fbFilesF <- toAction (second (fmap ((stagBase,) . relToFallback)) <$> fbFiles) Update
     fs <- filesMatchingWithTag folder pats ignore
-    fsF <- toAction fs Update
+    fsF <- toAction (second (fmap (stag,)) <$> fs) Update
     pure $ fsF . fbFilesF $ var0
   onChange folder $ \fp change -> do
     -- TODO: Should refactor the ignore part to be integral to pats, and be part
@@ -116,12 +118,14 @@ mountOnLVar mFallbackFolder folder pats ignore var var0 toAction' = do
             guard $ change == Delete
             (fallbackFp, fallbackTag) <- Map.lookup fp fallbacks
             unless (fallbackTag == tag) $ error "Fallback tag is non-equivalent (impossible)"
-            pure fallbackFp
-      let groupOfOne = one (tag, one $ fromMaybe fp restoreFallback)
+            pure (stagBase, fallbackFp)
+      let groupOfOne = one (tag, one $ fromMaybe (stag, fp) restoreFallback)
       action <- toAction groupOfOne change
       LVar.modify var action
   where
     -- Log and ignore exceptions
+    --
+    -- TODO: Make user defineeable?
     interceptExceptions :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => a -> m a -> m a
     interceptExceptions default_ f = do
       f' <- toIO f
