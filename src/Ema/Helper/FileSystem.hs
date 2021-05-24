@@ -50,6 +50,10 @@ mountOnLVar ::
     Show b,
     Ord b
   ) =>
+  -- | The base directory of files to use as "fallback" if the corresponding path is missing (or gets removed) in the mounted directory.
+  --
+  -- NOTE: Auto reload is not supported on this directory (yet)
+  Maybe FilePath ->
   -- | The directory to mount.
   FilePath ->
   -- | Only include these files (exclude everything else)
@@ -70,16 +74,29 @@ mountOnLVar ::
   -- should return a function (in monadic context) that will update the model,
   -- to reflect the given `FileAction`.
   --
+  -- The `FilePath` is relative to mounted directory, unless the fallback path
+  -- is returned (or a symlink is found), which would be absolute.
+  --
   -- If the action throws an exception, it will be logged and ignored.
   ([(b, [FilePath])] -> FileAction -> m (model -> model)) ->
   m ()
-mountOnLVar folder pats ignore var var0 toAction' = do
-  let toAction x = interceptExceptions id . toAction' x
+mountOnLVar mFallbackFolder folder pats ignore var var0 toAction' = do
   log LevelInfo $ "Mounting path " <> toText folder <> " (filter: " <> show pats <> ") onto LVar"
+  folderCanonical <- liftIO $ canonicalizePath folder
+  let relToFolder = makeRelative folderCanonical
+      toAction x = interceptExceptions id . toAction' x
+  -- NOTE: We read the fallback files only once. Auto reload is not supported, yet.
+  fbFiles <- maybe (pure mempty) (\path -> filesMatchingWithTag path pats ignore) mFallbackFolder
+  let fallbacks :: Map FilePath (FilePath, b) =
+        Map.fromList $
+          flip concatMap fbFiles $ \(t, fs) ->
+            fs <&> \fp ->
+              (relToFolder fp, (fp, t))
   LVar.set var =<< do
+    fbFilesF <- toAction fbFiles Update
     fs <- filesMatchingWithTag folder pats ignore
-    initialAction <- toAction fs Update
-    pure $ initialAction var0
+    fsF <- toAction fs Update
+    pure $ fsF . fbFilesF $ var0
   onChange folder $ \fp change -> do
     -- TODO: Should refactor the ignore part to be integral to pats, and be part
     -- of `getTag`
@@ -88,7 +105,12 @@ mountOnLVar folder pats ignore var var0 toAction' = do
       -- TODO: We should probably debounce and group frequently-firing events
       -- here, but do so such that `change` is the same for the events in the
       -- group.
-      let groupOfOne = one (tag, one fp)
+      let restoreFallback = do
+            guard $ change == Delete
+            (fallbackFp, fallbackTag) <- Map.lookup fp fallbacks
+            unless (fallbackTag == tag) $ error "Fallback tag is non-equivalent (impossible)"
+            pure fallbackFp
+      let groupOfOne = one (tag, one $ fromMaybe fp restoreFallback)
       action <- toAction groupOfOne change
       LVar.modify var action
   where
