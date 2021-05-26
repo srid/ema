@@ -21,7 +21,8 @@ generate ::
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    Ema model route
+    Ema model route,
+    HasCallStack
   ) =>
   FilePath ->
   model ->
@@ -59,7 +60,8 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
 copyDirRecursively ::
   ( MonadIO m,
     MonadUnliftIO m,
-    MonadLoggerIO m
+    MonadLoggerIO m,
+    HasCallStack
   ) =>
   -- | Source file or directory relative to CWD that will be copied
   FilePath ->

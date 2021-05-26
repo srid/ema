@@ -39,9 +39,10 @@ runEmaPure ::
   (CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  runEma (\act () () -> AssetGenerated Html $ render act) $ \model -> do
+  runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
     LVar.set model ()
-    liftIO $ threadDelay maxBound
+    when (act == CLI.Run) $ do
+      liftIO $ threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
@@ -55,7 +56,7 @@ runEma ::
   (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m ()) ->
   IO ()
 runEma render runModel = do
   cli <- CLI.cliAction
@@ -72,7 +73,7 @@ runEmaWithCli ::
   (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => LVar model -> m ()) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m ()) ->
   IO ()
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
@@ -84,7 +85,7 @@ runEmaWithCli cli render runModel = do
       logInfoN $ "Launching Ema under: " <> toText cwd
       logInfoN "Waiting for initial model ..."
     race_
-      (flip runLoggerLoggingT logger $ runModel model)
+      (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
       (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
 
 -- | Run Ema live dev server
