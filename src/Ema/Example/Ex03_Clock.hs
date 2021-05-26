@@ -16,6 +16,7 @@ import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import qualified Ema
 import qualified Ema.CLI
+import qualified Ema.CLI as CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -37,10 +38,11 @@ instance Ema UTCTime Route where
 
 main :: IO ()
 main = do
-  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \model ->
+  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model ->
     forever $ do
       LVar.set model =<< liftIO getCurrentTime
-      liftIO $ threadDelay $ 1 * 1000000
+      when (act == CLI.Run) $
+        liftIO $ threadDelay maxBound
 
 render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
