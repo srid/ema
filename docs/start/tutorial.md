@@ -110,7 +110,7 @@ On final note, you will note that nothing is actually *generated* so far. This i
 
 ```sh
 mkdir ./output
-nix run . -- -C ./content gen ./output
+nix run . -- -C ./content gen $(pwd)/output
 ```
 
 ## Exercises
