@@ -79,7 +79,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 import qualified Text.Blaze.Html.Renderer.Utf8 as RU
 
 render :: Ema.CLI.Action -> Model -> Route -> Ema.Asset LByteString
-render _emaAction model r = Ema.AssetGeneratred Ema.Html . RU.renderHtml $
+render _emaAction model r = Ema.AssetGenerated Ema.Html . RU.renderHtml $
   H.html $ do
     H.head $ do 
       H.title "Basic site"
