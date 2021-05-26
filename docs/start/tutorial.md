@@ -46,7 +46,7 @@ instance Ema Model Route where
   encodeRoute = \case
     Index -> "index.html"  -- To /
     About -> "about.html"  -- To /about
-  decodeRoute = \case
+  decodeRoute _model = \case
     "index.html" -> Just Index  -- From /
     "about.html" -> Just About  -- From /about
     _ -> Nothing                -- Everything else, are bad routes

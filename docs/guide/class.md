@@ -15,7 +15,7 @@ class Ema MyModel Route where
     About -> "about.html"
 
   -- Which route does this filepath correspond to?
-  decodeRoute = \case
+  decodeRoute _model = \case
     "index.html" -> Just Index
     "about.html" -> Just About
     _ -> Nothing
