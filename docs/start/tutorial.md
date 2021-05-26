@@ -46,7 +46,7 @@ instance Ema Model Route where
   encodeRoute = \case
     Index -> "index.html"  -- To /
     About -> "about.html"  -- To /about
-  decodeRoute = \case
+  decodeRoute _model = \case
     "index.html" -> Just Index  -- From /
     "about.html" -> Just About  -- From /about
     _ -> Nothing                -- Everything else, are bad routes
@@ -79,7 +79,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 import qualified Text.Blaze.Html.Renderer.Utf8 as RU
 
 render :: Ema.CLI.Action -> Model -> Route -> Ema.Asset LByteString
-render _emaAction model r = Ema.AssetGeneratred Ema.Html . RU.renderHtml $
+render _emaAction model r = Ema.AssetGenerated Ema.Html . RU.renderHtml $
   H.html $ do
     H.head $ do 
       H.title "Basic site"
@@ -110,7 +110,7 @@ On final note, you will note that nothing is actually *generated* so far. This i
 
 ```sh
 mkdir ./output
-nix run . -- -C ./content gen ./output
+nix run . -- -C ./content gen $(pwd)/output
 ```
 
 ## Exercises
