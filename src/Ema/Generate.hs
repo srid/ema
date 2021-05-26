@@ -45,12 +45,12 @@ generate dest model render = do
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory fp)
       writeFileLBS fp s
-  forM_ staticPaths $ \(_, staticPath) -> do
+  forM_ staticPaths $ \(r, staticPath) -> do
     liftIO (doesPathExist staticPath) >>= \case
       True ->
         -- TODO: In current branch, we don't expect this to be a directory.
         -- Although the user may pass it, but review before merge.
-        copyDirRecursively staticPath dest
+        copyDirRecursively (encodeRoute r) staticPath dest
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
 
@@ -63,25 +63,27 @@ copyDirRecursively ::
     MonadLoggerIO m,
     HasCallStack
   ) =>
-  -- | Source file or directory relative to CWD that will be copied
+  -- | Source file path relative to CWD
+  FilePath ->
+  -- | Absolute path to source file to copy.
   FilePath ->
   -- | Directory *under* which the source file/dir will be copied
   FilePath ->
   m ()
-copyDirRecursively srcRel destParent =
-  liftIO (doesFileExist srcRel) >>= \case
+copyDirRecursively srcRel srcAbs destParent = do
+  liftIO (doesFileExist srcAbs) >>= \case
     True -> do
       let b = destParent </> srcRel
       log LevelInfo $ toText $ "C " <> b
-      copyFileCreatingParents srcRel b
+      copyFileCreatingParents srcAbs b
     False ->
-      liftIO (doesDirectoryExist srcRel) >>= \case
+      liftIO (doesDirectoryExist srcAbs) >>= \case
         False ->
-          throw $ StaticAssetMissing srcRel
+          throw $ StaticAssetMissing srcAbs
         True -> do
-          fs <- liftIO $ getDirectoryFiles srcRel ["**"]
+          fs <- liftIO $ getDirectoryFiles srcAbs ["**"]
           forM_ fs $ \fp -> do
-            let a = srcRel </> fp
+            let a = srcAbs </> fp
                 b = destParent </> srcRel </> fp
             log LevelInfo $ toText $ "C " <> b
             copyFileCreatingParents a b

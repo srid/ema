@@ -9,6 +9,7 @@
     - Drop `staticAssets` in favour of `allRoutes` (renamed from `staticRoutes`) returning all routes including both generated and static routes.
     - Drop `Slug` and use plain `FilePath`. Route encoder and decoder deal directly with the on-disk path of the generated (or static) files.
   - Make the render function (which `runEma` takes) return a `Asset LByteString` instead of `LByteString` such that it can handle all routes, and handle static files as well as generation of non-HTML content (eg: RSS)
+  - Allow copying static files anywhere on the filesystem
 - `routeUrl`: 
   - Unicode normalize as well URI encode route URLs
   - now returns relative URLs (ie. without the leading `/`)
