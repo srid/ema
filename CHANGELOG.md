@@ -29,7 +29,6 @@
     - Add twind shim *before* application's head
   - TODO(doc) Helpers.Markdown (to be moved to Hackage eventually)
     - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
-    - add wikilink helpers
   - TODO(doc) Add `Ema.Helper.PathTree`
 - Examples
   - ~~Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)~~ Back to ./docs, but using Emanote.
