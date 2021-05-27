@@ -33,7 +33,7 @@ routeUrl =
             Just (removeLastIf "index" -> partsSansIndex) ->
               T.intercalate "/" partsSansIndex
         Nothing ->
-          UE.encodeText . unicodeNormalize . toText $ fp
+          T.intercalate "/" $ UE.encodeText . unicodeNormalize <$> T.splitOn "/" (toText fp)
       where
         removeLastIf :: Eq a => a -> NonEmpty a -> [a]
         removeLastIf x xs =
