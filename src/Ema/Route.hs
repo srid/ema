@@ -19,9 +19,9 @@ import qualified Network.URI.Encode as UE
 --
 -- TODO: Allow a way to configure disabling stripping of .html, since not all
 -- static site hosts support pretty URLs.
-routeUrl :: forall r model. Ema model r => r -> Text
-routeUrl =
-  relUrlFromPath . encodeRoute
+routeUrl :: forall r model. Ema model r => model -> r -> Text
+routeUrl model =
+  relUrlFromPath . encodeRoute model
   where
     relUrlFromPath :: FilePath -> Text
     relUrlFromPath fp =

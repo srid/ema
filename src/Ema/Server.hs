@@ -83,7 +83,7 @@ runServerWithWebSocketHotReload port model render = do
                     AssetGenerated Other _s ->
                       -- HACK: Websocket client should check for REDIRECT prefix.
                       -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute r)
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute s r)
                   log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -134,7 +134,7 @@ runServerWithWebSocketHotReload port model render = do
                 let s = html <> emaStatusHtml <> wsClientShim
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
-                let mimeType = Static.getMimeType $ encodeRoute r
+                let mimeType = Static.getMimeType $ encodeRoute val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       unsafeCatch (render m r) $ \(err :: SomeException) ->

@@ -15,6 +15,7 @@
   - now returns relative URLs (ie. without the leading `/`)
     - Use the `<base>` tag to specify an explicit prefix for relative URLs in generated HTML. This way hosting on GitHub Pages without CNAME will continue to have functional links.
   - Fix: prevent encoding of non-HTML paths
+  - Now takes the `model` type as argument, inasmuch as `encodeRoute` takes it as as well (to accomodate scenarios where route path can only be computed depending on model state; storing slug aliases for instance)
 - `Ema.Slug`
   - Add `Ord`, `Generic`, `Data` and Aeson instances to `Slug`
   - Unicode normalize slugs using NFC

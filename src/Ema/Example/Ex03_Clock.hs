@@ -28,7 +28,7 @@ data Route
   deriving (Show, Enum, Bounded)
 
 instance Ema UTCTime Route where
-  encodeRoute = \case
+  encodeRoute _time = \case
     Index -> "index.html"
     OnlyTime -> "time.html"
   decodeRoute _time = \case
@@ -70,7 +70,7 @@ render emaAction now r =
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ Ema.routeUrl r')
+      A.href (fromString . toString $ Ema.routeUrl now r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]

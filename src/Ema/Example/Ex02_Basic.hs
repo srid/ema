@@ -19,10 +19,10 @@ data Route
   | About
   deriving (Show, Enum, Bounded)
 
-data Model = Model Text
+newtype Model = Model {unModel :: Text}
 
 instance Ema Model Route where
-  encodeRoute =
+  encodeRoute _model =
     \case
       Index -> "index.html"
       About -> "about.html"
@@ -39,13 +39,13 @@ main = do
       liftIO $ threadDelay maxBound
 
 render :: Ema.CLI.Action -> Model -> Route -> LByteString
-render emaAction (Model s) r =
+render emaAction model r =
   Tailwind.layout emaAction (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of
           Index -> do
-            H.toHtml s
+            H.toHtml (unModel model)
             "You are on the index page. "
             routeElem About "Go to About"
           About -> do
@@ -55,4 +55,4 @@ render emaAction (Model s) r =
     routeElem r' w =
       H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ Ema.routeUrl r')
+      A.href (fromString . toString $ Ema.routeUrl model r')

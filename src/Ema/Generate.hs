@@ -6,8 +6,8 @@ module Ema.Generate where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Ema.Asset
-import Ema.Class
+import Ema.Asset (Asset (..))
+import Ema.Class (Ema (allRoutes, encodeRoute))
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -38,7 +38,7 @@ generate dest model render = do
           routes <&> \r ->
             case render model r of
               AssetStatic fp -> Left (r, fp)
-              AssetGenerated _fmt s -> Right (encodeRoute r, s)
+              AssetGenerated _fmt s -> Right (encodeRoute model r, s)
   forM_ generatedPaths $ \(relPath, !s) -> do
     let fp = dest </> relPath
     log LevelInfo $ toText $ "W " <> fp
@@ -50,7 +50,7 @@ generate dest model render = do
       True ->
         -- TODO: In current branch, we don't expect this to be a directory.
         -- Although the user may pass it, but review before merge.
-        copyDirRecursively (encodeRoute r) staticPath dest
+        copyDirRecursively (encodeRoute model r) staticPath dest
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
 

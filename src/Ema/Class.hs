@@ -7,7 +7,7 @@ module Ema.Class where
 -- | Enrich a model to work with Ema
 class Ema model route | route -> model where
   -- | Get the filepath on disk corresponding to this route.
-  encodeRoute :: route -> FilePath
+  encodeRoute :: model -> route -> FilePath
 
   -- | Decode a filepath on disk into a route.
   decodeRoute :: model -> FilePath -> Maybe route
@@ -23,7 +23,7 @@ class Ema model route | route -> model where
 -- | The unit model is useful when using Ema in pure fashion (see
 -- @Ema.runEmaPure@) with a single route (index.html) only.
 instance Ema () () where
-  encodeRoute () = []
+  encodeRoute () () = []
   decodeRoute () = \case
     [] -> Just ()
     _ -> Nothing
