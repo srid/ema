@@ -15,6 +15,8 @@ module Ema.Helper.Markdown
     parseMarkdownWithFrontMatter,
     parseMarkdown,
     fullMarkdownSpec,
+    fullMarkdownSpecSansPipeTable,
+    pipeTableSpec,
     -- Utilities
     plainify,
   )
@@ -84,6 +86,21 @@ fullMarkdownSpec ::
   SyntaxSpec' m il bl =>
   CM.SyntaxSpec m il bl
 fullMarkdownSpec =
+  fullMarkdownSpecSansPipeTable
+    -- as the commonmark documentation states, pipeTableSpec should be placed after
+    -- fancyListSpec and defaultSyntaxSpec to avoid bad results when parsing
+    -- non-table lines
+    <> CE.pipeTableSpec
+
+pipeTableSpec ::
+  (Monad m, CM.IsBlock il bl, CE.HasPipeTable il bl) =>
+  CM.SyntaxSpec m il bl
+pipeTableSpec = CE.pipeTableSpec
+
+fullMarkdownSpecSansPipeTable ::
+  SyntaxSpec' m il bl =>
+  CM.SyntaxSpec m il bl
+fullMarkdownSpecSansPipeTable =
   mconcat
     [ CE.gfmExtensions,
       CE.fancyListSpec,
@@ -96,11 +113,7 @@ fullMarkdownSpec =
       CE.fencedDivSpec,
       CE.bracketedSpanSpec,
       CE.autolinkSpec,
-      CM.defaultSyntaxSpec,
-      -- as the commonmark documentation states, pipeTableSpec should be placed after
-      -- fancyListSpec and defaultSyntaxSpec to avoid bad results when parsing
-      -- non-table lines
-      CE.pipeTableSpec
+      CM.defaultSyntaxSpec
     ]
 
 -- | Identify metadata block at the top, and split it from markdown body.
