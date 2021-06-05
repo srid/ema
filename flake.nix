@@ -1,7 +1,7 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/058b981b5bd8dc63ffcd1483e16cf3176543ea63";
+    nixpkgs.url = "github:nixos/nixpkgs/f36a65f6e2e9f3641f12c7d6e48a5ec4b5c5394b";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {
       url = "github:edolstra/flake-compat";
