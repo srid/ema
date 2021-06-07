@@ -63,18 +63,15 @@ runServerWithWebSocketHotReload port model render = do
             log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
-                  val <- LVar.get model
                   -- TODO: Let non-html routes pass through.
                   let pathInfo = pathInfoFromWsMsg msg
-                  case routeFromPathInfo val pathInfo of
-                    Nothing -> do
-                      log LevelDebug $ "<~~ " <> show pathInfo
-                      pure Nothing
-                    Just r -> do
-                      log LevelDebug $ "<~~ " <> show r
-                      pure $ Just r
-                sendRouteHtmlToClient mr s = do
-                  case mr of
+                  log LevelDebug $ "<~~ " <> show pathInfo
+                  pure pathInfo
+                decodeRouteWithCurrentModel pathInfo = do
+                  val <- LVar.get model
+                  pure $ routeFromPathInfo val pathInfo
+                sendRouteHtmlToClient pathInfo s = do
+                  decodeRouteWithCurrentModel pathInfo >>= \case
                     Nothing ->
                       liftIO $ WS.sendTextData conn $ encodeUtf8 (emaErrorHtml decodeRouteNothingMsg) <> emaStatusHtml
                     Just r -> do
