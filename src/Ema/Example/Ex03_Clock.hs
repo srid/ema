@@ -10,13 +10,13 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
+import Control.Monad.Logger (logDebugNS)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import qualified Ema
 import qualified Ema.CLI
-import qualified Ema.CLI as CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -38,11 +38,11 @@ instance Ema UTCTime Route where
 
 main :: IO ()
 main = do
-  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model ->
+  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \_act model ->
     forever $ do
+      logDebugNS "ex:clock" "Refreshing time"
       LVar.set model =<< liftIO getCurrentTime
-      when (act == CLI.Run) $
-        liftIO $ threadDelay maxBound
+      liftIO $ threadDelay 1000000
 
 render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
