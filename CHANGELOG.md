@@ -23,6 +23,8 @@
   - Add `decodeSlug` and `encodeSlug`
 - Add default implementation based on Enum for `allRoutes`
 - Warn, without failing, on missing static assets during static generation
+- Static generation
+  - Use block buffering to prevent logging from slowing down site generation
 - Helpers
   - Helpers.FileSystem
     - add `mountOnLVar`

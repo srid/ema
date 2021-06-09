@@ -26,7 +26,7 @@ import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
 import System.Directory (getCurrentDirectory, withCurrentDirectory)
 import System.Environment (lookupEnv)
-import UnliftIO (MonadUnliftIO)
+import UnliftIO (BufferMode (BlockBuffering, LineBuffering), MonadUnliftIO, hFlush, hSetBuffering)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -111,7 +111,15 @@ runEmaWithCliInCwd cliAction model render = do
   logInfoN "... initial model is now available."
   case cliAction of
     CLI.Generate dest -> do
-      Generate.generate dest val (render cliAction)
+      withBlockBuffering $
+        Generate.generate dest val (render cliAction)
     CLI.Run -> do
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       Server.runServerWithWebSocketHotReload port model (render cliAction)
+  where
+    -- Temporarily use block buffering before calling an IO action that is
+    -- known ahead to log rapidly, so as to not hamper serial processing speed.
+    withBlockBuffering f =
+      hSetBuffering stdout (BlockBuffering Nothing)
+        *> f
+        <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
