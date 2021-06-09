@@ -48,13 +48,25 @@ treeInsertPathMaintainingOrder ordF path t =
           sortOn $ (\s -> f $ NE.reverse $ s :| ancestors) . Tree.rootLabel
 
 treeDeletePath :: Eq a => NonEmpty a -> [Tree a] -> [Tree a]
-treeDeletePath slugs =
+treeDeletePath =
+  treeDeletePathWithLastBehavingAs $ \lastInPath ts ->
+    List.deleteBy (\x y -> Tree.rootLabel x == Tree.rootLabel y) (Node lastInPath []) ts
+
+treeDeleteLeafPath :: Eq a => NonEmpty a -> [Tree a] -> [Tree a]
+treeDeleteLeafPath =
+  treeDeletePathWithLastBehavingAs $ \lastInPath ts ->
+    case ts of
+      [t] -> [t | Tree.rootLabel t /= lastInPath]
+      _ -> ts
+
+treeDeletePathWithLastBehavingAs :: forall a. Eq a => (a -> [Tree a] -> [Tree a]) -> NonEmpty a -> [Tree a] -> [Tree a]
+treeDeletePathWithLastBehavingAs f slugs =
   go (toList slugs)
   where
-    go :: Eq a => [a] -> [Tree a] -> [Tree a]
+    go :: [a] -> [Tree a] -> [Tree a]
     go [] t = t
-    go [p] t =
-      List.deleteBy (\x y -> Tree.rootLabel x == Tree.rootLabel y) (Node p []) t
+    go [p] ts =
+      f p ts
     go (p : ps) t =
       t <&> \node@(Node x xs) ->
         if x == p
