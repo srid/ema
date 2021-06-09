@@ -40,7 +40,7 @@ main :: IO ()
 main = do
   Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \_act model ->
     forever $ do
-      logDebugNS "ex:clock" "Refreshing time"
+      -- logDebugNS "ex:clock" "Refreshing time"
       LVar.set model =<< liftIO getCurrentTime
       liftIO $ threadDelay 1000000
 
