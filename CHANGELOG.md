@@ -3,7 +3,9 @@
 ## Unreleased (0.2.0.0)
 
 - TODO(doc) runEma's action gets the `CLI.Action` as argument, to prevent the `gen` command from needing to monitoring files.
-- Handle invalid routes gracefully without breaking websocket
+- Live Server
+  - Handle invalid routes gracefully without breaking websocket
+  - Re-add `<script>` tags on hot reload
 - `Asset` type
   - Introduce the `Asset` type to distinguishing between static files and generated files. The later can be one of `Html` or `Other`, allowing the live server to handle them sensibly.
   - `Ema` typeclass: 

@@ -198,7 +198,7 @@ wsClientShim =
           morphdom(elm, html);
         };
 
-        // FIXME: Can't make this work with tailwind shim
+        // FIXME: This doesn't reliably work across all JS.
         function reloadScripts(elm) {
           Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
             const newScript = document.createElement("script");
@@ -294,8 +294,8 @@ wsClientShim =
               document.location.href = evt.data.slice("REDIRECT ".length);
             } else {
               setHtml(document.documentElement, evt.data);
+              reloadScripts(document.documentElement);
               window.scrollTo({ top: 0});
-              // reloadScripts(document.documentElement);
               watchCurrentRoute();
             };
           };
