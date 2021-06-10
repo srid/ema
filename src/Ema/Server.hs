@@ -198,14 +198,22 @@ wsClientShim =
           morphdom(elm, html);
         };
 
-        // FIXME: Can't make this work with tailwind shim
+        // FIXME: This is not very reliable
         function reloadScripts(elm) {
-          Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
+          console.log("Trying reload");
+          var scripts = Array.from(elm.querySelectorAll("script"));
+          var scriptPairs = scripts.map(oldScript => {
+            var par = oldScript.parentNode;
+            oldScript.parentNode.removeChild(oldScript);
+            return {par: par, oldScript: oldScript};
+          });
+          scriptPairs.forEach(x => {
+            console.log(x.oldScript);
             const newScript = document.createElement("script");
-            Array.from(oldScript.attributes)
+            Array.from(x.oldScript.attributes)
               .forEach(attr => newScript.setAttribute(attr.name, attr.value));
-            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-            oldScript.parentNode.replaceChild(newScript, oldScript);
+            newScript.appendChild(document.createTextNode(x.oldScript.innerHTML));
+            x.par.appendChild(newScript);
           });
         };
 
