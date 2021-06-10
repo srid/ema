@@ -294,8 +294,8 @@ wsClientShim =
               document.location.href = evt.data.slice("REDIRECT ".length);
             } else {
               setHtml(document.documentElement, evt.data);
+              reloadScripts(document.documentElement);
               window.scrollTo({ top: 0});
-              // reloadScripts(document.documentElement);
               watchCurrentRoute();
             };
           };
