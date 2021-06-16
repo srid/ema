@@ -10,7 +10,7 @@ Using some `MyModel` and the route `Route` shown in the [previous](guide/routes.
 ```haskell
 class Ema MyModel Route where 
   -- Where to generate this route?
-  encodeRoute = \case
+  encodeRoute _model = \case
     Index -> "index.html"
     About -> "about.html"
 

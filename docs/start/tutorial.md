@@ -43,7 +43,7 @@ We should now tell Ema how to convert our `Route` to actual file paths (which is
 import Ema (Ema (..))
 
 instance Ema Model Route where
-  encodeRoute = \case
+  encodeRoute _model = \case
     Index -> "index.html"  -- To /
     About -> "about.html"  -- To /about
   decodeRoute _model = \case

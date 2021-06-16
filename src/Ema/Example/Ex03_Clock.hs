@@ -10,7 +10,6 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad.Logger (logDebugNS)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
