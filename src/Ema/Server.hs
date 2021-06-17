@@ -277,9 +277,7 @@ wsClientShim =
             console.log(`ema: ... connected!`);
             // window.connected();
             window.hideIndicator();
-            if (reconnecting) {
-              watchCurrentRoute();
-            } else {
+            if (!reconnecting) {
               // HACK: We have to reload <script>'s here on initial page load
               // here, so as to make Twind continue to function on the *next*
               // route change. This is not a problem with *subsequent* (ie. 2nd
@@ -287,6 +285,7 @@ wsClientShim =
               // reloadScripts at least once.
               reloadScripts(document.documentElement);
             };
+            watchCurrentRoute();
           };
 
           ws.onclose = () => {
@@ -305,17 +304,23 @@ wsClientShim =
           };
 
           ws.onmessage = evt => {
-            console.log("ema: ✍ Patching DOM")
-            if (evt.data.startsWith("REDIRECT ")) {
-              document.location.href = evt.data.slice("REDIRECT ".length);
-            } else {
-              setHtml(document.documentElement, evt.data);
-              if (routeVisible != document.location.pathname) {
-                // This is a new route switch; scroll up.
-                window.scrollTo({ top: 0});
-                routeVisible = document.location.pathname;
-              } 
+            if (routeVisible == document.location.pathname && !reconnecting) {
+              // Static full page load; ignore patching.
+              console.log("ema: Skipping initial patch (unnecessary)");
               watchCurrentRoute();
+            } else {
+              console.log("ema: ✍ Patching DOM")
+              if (evt.data.startsWith("REDIRECT ")) {
+                document.location.href = evt.data.slice("REDIRECT ".length);
+              } else {
+                setHtml(document.documentElement, evt.data);
+                if (routeVisible != document.location.pathname) {
+                  // This is a new route switch; scroll up.
+                  window.scrollTo({ top: 0});
+                  routeVisible = document.location.pathname;
+                } 
+                watchCurrentRoute();
+              };
             };
           };
           window.onbeforeunload = evt => { ws.close(); };
