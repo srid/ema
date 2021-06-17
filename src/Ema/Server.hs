@@ -239,8 +239,8 @@ wsClientShim =
         function init(reconnecting) {
           console.log("ema: Opening ws conn");
           window.connecting();
-          // Awaiting initial HTML for current route
-          var awaitingInitialHtml = !reconnecting;
+          // The route current DOM is displaying
+          var routeVisible = document.location.pathname;
           var ws = new WebSocket("ws://" + window.location.host);
 
           // Call this, then the server will send update *once*. Call again for
@@ -260,7 +260,6 @@ wsClientShim =
               if (origin) {
                 if (window.location.host === origin.host) {
                   window.history.pushState({}, "", origin.pathname);
-                  awaitingInitialHtml = true;
                   switchRoute(origin.pathname);
                   e.preventDefault();
                 };
@@ -300,13 +299,12 @@ wsClientShim =
             } else {
               setHtml(document.documentElement, evt.data);
               reloadScripts(document.documentElement);
-              console.log(awaitingInitialHtml);
-              if (awaitingInitialHtml) {
+              console.log(routeVisible);
+              if (routeVisible != document.location.pathname) {
                 // This is a new route switch; scroll up.
                 window.scrollTo({ top: 0});
-              } else {
-                awaitingInitialHtml = false;
-              }
+                routeVisible = document.location.pathname;
+              } 
               watchCurrentRoute();
             };
           };
