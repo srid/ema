@@ -237,7 +237,8 @@ wsClientShim =
 
         // WebSocket logic: watching for server changes & route switching
         function init(reconnecting) {
-          console.log("ema: Opening ws conn");
+          let verb = reconnecting ? "Reopening" : "Opening";
+          console.log("ema: " + verb + " ws conn ...");
           window.connecting();
           // The route current DOM is displaying
           var routeVisible = document.location.pathname;
@@ -270,6 +271,7 @@ wsClientShim =
           window.addEventListener(`click`, handleRouteClicks);
 
           ws.onopen = () => {
+            console.log(`ema: ... connected!`);
             // window.connected();
             window.hideIndicator();
             if (reconnecting) {
@@ -299,7 +301,6 @@ wsClientShim =
             } else {
               setHtml(document.documentElement, evt.data);
               reloadScripts(document.documentElement);
-              console.log(routeVisible);
               if (routeVisible != document.location.pathname) {
                 // This is a new route switch; scroll up.
                 window.scrollTo({ top: 0});
