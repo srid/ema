@@ -304,23 +304,18 @@ wsClientShim =
           };
 
           ws.onmessage = evt => {
-            if (routeVisible == document.location.pathname && !reconnecting) {
-              // Static full page load; ignore patching.
-              console.log("ema: Skipping initial patch (unnecessary)");
-              watchCurrentRoute();
+            if (evt.data.startsWith("REDIRECT ")) {
+              console.log("ema: redirect");
+              document.location.href = evt.data.slice("REDIRECT ".length);
             } else {
-              console.log("ema: ✍ Patching DOM")
-              if (evt.data.startsWith("REDIRECT ")) {
-                document.location.href = evt.data.slice("REDIRECT ".length);
-              } else {
-                setHtml(document.documentElement, evt.data);
-                if (routeVisible != document.location.pathname) {
-                  // This is a new route switch; scroll up.
-                  window.scrollTo({ top: 0});
-                  routeVisible = document.location.pathname;
-                } 
-                watchCurrentRoute();
-              };
+              console.log("ema: ✍ Patching DOM");
+              setHtml(document.documentElement, evt.data);
+              if (routeVisible != document.location.pathname) {
+                // This is a new route switch; scroll up.
+                window.scrollTo({ top: 0});
+                routeVisible = document.location.pathname;
+              } 
+              watchCurrentRoute();
             };
           };
           window.onbeforeunload = evt => { ws.close(); };
