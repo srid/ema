@@ -236,7 +236,7 @@ wsClientShim =
         };
 
         // WebSocket logic: watching for server changes & route switching
-        function init() {
+        function init(reconnecting) {
           console.log("ema: Opening ws conn");
           window.connecting();
           var ws = new WebSocket("ws://" + window.location.host);
@@ -270,7 +270,9 @@ wsClientShim =
           ws.onopen = () => {
             // window.connected();
             window.hideIndicator();
-            watchCurrentRoute();
+            if (reconnecting) {
+              watchCurrentRoute();
+            };
           };
 
           ws.onclose = () => {
@@ -285,7 +287,7 @@ wsClientShim =
             // connection error (ghcid hasn't rebooted yet), which cannot be
             // avoided as it is impossible to trap this error and handle it.
             // You'll see a big ugly error in the console.
-            setTimeout(init, 400);
+            setTimeout(function () {init(true);}, 400);
           };
 
           ws.onmessage = evt => {
@@ -309,7 +311,7 @@ wsClientShim =
           };
         };
         
-        window.onpageshow = init;
+        window.onpageshow = function () { init(false) };
         </script>
     |]
 

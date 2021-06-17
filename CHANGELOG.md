@@ -4,6 +4,7 @@
 
 - TODO(doc) runEma's action gets the `CLI.Action` as argument, to prevent the `gen` command from needing to monitoring files.
 - Live Server
+  - Avoid unncessary DOM patch on page load
   - Handle invalid routes gracefully without breaking websocket
   - Re-add `<script>` tags on hot reload
 - `Asset` type
