@@ -34,6 +34,7 @@
   - Helpers.Tailwind
     - add overflow-y-scroll to body
     - Add twind shim *before* application's head
+    - CDN: Use latest version always.
   - TODO(doc) Helpers.Markdown (to be moved to Hackage eventually)
     - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
   - TODO(doc) Add `Ema.Helper.PathTree`
