@@ -196,9 +196,12 @@ wsClientShim =
         function setHtml(elm, html) {
           var htmlElem = htmlToElem(html);
           morphdom(elm, html);
+          // Re-add <script> tags, because just DOM diff applying is not enough.
+          reloadScripts(elm);
         };
 
         // FIXME: This doesn't reliably work across all JS.
+        // See also the HACK below in one of the invocations.
         function reloadScripts(elm) {
           Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
             const newScript = document.createElement("script");
@@ -276,6 +279,13 @@ wsClientShim =
             window.hideIndicator();
             if (reconnecting) {
               watchCurrentRoute();
+            } else {
+              // HACK: We have to reload <script>'s here on initial page load
+              // here, so as to make Twind continue to function on the *next*
+              // route change. This is not a problem with *subsequent* (ie. 2nd
+              // or latter) route clicks, because those have already called
+              // reloadScripts at least once.
+              reloadScripts(document.documentElement);
             };
           };
 
@@ -300,7 +310,6 @@ wsClientShim =
               document.location.href = evt.data.slice("REDIRECT ".length);
             } else {
               setHtml(document.documentElement, evt.data);
-              reloadScripts(document.documentElement);
               if (routeVisible != document.location.pathname) {
                 // This is a new route switch; scroll up.
                 window.scrollTo({ top: 0});

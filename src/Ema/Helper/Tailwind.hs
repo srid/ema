@@ -83,6 +83,7 @@ twindShimUnofficial = do
     twindShimUnofficialEval =
       H.unsafeByteString . encodeUtf8 $
         [text|
-        twind.setup({})
+        // Not doing setup to avoid LATE_SETUP_CALL warnings on console.
+        // twind.setup({})
         twindObserve.observe(document.documentElement)
         |]
