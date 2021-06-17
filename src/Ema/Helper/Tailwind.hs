@@ -85,9 +85,7 @@ twindShimUnofficial = do
         [text|
         // Be silent to avoid complaining about non-tailwind classes
         // https://github.com/tw-in-js/twind/discussions/180#discussioncomment-678272
-        // Also, call setup only if not already done (to avoid LATE_SETUP_CALL flurry)
-        if (!window.emaTwindObs) {
-          twind.setup({mode: 'silent'})
-        }
+        console.log("ema: Twind: setup & observe")
+        twind.setup({mode: 'silent'})
         window.emaTwindObs = twindObserve.observe(document.documentElement);
         |]
