@@ -83,7 +83,11 @@ twindShimUnofficial = do
     twindShimUnofficialEval =
       H.unsafeByteString . encodeUtf8 $
         [text|
-        // Not doing setup to avoid LATE_SETUP_CALL warnings on console.
-        // twind.setup({})
-        twindObserve.observe(document.documentElement)
+        // Be silent to avoid complaining about non-tailwind classes
+        // https://github.com/tw-in-js/twind/discussions/180#discussioncomment-678272
+        // Also, call setup only if not already done (to avoid LATE_SETUP_CALL flurry)
+        if (!window.emaTwindObs) {
+          twind.setup({mode: 'silent'})
+        }
+        window.emaTwindObs = twindObserve.observe(document.documentElement);
         |]
