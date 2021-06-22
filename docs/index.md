@@ -1,3 +1,8 @@
+---
+page:
+  description: | 
+    Build jamstack-style static sites in Haskell, with a live server supporting fast hot-reload in the browser on code or data change.
+---
 # Ema
 
 :::{.avatar}

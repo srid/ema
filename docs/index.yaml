@@ -19,8 +19,6 @@ pandoc:
 page:
   siteName: Ema
   siteTitle: Ema
-  description: | 
-    Build jamstack-style static sites in Haskell, with a live server supporting fast hot-reload in the browser on code or data change.
   headHtml: |
     <link rel="manifest" href="/static/manifest.json" />
     <meta name="theme-color" content="#DB2777" />
