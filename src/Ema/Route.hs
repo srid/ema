@@ -3,6 +3,8 @@
 
 module Ema.Route
   ( routeUrl,
+    routeUrlWith,
+    UrlStrategy (..),
   )
 where
 
@@ -12,6 +14,11 @@ import Ema.Class (Ema (encodeRoute))
 import Ema.Route.Slug (unicodeNormalize)
 import qualified Network.URI.Encode as UE
 
+data UrlStrategy
+  = UrlPretty
+  | UrlDirect
+  deriving (Eq, Show, Ord)
+
 -- | Return the relative URL of the given route
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
@@ -19,13 +26,13 @@ import qualified Network.URI.Encode as UE
 --
 -- TODO: Allow a way to configure disabling stripping of .html, since not all
 -- static site hosts support pretty URLs.
-routeUrl :: forall r model. Ema model r => model -> r -> Text
-routeUrl model =
+routeUrlWith :: forall r model. Ema model r => UrlStrategy -> model -> r -> Text
+routeUrlWith urlStrategy model =
   relUrlFromPath . encodeRoute model
   where
     relUrlFromPath :: FilePath -> Text
     relUrlFromPath fp =
-      case T.stripSuffix ".html" (toText fp) of
+      case T.stripSuffix (urlStrategySuffix urlStrategy) (toText fp) of
         Just htmlFp ->
           case nonEmpty (UE.encodeText . unicodeNormalize <$> T.splitOn "/" htmlFp) of
             Nothing ->
@@ -40,3 +47,10 @@ routeUrl model =
           if NE.last xs == x
             then NE.init xs
             else toList xs
+        urlStrategySuffix = \case
+          UrlPretty -> ".html"
+          UrlDirect -> ""
+
+routeUrl :: forall r model. Ema model r => model -> r -> Text
+routeUrl =
+  routeUrlWith UrlPretty
