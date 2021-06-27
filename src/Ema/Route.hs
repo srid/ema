@@ -8,6 +8,8 @@ module Ema.Route
   )
 where
 
+import Data.Aeson (FromJSON (parseJSON), Value)
+import Data.Aeson.Types (Parser)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 import Ema.Class (Ema (encodeRoute))
@@ -18,6 +20,16 @@ data UrlStrategy
   = UrlPretty
   | UrlDirect
   deriving (Eq, Show, Ord)
+
+instance FromJSON UrlStrategy where
+  parseJSON val =
+    f UrlPretty "pretty" val <|> f UrlDirect "direct" val
+    where
+      f :: UrlStrategy -> Text -> Value -> Parser UrlStrategy
+      f c s v = do
+        x <- parseJSON v
+        guard $ x == s
+        pure c
 
 -- | Return the relative URL of the given route
 --
