@@ -37,7 +37,7 @@ render model route = AssetGenerated Html . Blaze.renderHtml $
         A.a ! A.href "https://github.com/user/repo" $ "Source on GitHub"
 ```
 
-Note that Ema provides a `routeUrl` helper function that serializes your route to the final URL (here, `/about`) for linking to.
+Note that Ema provides a `routeUrl` helper function that serializes your route to the final URL (here, `/about`) for linking to. There is also a `routeUrlWith` function which allows you to disable pretty URLs, to get back the `.html` suffix for deployments to traditional web servers like Nginx, Gitlab, etc.
 
 Spend a few moments trying to appreciate how this is *much simpler* to write than dealing with HTML template files spread across the disk as is the case with traditional static site generators. If you [choose](https://vrom911.github.io/blog/html-libraries) to go the DSL route, Haskell's type-safety now applies to your HTML as well. On top of it, Ema's [hot reload](concepts/hot-reload.md) will instantly update the dev server's browser view whenever you change your HTML (or any of the Haskell source code).
 
