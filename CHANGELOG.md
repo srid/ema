@@ -30,6 +30,8 @@
 - Warn, without failing, on missing static assets during static generation
 - Static generation
   - Use block buffering to prevent logging from slowing down site generation
+- CLI
+  - Removed `-C` argument (orthogonal to Ema)
 - Helpers
   - Helpers.FileSystem
     - add `mountOnLVar`

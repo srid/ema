@@ -7,8 +7,7 @@ module Ema.CLI where
 import Options.Applicative hiding (action)
 
 data Cli = Cli
-  { workingDir :: FilePath,
-    action :: Action
+  { action :: Action
   }
   deriving (Eq, Show)
 
@@ -19,12 +18,6 @@ data Action
 
 cliParser :: Parser Cli
 cliParser = do
-  workingDir <-
-    option
-      str
-      ( short 'C' <> metavar "PATH" <> value "."
-          <> help "Run as if ema was started in PATH instead of the current working directory."
-      )
   action <-
     subparser
       (command "gen" (info generate (progDesc "Generate static HTML files")))

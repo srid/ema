@@ -14,8 +14,12 @@ where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
-import Control.Monad.Logger
+import Control.Monad.Logger (MonadLoggerIO, logInfoN)
 import Control.Monad.Logger.Extras
+  ( colorize,
+    logToStdout,
+    runLoggerLoggingT,
+  )
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
@@ -24,7 +28,7 @@ import qualified Ema.CLI as CLI
 import Ema.Class (Ema)
 import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
-import System.Directory (getCurrentDirectory, withCurrentDirectory)
+import System.Directory (getCurrentDirectory)
 import System.Environment (lookupEnv)
 import UnliftIO (BufferMode (BlockBuffering, LineBuffering), MonadUnliftIO, hFlush, hSetBuffering)
 
@@ -79,14 +83,13 @@ runEmaWithCli cli render runModel = do
   model <- LVar.empty
   -- TODO: Allow library users to control logging levels
   let logger = colorize logToStdout
-  withCurrentDirectory (CLI.workingDir cli) $ do
-    cwd <- getCurrentDirectory
-    flip runLoggerLoggingT logger $ do
-      logInfoN $ "Launching Ema under: " <> toText cwd
-      logInfoN "Waiting for initial model ..."
-    race_
-      (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
-      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
+  flip runLoggerLoggingT logger $ do
+    cwd <- liftIO getCurrentDirectory
+    logInfoN $ "Launching Ema under: " <> toText cwd
+    logInfoN "Waiting for initial model ..."
+  race_
+    (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
+    (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
