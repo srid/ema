@@ -13,7 +13,7 @@ jobs:
     - name: Build emanote site 🔧
       run: |
         mkdir -p output 
-        docker run -v $PWD:/data sridca/emanote emanote -C /data/docs gen /data/output
+        docker run -v $PWD:/data sridca/emanote emanote --layers /data/docs gen /data/output
     - name: Deploy to gh-pages 🚀
       uses: peaceiris/actions-gh-pages@v3
       with:
