@@ -53,6 +53,18 @@ generate dest model render = do
         copyDirRecursively (encodeRoute model r) staticPath dest
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
+  noBirdbrainedJekyll dest
+
+-- | Disable birdbrained hacks from GitHub to disable surprises like,
+-- https://github.com/jekyll/jekyll/issues/55
+noBirdbrainedJekyll :: (MonadIO m, MonadLoggerIO m) => FilePath -> m ()
+noBirdbrainedJekyll dest = do
+  let nojekyll = dest </> ".nojekyll"
+  liftIO (doesFileExist nojekyll) >>= \case
+    True -> pure ()
+    False -> do
+      log LevelInfo $ "Disabling Jekyll by writing " <> toText nojekyll
+      writeFileLBS nojekyll ""
 
 newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving (Show, Exception)
