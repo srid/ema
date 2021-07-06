@@ -19,7 +19,7 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 * [Getting Started](start.md)
 * [Guide](guide.md)
 * [Concepts](concepts.md)
-* [Ema News](https://notes.srid.ca/ema) ([RSS Feed](https://notes.srid.ca/ema.xml))
+* [Ema News](https://notes.srid.ca/ema)
 :::
 
 :::{.flex .justify-center .items-center .mb-8}
