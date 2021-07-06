@@ -60,7 +60,7 @@ import qualified Data.LVar as LVar
 
 main :: IO ()
 main = do
-  Ema.runEma render $ \model -> do
+  Ema.runEma render $ \_act model -> do
     LVar.set model $ Model "Ema"
     liftIO $ threadDelay maxBound
 ```
