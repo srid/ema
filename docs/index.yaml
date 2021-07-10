@@ -1,4 +1,5 @@
 template:
+  urlStrategy: pretty
   theme: pink
   iconUrl: /favicon.svg
   # Disable collapsing of folders since we don't have large number of notes.
