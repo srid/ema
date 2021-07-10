@@ -245,7 +245,8 @@ wsClientShim =
           window.connecting();
           // The route current DOM is displaying
           var routeVisible = document.location.pathname;
-          var ws = new WebSocket("ws://" + window.location.host);
+          var wsProto = (window.location.protocol === "https:") && "wss://" || "ws://";
+          var ws = new WebSocket(wsProto + window.location.host);
 
           // Call this, then the server will send update *once*. Call again for
           // continous monitoring.
