@@ -5,8 +5,8 @@ page:
 ---
 # Ema
 
-:::{.avatar}
-![](/favicon.svg){.w-32 .h-32 .float-right}
+:::{.avatar .w-32 .h-32 .float-right}
+![[favicon.svg]]
 :::
 
 {.text-xl .mb-8}
