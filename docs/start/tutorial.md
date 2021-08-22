@@ -115,7 +115,7 @@ nix run . -- -C ./content gen $(pwd)/output
 
 ## Exercises
 
-1. Figure out how to use static assets (images, files) in your static sites (hint: the typeclass)
+1. Discover how to manage static files like images and PDFs (hint: see `AssetStatic` in `Ema.Asset`)
 2. What happens if you `throw` an exception or use `error` in the `render` function?
 
 {.last}
