@@ -36,8 +36,7 @@
   - Removed `-C` argument (orthogonal to Ema)
 - Helpers
   - Helpers.FileSystem
-    - add `mountOnLVar`
-      - TODO(doc) gracefully handle user exceptions
+    - TODO(doc or separate library) add Union mount support 
   - Helpers.Tailwind
     - add overflow-y-scroll to body
     - Add twind shim *before* application's head
