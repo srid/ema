@@ -58,14 +58,14 @@ mountOnLVar ::
   -- to reflect the given `FileAction`.
   --
   -- If the action throws an exception, it will be logged and ignored.
-  (b -> FileAction (NonEmpty FilePath) -> m (model -> model)) ->
+  (b -> FilePath -> FileAction () -> m (model -> model)) ->
   m ()
 mountOnLVar folder pats ignore var var0 toAction' =
   let tag0 = ()
       sources = one (tag0, folder)
    in unionMountOnLVar sources pats ignore var var0 $ \(ch :: Change () b) -> do
-        let fsSet = (fmap . fmap . fmap . fmap . fmap) snd $ fmap Map.elems <$> Map.toList ch
-        (\(tag, xs) -> toAction' tag `chainM` xs) `chainM` fsSet
+        let fsSet = (fmap . fmap . fmap . fmap) void $ fmap Map.toList <$> Map.toList ch
+        (\(tag, xs) -> uncurry (toAction' tag) `chainM` xs) `chainM` fsSet
   where
     -- Monadic version of `chain`
     chainM :: Monad m => (x -> m (a -> a)) -> [x] -> m (a -> a)
