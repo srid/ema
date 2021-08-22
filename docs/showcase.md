@@ -11,5 +11,3 @@ Websites that use Ema directly,
 Website that use Ema indirectly (via [Emanote](https://note.ema.srid.ca/))
 
 - See the list at https://note.ema.srid.ca/examples
-
-

@@ -28,6 +28,9 @@ runEma render $ \model ->
 
 In this contrived example ([full code here](https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs)), we are using `UTCTime` as the model. We set the initial value using `LVar.set`, and then continually update the current time every second. Every time the model gets updated, the web browser will [hot reload](concepts/hot-reload.md) to display the up to date value. For the `BlogPosts` model, you would typically use [fsnotify](https://hackage.haskell.org/package/fsnotify) to monitor changes to the underlying Markdown files, but note that Ema provides [a helper](guide/helpers/filesystem.md) for that.
 
+## Advanced tips
+
+If your model takes on a database-like structure and query functionality, you might find `IxSet` to be an useful library. The [ixset-typed](https://hackage.haskell.org/package/ixset-typed) package (rather than the "ixset" package) is the recommended starting point, and a tutorial can be found [here](https://stackoverflow.com/a/9234807/55246).
 
 {.last}
 [Next]{.next}, we will [talk about routes](guide/routes.md).
