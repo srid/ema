@@ -9,6 +9,7 @@
   - Re-add `<script>` tags on hot reload
   - Scroll to top on route switches
   - Use secure websockets when on HTTPS
+  - Bind to loopback (127.0.0.1) for security reasons
 - `Asset` type
   - Introduce the `Asset` type to distinguishing between static files and generated files. The later can be one of `Html` or `Other`, allowing the live server to handle them sensibly.
   - `Ema` typeclass: 

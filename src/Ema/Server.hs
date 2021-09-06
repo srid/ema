@@ -32,16 +32,20 @@ runServerWithWebSocketHotReload ::
     MonadUnliftIO m,
     MonadLoggerIO m
   ) =>
+  String ->
   Int ->
   LVar model ->
   (model -> route -> Asset LByteString) ->
   m ()
-runServerWithWebSocketHotReload port model render = do
-  let settings = Warp.setPort port Warp.defaultSettings
+runServerWithWebSocketHotReload host port model render = do
+  let settings =
+        Warp.defaultSettings
+          & Warp.setPort port
+          & Warp.setHost (fromString host)
   logger <- askLoggerIO
 
   logInfoN "============================================"
-  logInfoN $ "Running live server at http://localhost:" <> show port
+  logInfoN $ "Running live server at http://" <> toText host <> ":" <> show port
   logInfoN "============================================"
   liftIO $
     Warp.runSettings settings $

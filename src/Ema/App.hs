@@ -118,7 +118,8 @@ runEmaWithCliInCwd cliAction model render = do
         Generate.generate dest val (render cliAction)
     CLI.Run -> do
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
-      Server.runServerWithWebSocketHotReload port model (render cliAction)
+      host <- liftIO $ fromMaybe "127.0.0.1" <$> lookupEnv "HOST"
+      Server.runServerWithWebSocketHotReload host port model (render cliAction)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.
