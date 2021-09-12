@@ -45,8 +45,8 @@ In most cases, however, you probably want to use the higher level function `moun
 
 ```haskell
 Ema.runEma render $ \model -> do
-  FileSystem.mountOnLVar "." ["**/*.md"] model $ \fp -> \case
-    FileSystem.Update -> do
+  FileSystem.mountOnLVar "." ["**/*.md"] [] model def $ \() fp -> \case
+    FileSystem.Update () -> do
       s <- readFileText fp
       pure $ Map.insert fp s
     FileSystem.Delete ->
