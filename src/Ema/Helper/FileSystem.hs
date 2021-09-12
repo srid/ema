@@ -212,6 +212,11 @@ data FileAction a
     Delete
   deriving (Eq, Show, Functor)
 
+refreshAction :: FileAction a -> Maybe RefreshAction
+refreshAction = \case
+  Refresh act _ -> Just act
+  _ -> Nothing
+
 onChange ::
   forall x m.
   (MonadIO m, MonadLogger m, MonadUnliftIO m) =>
@@ -295,11 +300,9 @@ overlayFsLookup fp (OverlayFs m) = do
 -- Files matched by each tag pattern, each represented by their corresponding
 -- file (absolute path) in the individual sources. It is up to the user to union
 -- them (for now).
---
--- If a path is represented by Nothing, it means it just got removed from the
--- last source, and the app must remove it from its internal state.
 type Change source tag = Map tag (Map FilePath (FileAction (NonEmpty (source, FilePath))))
 
+-- | Report a change to overlay fs
 changeInsert ::
   (Ord source, Ord tag, MonadState (OverlayFs source) m) =>
   source ->
@@ -316,7 +319,15 @@ changeInsert src tag fp act ch = do
         (if act == Delete then overlayFsRemove else overlayFsAdd)
           fp
           src
-    overlays <- fmap (maybe Delete $ Refresh Existing) $ lift $ gets $ overlayFsLookup fp
+    overlays <-
+      lift (gets $ overlayFsLookup fp) <&> \case
+        Nothing -> Delete
+        Just fs ->
+          -- We don't track per-source action (not ideal), so use 'Existing'
+          -- only if the current action is 'Deleted'. In every other scenario,
+          -- re-use the current action for all overlay files.
+          let combinedAction = fromMaybe Existing $ refreshAction act
+           in Refresh combinedAction fs
     gets (Map.lookup tag) >>= \case
       Nothing ->
         modify $ Map.insert tag $ Map.singleton fp overlays
