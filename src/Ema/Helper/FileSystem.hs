@@ -148,7 +148,7 @@ unionMount sources pats ignore handleAction = do
           taggedFiles <- filesMatchingWithTag folder pats ignore
           forM_ taggedFiles $ \(tag, fs) -> do
             forM_ fs $ \fp -> do
-              put =<< lift . changeInsert src tag fp (Init ()) =<< get
+              put =<< lift . changeInsert src tag fp (Refresh Existing ()) =<< get
     lift $ handleAction changes0
     -- Run fsnotify on sources
     ofs <- get
@@ -196,11 +196,18 @@ getTag pats fp =
         -- the trade offs with using symlinks.
           pull $ second ("**/" <>) <$> pats
 
+data RefreshAction
+  = -- | No recent change. Just notifying of file's existance
+    Existing
+  | -- | New file got created
+    New
+  | -- | The already existing file was updated.
+    Update
+  deriving (Eq, Show)
+
 data FileAction a
-  = -- | No action on file, which is being notified of its existance for the first time.
-    Init a
-  | -- | The file was either created or updated this moment.
-    Update a
+  = -- | A new file, or updated file, is available
+    Refresh RefreshAction a
   | -- | The file just got deleted.
     Delete
   deriving (Eq, Show, Functor)
@@ -226,8 +233,8 @@ onChange q roots = do
         let rel = makeRelative root
             f a fp act = atomically $ writeTBQueue q (a, fp, act)
         case event of
-          Added (rel -> fp) _ _ -> f x fp $ Update ()
-          Modified (rel -> fp) _ _ -> f x fp $ Update ()
+          Added (rel -> fp) _ _ -> f x fp $ Refresh New ()
+          Modified (rel -> fp) _ _ -> f x fp $ Refresh Update ()
           Removed (rel -> fp) _ _ -> f x fp Delete
           Unknown (rel -> fp) _ _ -> f x fp Delete
     liftIO (threadDelay maxBound)
@@ -309,7 +316,7 @@ changeInsert src tag fp act ch = do
         (if act == Delete then overlayFsRemove else overlayFsAdd)
           fp
           src
-    overlays <- fmap (maybe Delete Update) $ lift $ gets $ overlayFsLookup fp
+    overlays <- fmap (maybe Delete $ Refresh Existing) $ lift $ gets $ overlayFsLookup fp
     gets (Map.lookup tag) >>= \case
       Nothing ->
         modify $ Map.insert tag $ Map.singleton fp overlays

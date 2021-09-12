@@ -38,6 +38,7 @@
 - Helpers
   - Helpers.FileSystem
     - TODO(doc or separate library) add Union mount support 
+    - enrich FileAction type to distinguish between existance and new and update states
   - Helpers.Tailwind
     - add overflow-y-scroll to body
     - Add twind shim *before* application's head
