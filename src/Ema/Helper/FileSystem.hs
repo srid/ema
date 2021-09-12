@@ -148,7 +148,7 @@ unionMount sources pats ignore handleAction = do
           taggedFiles <- filesMatchingWithTag folder pats ignore
           forM_ taggedFiles $ \(tag, fs) -> do
             forM_ fs $ \fp -> do
-              put =<< lift . changeInsert src tag fp (Update ()) =<< get
+              put =<< lift . changeInsert src tag fp (Init ()) =<< get
     lift $ handleAction changes0
     -- Run fsnotify on sources
     ofs <- get
@@ -196,7 +196,13 @@ getTag pats fp =
         -- the trade offs with using symlinks.
           pull $ second ("**/" <>) <$> pats
 
-data FileAction a = Update a | Delete
+data FileAction a
+  = -- | No action on file, which is being notified of its existance for the first time.
+    Init a
+  | -- | The file was either created or updated this moment.
+    Update a
+  | -- | The file just got deleted.
+    Delete
   deriving (Eq, Show, Functor)
 
 onChange ::
