@@ -11,5 +11,5 @@ import Ema.Class as X
 import Ema.Route as X
 import Ema.Route.Slug as X
 import Ema.Server as X
-  ( emaErrorHtml,
+  ( emaErrorHtmlResponse,
   )

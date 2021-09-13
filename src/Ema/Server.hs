@@ -77,7 +77,7 @@ runServerWithWebSocketHotReload host port model render = do
                 sendRouteHtmlToClient pathInfo s = do
                   decodeRouteWithCurrentModel pathInfo >>= \case
                     Nothing ->
-                      liftIO $ WS.sendTextData conn $ emaErrorHtml decodeRouteNothingMsg <> emaStatusHtml
+                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
                     Just r -> do
                       case renderCatchingErrors logger s r of
                         AssetStatic staticPath ->
@@ -156,12 +156,17 @@ runServerWithWebSocketHotReload host port model render = do
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
 
+-- | A basic error response for displaying in the browser
+emaErrorHtmlResponse :: Text -> LByteString
+emaErrorHtmlResponse err =
+  emaErrorHtml err <> emaStatusHtml
+
 emaErrorHtml :: Text -> LByteString
 emaErrorHtml s =
   encodeUtf8 $
     "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
       <> s
-      <> "</pre><p>Once you fix your code this page will automatically update.</body>"
+      <> "</pre><p>Once you fix the source of the error, this page will automatically refresh.</body>"
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
