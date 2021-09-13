@@ -77,7 +77,7 @@ runServerWithWebSocketHotReload host port model render = do
                 sendRouteHtmlToClient pathInfo s = do
                   decodeRouteWithCurrentModel pathInfo >>= \case
                     Nothing ->
-                      liftIO $ WS.sendTextData conn $ encodeUtf8 (emaErrorHtml decodeRouteNothingMsg) <> emaStatusHtml
+                      liftIO $ WS.sendTextData conn $ emaErrorHtml decodeRouteNothingMsg <> emaStatusHtml
                     Just r -> do
                       case renderCatchingErrors logger s r of
                         AssetStatic staticPath ->
@@ -148,7 +148,7 @@ runServerWithWebSocketHotReload host port model render = do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
           pure $
-            AssetGenerated Html . encodeUtf8 . emaErrorHtml $
+            AssetGenerated Html . emaErrorHtml $
               show @Text err
     routeFromPathInfo m =
       decodeUrlRoute m . T.intercalate "/"
@@ -156,11 +156,12 @@ runServerWithWebSocketHotReload host port model render = do
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
 
-emaErrorHtml :: Text -> Text
+emaErrorHtml :: Text -> LByteString
 emaErrorHtml s =
-  "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
-    <> s
-    <> "</pre><p>Once you fix your code this page will automatically update.</body>"
+  encodeUtf8 $
+    "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
+      <> s
+      <> "</pre><p>Once you fix your code this page will automatically update.</body>"
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
