@@ -49,7 +49,7 @@ library
     , monad-logger-extras
     , neat-interpolation
     , optparse-applicative
-    , relude
+    , relude >= 0.7 && < 1.0
     , safe-exceptions
     , stm
     , text
