@@ -35,9 +35,6 @@ instance FromJSON UrlStrategy where
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
---
--- TODO: Allow a way to configure disabling stripping of .html, since not all
--- static site hosts support pretty URLs.
 routeUrlWith :: forall r model. Ema model r => UrlStrategy -> model -> r -> Text
 routeUrlWith urlStrategy model =
   relUrlFromPath . encodeRoute model
