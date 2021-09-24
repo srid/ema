@@ -231,6 +231,9 @@ onChange ::
   -- ancestor is a symlink.
   m ()
 onChange q roots = do
+  -- 100ms is a reasonable wait period to gather (possibly related) events.
+  -- One such related event is a MOVE, which fsnotify doesn't native support;
+  -- and spits out a DELETE and ADD instead.
   let debounceDurationSecs :: NominalDiffTime = 0.1
       cfg = defaultConfig {confDebounce = Debounce debounceDurationSecs}
   withManagerM cfg $ \mgr -> do
