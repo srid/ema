@@ -13,14 +13,19 @@ import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
+import Data.Time.Clock (NominalDiffTime)
 import System.Directory (canonicalizePath)
 import System.FSNotify
   ( ActionPredicate,
+    Debounce (Debounce),
     Event (..),
     StopListening,
+    WatchConfig (WatchConfig, confDebounce),
     WatchManager,
+    defaultConfig,
     watchTree,
     withManager,
+    withManagerConf,
   )
 import System.FilePath (isRelative, makeRelative)
 import System.FilePattern (FilePattern, (?==))
@@ -226,7 +231,9 @@ onChange ::
   -- ancestor is a symlink.
   m ()
 onChange q roots = do
-  withManagerM $ \mgr -> do
+  let debounceDurationSecs :: NominalDiffTime = 0.1
+      cfg = defaultConfig {confDebounce = Debounce debounceDurationSecs}
+  withManagerM cfg $ \mgr -> do
     stops <- forM roots $ \(x, rootRel) -> do
       -- NOTE: It is important to use canonical path, because this will allow us to
       -- transform fsnotify event's (absolute) path into one that is relative to
@@ -249,11 +256,12 @@ onChange q roots = do
 
 withManagerM ::
   (MonadIO m, MonadUnliftIO m) =>
+  WatchConfig ->
   (WatchManager -> m a) ->
   m a
-withManagerM f = do
+withManagerM cfg f = do
   withRunInIO $ \run ->
-    withManager $ \mgr -> run (f mgr)
+    withManagerConf cfg $ \mgr -> run (f mgr)
 
 watchTreeM ::
   forall m.
