@@ -74,6 +74,7 @@ library
       , pandoc-types
       , parsec
       , parser-combinators
+      , time
       , yaml
 
     if flag(with-examples)
