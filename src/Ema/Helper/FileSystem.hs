@@ -244,7 +244,7 @@ onChange q roots = do
           Unknown (rel -> fp) _ _ -> f x fp Delete
     liftIO (threadDelay maxBound)
       `finally` do
-        log LevelInfo "Stopping change monitor"
+        log LevelInfo "Stopping fsnotify monitor."
         liftIO $ forM_ stops id
 
 withManagerM ::
@@ -268,7 +268,7 @@ watchTreeM wm fp pr f =
     watchTree wm fp pr $ \evt -> run (f evt)
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
-log = logWithoutLoc "Emanote.Source.Mount"
+log = logWithoutLoc "Ema.Helper.FileSystem"
 
 -- TODO: Abstract in module with StateT / MonadState
 newtype OverlayFs source = OverlayFs

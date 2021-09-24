@@ -81,7 +81,7 @@ runEmaWithCli ::
   IO ()
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
-  -- TODO: Allow library users to control logging levels
+  -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout
   flip runLoggerLoggingT logger $ do
     cwd <- liftIO getCurrentDirectory

@@ -69,7 +69,7 @@ library
       , commonmark
       , commonmark-extensions
       , commonmark-pandoc
-      , fsnotify
+      , fsnotify ^>= 0.3
       , megaparsec
       , pandoc-types
       , parsec
