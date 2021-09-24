@@ -106,21 +106,17 @@ unionMountOnLVar sources pats ignore modelLVar model0 handleAction = do
   -- /after/ the initial file listing is read, and `modify` is called for each
   -- subsequent inotify events.
   initialized <- newTMVarIO False
-  unionMount sources pats ignore $ \case
-    Evt_Unhandled -> do
-      log LevelWarn "Unhandled event; cueing restart"
-      pure $ Just Cmd_Restart
-    Evt_Change changes -> do
-      updateModel <-
-        interceptExceptions id $
-          handleAction changes
-      atomically (takeTMVar initialized) >>= \case
-        False -> do
-          LVar.set modelLVar (updateModel model0)
-        True -> do
-          LVar.modify modelLVar updateModel
-      atomically $ putTMVar initialized True
-      pure Nothing
+  unionMount sources pats ignore $ \changes -> do
+    updateModel <-
+      interceptExceptions id $
+        handleAction changes
+    atomically (takeTMVar initialized) >>= \case
+      False -> do
+        LVar.set modelLVar (updateModel model0)
+      True -> do
+        LVar.modify modelLVar updateModel
+    atomically $ putTMVar initialized True
+    pure Nothing
 
 -- Log and ignore exceptions
 --
@@ -144,7 +140,7 @@ data Evt source tag
   deriving (Eq, Show)
 
 data Cmd
-  = Cmd_Restart
+  = Cmd_Remount
   deriving (Eq, Show)
 
 unionMount ::
@@ -158,7 +154,7 @@ unionMount ::
   Set (source, FilePath) ->
   [(tag, FilePattern)] ->
   [FilePattern] ->
-  (Evt source tag -> m (Maybe Cmd)) ->
+  (Change source tag -> m (Maybe Cmd)) ->
   m (Maybe Cmd)
 unionMount sources pats ignore handleAction = do
   fmap (join . rightToMaybe . fst) . flip runStateT (emptyOverlayFs @source) $ do
@@ -170,7 +166,7 @@ unionMount sources pats ignore handleAction = do
           forM_ taggedFiles $ \(tag, fs) -> do
             forM_ fs $ \fp -> do
               put =<< lift . changeInsert src tag fp (Refresh Existing ()) =<< get
-    void $ lift $ handleAction $ Evt_Change changes0
+    void $ lift $ handleAction changes0
     -- Run fsnotify on sources
     ofs <- get
     q :: TBQueue (x, FilePath, Either (FolderAction ()) (FileAction ())) <- liftIO $ newTBQueueIO 1
@@ -180,8 +176,10 @@ unionMount sources pats ignore handleAction = do
           let loop = do
                 (src, fp, actE) <- atomically $ readTBQueue q
                 case actE of
-                  Left _ ->
-                    lift $ handleAction Evt_Unhandled
+                  Left _ -> do
+                    -- We don't know yet how to deal with folder events. Just reboot the mount.
+                    log LevelWarn "Unhandled folder event; suggesting a re-mount"
+                    pure $ Just Cmd_Remount
                   Right act -> do
                     let shouldIgnore = any (?== fp) ignore
                     case guard (not shouldIgnore) >> getTag pats fp of
@@ -189,7 +187,7 @@ unionMount sources pats ignore handleAction = do
                       Just tag -> do
                         changes <- fmap snd . flip runStateT Map.empty $ do
                           put =<< lift . changeInsert src tag fp act =<< get
-                        mcmd <- lift $ handleAction $ Evt_Change changes
+                        mcmd <- lift $ handleAction changes
                         maybe loop (pure . pure) mcmd
           loop
 
@@ -242,7 +240,7 @@ data FileAction a
   deriving (Eq, Show, Functor)
 
 -- | This is not an action on file, rather an action on a directory (which
--- may contain files, which would outside the scope of this fsnotify event,
+-- may contain files, which would be outside the scope of this fsnotify event,
 -- and so the user must manually deal with them.)
 newtype FolderAction a = FolderAction a
   deriving (Eq, Show, Functor)
