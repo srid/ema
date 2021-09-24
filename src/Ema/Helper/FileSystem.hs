@@ -31,7 +31,7 @@ import System.FSNotify
 import System.FilePath (isRelative, makeRelative)
 import System.FilePattern (FilePattern, (?==))
 import System.FilePattern.Directory (getDirectoryFilesIgnore)
-import UnliftIO (MonadUnliftIO, finally, newTBQueueIO, race, race_, try, withRunInIO, writeTBQueue)
+import UnliftIO (MonadUnliftIO, finally, newTBQueueIO, race, try, withRunInIO, writeTBQueue)
 import UnliftIO.STM (TBQueue, readTBQueue)
 
 -- | Simplified variation of `unionMountOnLVar` with exactly one source.
@@ -69,14 +69,9 @@ mountOnLVar ::
 mountOnLVar folder pats ignore var var0 toAction' =
   let tag0 = ()
       sources = one (tag0, folder)
-   in unionMountOnLVar sources pats ignore var var0 $ \case
-        Evt_Unhandled -> do
-          -- TODO: log?
-          log LevelWarn "Unhandled event (Evt_Unhandled)"
-          pure id
-        Evt_Change ch -> do
-          let fsSet = (fmap . fmap . fmap . fmap) void $ fmap Map.toList <$> Map.toList ch
-          (\(tag, xs) -> uncurry (toAction' tag) `chainM` xs) `chainM` fsSet
+   in unionMountOnLVar sources pats ignore var var0 $ \ch -> do
+        let fsSet = (fmap . fmap . fmap . fmap) void $ fmap Map.toList <$> Map.toList ch
+        (\(tag, xs) -> uncurry (toAction' tag) `chainM` xs) `chainM` fsSet
   where
     -- Monadic version of `chain`
     chainM :: Monad m => (x -> m (a -> a)) -> [x] -> m (a -> a)
@@ -89,7 +84,8 @@ mountOnLVar folder pats ignore var var0 toAction' =
         chain :: [a -> a] -> a -> a
         chain = flip $ foldl' $ flip ($)
 
--- | Like `unionMount` but updates a `LVar` as well handles exceptions by logging them.
+-- | Like `unionMount` but updates a `LVar` as well handles exceptions (and
+-- unhandled events) by logging them.
 unionMountOnLVar ::
   forall source tag model m.
   ( MonadIO m,
@@ -103,24 +99,28 @@ unionMountOnLVar ::
   [FilePattern] ->
   LVar model ->
   model ->
-  (Evt source tag -> m (model -> model)) ->
+  (Change source tag -> m (model -> model)) ->
   m (Maybe Cmd)
 unionMountOnLVar sources pats ignore modelLVar model0 handleAction = do
   -- This TMVar is used to ensure the LVar semantics that `set` is called once
   -- /after/ the initial file listing is read, and `modify` is called for each
   -- subsequent inotify events.
   initialized <- newTMVarIO False
-  unionMount sources pats ignore $ \changes -> do
-    updateModel <-
-      interceptExceptions id $
-        handleAction changes
-    atomically (takeTMVar initialized) >>= \case
-      False -> do
-        LVar.set modelLVar (updateModel model0)
-      True -> do
-        LVar.modify modelLVar updateModel
-    atomically $ putTMVar initialized True
-    pure Nothing
+  unionMount sources pats ignore $ \case
+    Evt_Unhandled -> do
+      log LevelWarn "Unhandled event; cueing restart"
+      pure $ Just Cmd_Restart
+    Evt_Change changes -> do
+      updateModel <-
+        interceptExceptions id $
+          handleAction changes
+      atomically (takeTMVar initialized) >>= \case
+        False -> do
+          LVar.set modelLVar (updateModel model0)
+        True -> do
+          LVar.modify modelLVar updateModel
+      atomically $ putTMVar initialized True
+      pure Nothing
 
 -- Log and ignore exceptions
 --
