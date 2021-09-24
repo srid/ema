@@ -175,13 +175,18 @@ unionMount sources pats ignore handleAction = do
         fmap fst . flip runStateT ofs $ do
           let loop = do
                 (src, fp, actE) <- atomically $ readTBQueue q
+                let shouldIgnore = any (?== fp) ignore
                 case actE of
                   Left _ -> do
-                    -- We don't know yet how to deal with folder events. Just reboot the mount.
-                    log LevelWarn "Unhandled folder event; suggesting a re-mount"
-                    pure $ Just Cmd_Remount
+                    if shouldIgnore
+                      then do
+                        log LevelWarn "Unhandled folder event on an ignored path"
+                        pure Nothing
+                      else do
+                        -- We don't know yet how to deal with folder events. Just reboot the mount.
+                        log LevelWarn "Unhandled folder event; suggesting a re-mount"
+                        pure $ Just Cmd_Remount
                   Right act -> do
-                    let shouldIgnore = any (?== fp) ignore
                     case guard (not shouldIgnore) >> getTag pats fp of
                       Nothing -> loop
                       Just tag -> do
