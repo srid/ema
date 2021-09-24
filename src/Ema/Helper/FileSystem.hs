@@ -31,7 +31,7 @@ import System.FSNotify
 import System.FilePath (isRelative, makeRelative)
 import System.FilePattern (FilePattern, (?==))
 import System.FilePattern.Directory (getDirectoryFilesIgnore)
-import UnliftIO (MonadUnliftIO, finally, newTBQueueIO, race_, try, withRunInIO, writeTBQueue)
+import UnliftIO (MonadUnliftIO, finally, newTBQueueIO, race, race_, try, withRunInIO, writeTBQueue)
 import UnliftIO.STM (TBQueue, readTBQueue)
 
 -- | Simplified variation of `unionMountOnLVar` with exactly one source.
@@ -65,7 +65,7 @@ mountOnLVar ::
   --
   -- If the action throws an exception, it will be logged and ignored.
   (b -> FilePath -> FileAction () -> m (model -> model)) ->
-  m ()
+  m (Maybe Cmd)
 mountOnLVar folder pats ignore var var0 toAction' =
   let tag0 = ()
       sources = one (tag0, folder)
@@ -104,7 +104,7 @@ unionMountOnLVar ::
   LVar model ->
   model ->
   (Evt source tag -> m (model -> model)) ->
-  m ()
+  m (Maybe Cmd)
 unionMountOnLVar sources pats ignore modelLVar model0 handleAction = do
   -- This TMVar is used to ensure the LVar semantics that `set` is called once
   -- /after/ the initial file listing is read, and `modify` is called for each
@@ -120,6 +120,7 @@ unionMountOnLVar sources pats ignore modelLVar model0 handleAction = do
       True -> do
         LVar.modify modelLVar updateModel
     atomically $ putTMVar initialized True
+    pure Nothing
 
 -- Log and ignore exceptions
 --
@@ -142,6 +143,10 @@ data Evt source tag
   | Evt_Unhandled
   deriving (Eq, Show)
 
+data Cmd
+  = Cmd_Restart
+  deriving (Eq, Show)
+
 unionMount ::
   forall source tag m.
   ( MonadIO m,
@@ -153,10 +158,10 @@ unionMount ::
   Set (source, FilePath) ->
   [(tag, FilePattern)] ->
   [FilePattern] ->
-  (Evt source tag -> m ()) ->
-  m ()
+  (Evt source tag -> m (Maybe Cmd)) ->
+  m (Maybe Cmd)
 unionMount sources pats ignore handleAction = do
-  void . flip runStateT (emptyOverlayFs @source) $ do
+  fmap (join . rightToMaybe . fst) . flip runStateT (emptyOverlayFs @source) $ do
     -- Initial traversal of sources
     changes0 :: Change source tag <-
       fmap snd . flip runStateT Map.empty $ do
@@ -165,24 +170,28 @@ unionMount sources pats ignore handleAction = do
           forM_ taggedFiles $ \(tag, fs) -> do
             forM_ fs $ \fp -> do
               put =<< lift . changeInsert src tag fp (Refresh Existing ()) =<< get
-    lift $ handleAction $ Evt_Change changes0
+    void $ lift $ handleAction $ Evt_Change changes0
     -- Run fsnotify on sources
     ofs <- get
     q :: TBQueue (x, FilePath, Either (FolderAction ()) (FileAction ())) <- liftIO $ newTBQueueIO 1
     lift $
-      race_ (onChange q (toList sources)) $
-        void . flip runStateT ofs $
-          forever $ do
-            (src, fp, actE) <- atomically $ readTBQueue q
-            case actE of
-              Left _ ->
-                lift $ handleAction Evt_Unhandled
-              Right act -> do
-                let shouldIgnore = any (?== fp) ignore
-                whenJust (guard (not shouldIgnore) >> getTag pats fp) $ \tag -> do
-                  changes <- fmap snd . flip runStateT Map.empty $ do
-                    put =<< lift . changeInsert src tag fp act =<< get
-                  lift $ handleAction $ Evt_Change changes
+      race (onChange q (toList sources)) $
+        fmap fst . flip runStateT ofs $ do
+          let loop = do
+                (src, fp, actE) <- atomically $ readTBQueue q
+                case actE of
+                  Left _ ->
+                    lift $ handleAction Evt_Unhandled
+                  Right act -> do
+                    let shouldIgnore = any (?== fp) ignore
+                    case guard (not shouldIgnore) >> getTag pats fp of
+                      Nothing -> loop
+                      Just tag -> do
+                        changes <- fmap snd . flip runStateT Map.empty $ do
+                          put =<< lift . changeInsert src tag fp act =<< get
+                        mcmd <- lift $ handleAction $ Evt_Change changes
+                        maybe loop (pure . pure) mcmd
+          loop
 
 filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats ignore = do
