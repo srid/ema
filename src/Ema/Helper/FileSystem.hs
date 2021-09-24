@@ -5,7 +5,7 @@ module Ema.Helper.FileSystem where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.Logger
-  ( LogLevel (LevelDebug, LevelError, LevelInfo),
+  ( LogLevel (LevelDebug, LevelError, LevelInfo, LevelWarn),
     MonadLogger,
     logWithoutLoc,
   )
@@ -20,13 +20,12 @@ import System.FSNotify
     Debounce (Debounce),
     Event (..),
     StopListening,
-    WatchConfig (WatchConfig, confDebounce),
+    WatchConfig (..),
     WatchManager,
     defaultConfig,
     eventIsDirectory,
     eventPath,
     watchTree,
-    withManager,
     withManagerConf,
   )
 import System.FilePath (isRelative, makeRelative)
@@ -70,9 +69,14 @@ mountOnLVar ::
 mountOnLVar folder pats ignore var var0 toAction' =
   let tag0 = ()
       sources = one (tag0, folder)
-   in unionMountOnLVar sources pats ignore var var0 $ \(ch :: Change () b) -> do
-        let fsSet = (fmap . fmap . fmap . fmap) void $ fmap Map.toList <$> Map.toList ch
-        (\(tag, xs) -> uncurry (toAction' tag) `chainM` xs) `chainM` fsSet
+   in unionMountOnLVar sources pats ignore var var0 $ \case
+        Evt_Unhandled -> do
+          -- TODO: log?
+          log LevelWarn "Unhandled event (Evt_Unhandled)"
+          pure id
+        Evt_Change ch -> do
+          let fsSet = (fmap . fmap . fmap . fmap) void $ fmap Map.toList <$> Map.toList ch
+          (\(tag, xs) -> uncurry (toAction' tag) `chainM` xs) `chainM` fsSet
   where
     -- Monadic version of `chain`
     chainM :: Monad m => (x -> m (a -> a)) -> [x] -> m (a -> a)
@@ -99,7 +103,7 @@ unionMountOnLVar ::
   [FilePattern] ->
   LVar model ->
   model ->
-  (Change source tag -> m (model -> model)) ->
+  (Evt source tag -> m (model -> model)) ->
   m ()
 unionMountOnLVar sources pats ignore modelLVar model0 handleAction = do
   -- This TMVar is used to ensure the LVar semantics that `set` is called once
@@ -133,6 +137,11 @@ interceptExceptions default_ f = do
 -- Candidate for moving to a library
 -------------------------------------
 
+data Evt source tag
+  = Evt_Change (Change source tag)
+  | Evt_Unhandled
+  deriving (Eq, Show)
+
 unionMount ::
   forall source tag m.
   ( MonadIO m,
@@ -144,7 +153,7 @@ unionMount ::
   Set (source, FilePath) ->
   [(tag, FilePattern)] ->
   [FilePattern] ->
-  (Change source tag -> m ()) ->
+  (Evt source tag -> m ()) ->
   m ()
 unionMount sources pats ignore handleAction = do
   void . flip runStateT (emptyOverlayFs @source) $ do
@@ -156,20 +165,24 @@ unionMount sources pats ignore handleAction = do
           forM_ taggedFiles $ \(tag, fs) -> do
             forM_ fs $ \fp -> do
               put =<< lift . changeInsert src tag fp (Refresh Existing ()) =<< get
-    lift $ handleAction changes0
+    lift $ handleAction $ Evt_Change changes0
     -- Run fsnotify on sources
     ofs <- get
-    q :: TBQueue (x, FilePath, FileAction ()) <- liftIO $ newTBQueueIO 1
+    q :: TBQueue (x, FilePath, Either (FolderAction ()) (FileAction ())) <- liftIO $ newTBQueueIO 1
     lift $
       race_ (onChange q (toList sources)) $
         void . flip runStateT ofs $
           forever $ do
-            (src, fp, act) <- atomically $ readTBQueue q
-            let shouldIgnore = any (?== fp) ignore
-            whenJust (guard (not shouldIgnore) >> getTag pats fp) $ \tag -> do
-              changes <- fmap snd . flip runStateT Map.empty $ do
-                put =<< lift . changeInsert src tag fp act =<< get
-              lift $ handleAction changes
+            (src, fp, actE) <- atomically $ readTBQueue q
+            case actE of
+              Left _ ->
+                lift $ handleAction Evt_Unhandled
+              Right act -> do
+                let shouldIgnore = any (?== fp) ignore
+                whenJust (guard (not shouldIgnore) >> getTag pats fp) $ \tag -> do
+                  changes <- fmap snd . flip runStateT Map.empty $ do
+                    put =<< lift . changeInsert src tag fp act =<< get
+                  lift $ handleAction $ Evt_Change changes
 
 filesMatching :: (MonadIO m, MonadLogger m) => FilePath -> [FilePattern] -> [FilePattern] -> m [FilePath]
 filesMatching parent' pats ignore = do
@@ -217,10 +230,12 @@ data FileAction a
     Refresh RefreshAction a
   | -- | The file just got deleted.
     Delete
-  | -- | This is not an action on file, rather an action on a directory (which
-    -- may contain files, which would outside the scope of this fsnotify event,
-    -- and so the user must manually deal with them.)
-    FolderEvent a
+  deriving (Eq, Show, Functor)
+
+-- | This is not an action on file, rather an action on a directory (which
+-- may contain files, which would outside the scope of this fsnotify event,
+-- and so the user must manually deal with them.)
+newtype FolderAction a = FolderAction a
   deriving (Eq, Show, Functor)
 
 refreshAction :: FileAction a -> Maybe RefreshAction
@@ -231,7 +246,7 @@ refreshAction = \case
 onChange ::
   forall x m.
   (MonadIO m, MonadLogger m, MonadUnliftIO m) =>
-  TBQueue (x, FilePath, FileAction ()) ->
+  TBQueue (x, FilePath, Either (FolderAction ()) (FileAction ())) ->
   [(x, FilePath)] ->
   -- | The filepath is relative to the folder being monitored, unless if its
   -- ancestor is a symlink.
@@ -254,12 +269,12 @@ onChange q roots = do
         let rel = makeRelative root
             f a fp act = atomically $ writeTBQueue q (a, fp, act)
         if eventIsDirectory event
-          then f x (rel . eventPath $ event) $ FolderEvent ()
+          then f x (rel . eventPath $ event) $ Left $ FolderAction ()
           else case event of
-            Added (rel -> fp) _ _ -> f x fp $ Refresh New ()
-            Modified (rel -> fp) _ _ -> f x fp $ Refresh Update ()
-            Removed (rel -> fp) _ _ -> f x fp Delete
-            Unknown (rel -> fp) _ _ -> f x fp Delete
+            Added (rel -> fp) _ _ -> f x fp $ Right $ Refresh New ()
+            Modified (rel -> fp) _ _ -> f x fp $ Right $ Refresh Update ()
+            Removed (rel -> fp) _ _ -> f x fp $ Right Delete
+            Unknown (rel -> fp) _ _ -> f x fp $ Right Delete
     liftIO (threadDelay maxBound)
       `finally` do
         log LevelInfo "Stopping fsnotify monitor."
