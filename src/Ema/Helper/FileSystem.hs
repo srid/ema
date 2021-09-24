@@ -181,7 +181,7 @@ unionMount sources pats ignore handleAction = do
                     if shouldIgnore
                       then do
                         log LevelWarn "Unhandled folder event on an ignored path"
-                        pure Nothing
+                        loop
                       else do
                         -- We don't know yet how to deal with folder events. Just reboot the mount.
                         log LevelWarn "Unhandled folder event; suggesting a re-mount"
