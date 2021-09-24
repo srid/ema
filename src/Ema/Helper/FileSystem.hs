@@ -23,6 +23,8 @@ import System.FSNotify
     WatchConfig (WatchConfig, confDebounce),
     WatchManager,
     defaultConfig,
+    eventIsDirectory,
+    eventPath,
     watchTree,
     withManager,
     withManagerConf,
@@ -215,6 +217,10 @@ data FileAction a
     Refresh RefreshAction a
   | -- | The file just got deleted.
     Delete
+  | -- | This is not an action on file, rather an action on a directory (which
+    -- may contain files, which would outside the scope of this fsnotify event,
+    -- and so the user must manually deal with them.)
+    FolderEvent a
   deriving (Eq, Show, Functor)
 
 refreshAction :: FileAction a -> Maybe RefreshAction
@@ -247,11 +253,13 @@ onChange q roots = do
         log LevelDebug $ show event
         let rel = makeRelative root
             f a fp act = atomically $ writeTBQueue q (a, fp, act)
-        case event of
-          Added (rel -> fp) _ _ -> f x fp $ Refresh New ()
-          Modified (rel -> fp) _ _ -> f x fp $ Refresh Update ()
-          Removed (rel -> fp) _ _ -> f x fp Delete
-          Unknown (rel -> fp) _ _ -> f x fp Delete
+        if eventIsDirectory event
+          then f x (rel . eventPath $ event) $ FolderEvent ()
+          else case event of
+            Added (rel -> fp) _ _ -> f x fp $ Refresh New ()
+            Modified (rel -> fp) _ _ -> f x fp $ Refresh Update ()
+            Removed (rel -> fp) _ _ -> f x fp Delete
+            Unknown (rel -> fp) _ _ -> f x fp Delete
     liftIO (threadDelay maxBound)
       `finally` do
         log LevelInfo "Stopping fsnotify monitor."
