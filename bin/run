@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
 set -xe
 
-# Run `nix flock lock` once to update flake.lock; and then nix-shell again
-# (because nix-develop fails with "syntax error: unexpected end of file")
-nix flake lock
-exec nix-shell --run ghcid
+exec nix develop -c ghcid
