@@ -273,7 +273,7 @@ wsClientShim =
           function handleRouteClicks(e) {
               const origin = e.target.closest("a");
               if (origin) {
-                if (window.location.host === origin.host) {
+                if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
                   window.history.pushState({}, "", origin.pathname);
                   switchRoute(origin.pathname);
                   e.preventDefault();
