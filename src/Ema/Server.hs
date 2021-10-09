@@ -359,29 +359,26 @@ emaStatusHtml =
         >
           <div
             hidden
-            class="bg-green-600 w-3 h-3 rounded-full flex-none"
+            class="flex-none w-3 h-3 bg-green-600 rounded-full"
             id="ema-connected"
           ></div>
           <div
             hidden
-            class="
-              animate-spin bg-gradient-to-r from-blue-300 to-blue-600
-              w-3 h-3 rounded-full flex-none
-            "
+            class="flex-none w-3 h-3 rounded-full animate-spin bg-gradient-to-r from-blue-300 to-blue-600"
             id="ema-reloading"
           ></div>
           <div
             hidden
-            class="bg-yellow-500 w-3 h-3 rounded-full flex-none"
+            class="flex-none w-3 h-3 bg-yellow-500 rounded-full"
             id="ema-connecting"
           >
             <div
-              class="animate-ping bg-yellow-500 w-3 h-3 rounded-full flex-none"
+              class="flex-none w-3 h-3 bg-yellow-500 rounded-full animate-ping"
             ></div>
           </div>
           <div
             hidden
-            class="bg-red-500 w-3 h-3 rounded-full flex-none"
+            class="flex-none w-3 h-3 bg-red-500 rounded-full"
             id="ema-disconnected"
           ></div>
           <p class="whitespace-nowrap" id="ema-message"></p>
