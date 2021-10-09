@@ -117,8 +117,12 @@ runServerWithWebSocketHotReload host port model render = do
                         lift loop
             liftIO (try loop) >>= \case
               Right () -> pure ()
-              Left (err :: ConnectionException) -> do
-                log LevelError $ "Websocket error: " <> show err
+              Left (connExc :: ConnectionException) -> do
+                case connExc of
+                  WS.CloseRequest _ (decodeUtf8 -> reason) ->
+                    log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
+                  _ ->
+                    log LevelError $ "Websocket error: " <> show connExc
                 LVar.removeListener model subId
     assetsMiddleware =
       Static.static
