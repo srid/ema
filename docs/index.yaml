@@ -18,7 +18,6 @@ pandoc:
 # Put page-specific metadata here. Override them in Markdown frontmatter or
 # per-folder YAML as necessary.
 page:
-  siteName: Ema
   siteTitle: Ema
   headHtml: |
     <link rel="manifest" href="/static/manifest.json" />
