@@ -252,26 +252,40 @@ wsClientShim =
           document.getElementById("ema-indicator").style.display = "none";
         };
 
+        // Base URL path - for when the ema site isn't served at "/"
+        const baseHref = document.getElementsByTagName("base")[0]?.href;
+        const basePath = baseHref ? new URL(baseHref).pathname : "/";
+
+        // Use TLS for websocket iff the current page is also served with TLS
+        const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const wsUrl = wsProto + window.location.host + basePath;
+
         // WebSocket logic: watching for server changes & route switching
         function init(reconnecting) {
-          let verb = reconnecting ? "Reopening" : "Opening";
-          console.log("ema: " + verb + " ws conn ...");
-          window.connecting();
           // The route current DOM is displaying
-          var routeVisible = document.location.pathname;
-          var wsProto = (window.location.protocol === "https:") && "wss://" || "ws://";
-          var ws = new WebSocket(wsProto + window.location.host);
+          let routeVisible = document.location.pathname;
+
+          const verb = reconnecting ? "Reopening" : "Opening";
+          console.log(`ema: $${verb} conn $${wsUrl} ...`);
+          window.connecting();
+          let ws = new WebSocket(wsUrl);
+
+          function sendObservePath(path) {
+            const relPath = path.startsWith(basePath) ? path.slice(basePath.length - 1) : path;
+            console.debug(`ema: requesting $${relPath}`);
+            ws.send(relPath);
+          }
 
           // Call this, then the server will send update *once*. Call again for
           // continous monitoring.
           function watchCurrentRoute() {
             console.log(`ema: ⏿ Observing changes to $${document.location.pathname}`);
-            ws.send(document.location.pathname);
+            sendObservePath(document.location.pathname);
           };
 
           function switchRoute(path) {
              console.log(`ema: → Switching to $${path}`);
-             ws.send(path);
+             sendObservePath(path);
           }
 
           function handleRouteClicks(e) {
