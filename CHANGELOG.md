@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## Unreleased (0.2.0.0)
+## 0.2.0.0 -- 2021-11-21
 
 - TODO(doc) runEma's action gets the `CLI.Action` as argument, to prevent the `gen` command from needing to monitoring files.
 - Live Server
@@ -44,9 +44,8 @@
     - add overflow-y-scroll to body
     - Add twind shim *before* application's head
     - CDN: Use latest version always.
-  - TODO(doc) Helpers.Markdown (to be moved to Hackage eventually)
+  - Helpers.Markdown
     - add helpers to parse markdown; `parseMarkdownWithFrontMatter` and `parseMarkdown`
-  - TODO(doc) Add `Ema.Helper.PathTree`
 - Examples
   - ~~Remove Ex03_Documentation.hs (moved to separate repo, `ema-docs`)~~ Back to ./docs, but using Emanote.
   - Add Ex03_Basic.hs example
