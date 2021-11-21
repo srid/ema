@@ -22,7 +22,7 @@ class Ema MyModel Route where
 
   -- The third method is optional, and used by the `gen` command (not live-server)
   -- By default, Enum & Bounded will be used to determine this list.
-  allRoutes model =
+  allRoutes _model =
     [Index, About]
 ```
 

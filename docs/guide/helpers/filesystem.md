@@ -54,3 +54,7 @@ Ema.runEma render $ \model -> do
 ```
 
 [Full example here](https://github.com/srid/ema-template/blob/master/src/Main.hs).
+
+This functionality is mostly provided by the [unionmount] library.
+
+[unionmount]: https://hackage.haskell.org/package/unionmount

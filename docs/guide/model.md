@@ -20,7 +20,7 @@ Ema's dev server supports [hot reload](concepts/hot-reload.md); it will observe 
 For example,
 
 ```haskell
-runEma render $ \model ->
+runEma render $ \_act model ->
   forever $ do
     LVar.set model =<< liftIO getCurrentTime
     liftIO $ threadDelay $ 1 * 1000000
