@@ -38,7 +38,7 @@
   - Removed `-C` argument (orthogonal to Ema)
 - Helpers
   - Helpers.FileSystem
-    - TODO(doc or separate library) add Union mount support 
+    - Add Union mount support; re-exported from `unionmount` library
     - enrich FileAction type to distinguish between existance and new and update states
   - Helpers.Tailwind
     - add overflow-y-scroll to body

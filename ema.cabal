@@ -54,6 +54,7 @@ library
     , stm
     , text
     , unicode-transforms
+    , unionmount
     , unliftio
     , uri-encode
     , wai

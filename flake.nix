@@ -11,6 +11,10 @@
     #  url = "github:srid/lvar";
     #  flake = false;
     #};
+    unionmount = {
+      url = "github:srid/unionmount";
+      flake = false;
+    };
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
@@ -27,6 +31,7 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               # lvar = self.callCabal2nix "lvar" inputs.lvar { };
+              unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
