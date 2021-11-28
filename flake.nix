@@ -1,7 +1,7 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/8afc4e543663ca0a6a4f496262cd05233737e732";
+    nixpkgs.url = "github:nixos/nixpkgs/78cb77b29d37a9663e05b61abb4fa09465da4b70";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -17,7 +17,7 @@
     };
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ] (system:
       let
         name = "ema";
         overlays = [ ];
