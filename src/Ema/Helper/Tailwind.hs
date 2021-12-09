@@ -4,7 +4,7 @@
 -- | Use Tailwind CSS with blaze-html? Try this module for rapid prototyping of
 -- websites in Ema.
 module Ema.Helper.Tailwind
-  ( -- * Main functions
+  ( -- * Main functionsbin
     layout,
     layoutWith,
 
@@ -58,7 +58,7 @@ layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
 twindShimCdn :: H.Html
 twindShimCdn =
   H.link
-    ! A.href "https://unpkg.com/tailwindcss@latest/dist/tailwind.min.css"
+    ! A.href "https://unpkg.com/tailwindcss@2/dist/tailwind.min.css"
     ! A.rel "stylesheet"
     ! A.type_ "text/css"
 

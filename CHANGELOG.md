@@ -1,5 +1,9 @@
 # Revision history for ema
 
+## Unreleased
+
+- Pin TailwindCSS to 2.x, because the 3.x broke our CDN url
+
 ## 0.2.0.0 -- 2021-11-21
 
 - TODO(doc) runEma's action gets the `CLI.Action` as argument, to prevent the `gen` command from needing to monitoring files.
