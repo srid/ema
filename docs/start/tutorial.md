@@ -98,7 +98,7 @@ render _emaAction model r = Ema.AssetGenerated Ema.Html . RU.renderHtml $
     routeElem targetRoute w =
       H.a 
         ! A.style "text-decoration: underline" 
-        ! A.href (H.toValue $ Ema.routeUrl targetRoute) $ w
+        ! A.href (H.toValue $ Ema.routeUrl model targetRoute) $ w
 ```
 
 If everything compiles, you should see the site update in the web browser. A couple of quick points about the `render` function:
