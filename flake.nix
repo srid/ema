@@ -7,6 +7,7 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     #lvar = {
     #  url = "github:srid/lvar";
     #  flake = false;
@@ -67,6 +68,17 @@
       rec {
         # Used by `nix build`
         defaultPackage = ema;
+
+        checks = {
+          pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              hlint.enable = true;
+              nixpkgs-fmt.enable = true;
+              ormolu.enable = true;
+            };
+          };
+        };
 
         # Used by `nix develop`
         devShell = emaProject true;
