@@ -8,7 +8,7 @@ Once you have [model](guide/model.md) and [route](guide/routes.md) types in plac
 Using some `MyModel` and the route `Route` shown in the [previous](guide/routes.md) section, we can create an instance as follows:
 
 ```haskell
-class Ema MyModel Route where 
+instance Ema MyModel Route where 
   -- Where to generate this route?
   encodeRoute _model = \case
     Index -> "index.html"
