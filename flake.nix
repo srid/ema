@@ -1,7 +1,7 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/3e4c1337b93152e42f53c8fcd2e0d9077c6523b1";
+    nixpkgs.url = "github:nixos/nixpkgs/28d58b979250ef33f049fe1c74daa50b7515126b";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -12,10 +12,10 @@
     #  url = "github:srid/lvar";
     #  flake = false;
     #};
-    unionmount = {
-      url = "github:srid/unionmount";
-      flake = false;
-    };
+    #unionmount = {
+    #  url = "github:srid/unionmount";
+    #  flake = false;
+    #};
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ] (system:
@@ -47,7 +47,7 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               # lvar = self.callCabal2nix "lvar" inputs.lvar { };
-              unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
+              # unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv
