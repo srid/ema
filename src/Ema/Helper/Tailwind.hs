@@ -25,8 +25,11 @@ import qualified Text.Blaze.Html5.Attributes as A
 
 -- | A simple and off-the-shelf layout using Tailwind CSS
 layout :: Ema.CLI.Action -> H.Html -> H.Html -> LByteString
-layout action =
-  layoutWith "en" "UTF-8" $ twindShim action
+layout action h b =
+  layoutWith "en" "UTF-8" (twindShim action) h $
+    -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
+    -- avoid janky shifts when switching to routes with suddenly scrollable content.
+    H.body ! A.class_ "overflow-y-scroll" $ b
 
 twindShim :: Ema.CLI.Action -> H.Html
 twindShim action =
@@ -38,7 +41,7 @@ twindShim action =
       -- tailwind CDN.
       twindShimCdn
 
--- | Like @layout@, but pick your own language, encoding and tailwind shim.
+-- | Like @layout@, but pick your own language, encoding, tailwind shim and body element.
 layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> H.Html -> LByteString
 layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
   H.docType
@@ -49,10 +52,7 @@ layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
       tshim
       appHead
-    -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
-    -- avoid janky shifts when switching to routes with suddenly scrollable content.
-    H.body ! A.class_ "overflow-y-scroll" $ do
-      appBody
+    appBody
 
 -- | Loads full tailwind CSS from CDN (not good for production)
 twindShimCdn :: H.Html
