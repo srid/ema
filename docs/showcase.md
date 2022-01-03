@@ -15,4 +15,7 @@ order: 10
 
 ## Apps that use Ema
 
+These are apps that use Ema to generate websites pertaining to their specific domain:
+
 - [Emanote](https://note.ema.srid.ca/): see [examples](https://note.ema.srid.ca/examples)
+- [Banyan](https://banyan.srid.ca): view [source](https://github.com/srid/banyan)
