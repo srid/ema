@@ -1,6 +1,4 @@
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -13,7 +11,7 @@ module Ema.App
 where
 
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (race_)
+import Control.Concurrent.Async (race)
 import Control.Monad.Logger (MonadLoggerIO, logInfoN)
 import Control.Monad.Logger.Extras
   ( colorize,
@@ -55,32 +53,31 @@ runEmaPure render = do
 -- It uses @race_@ to properly clean up the update action when the ema thread
 -- exits, and vice-versa.
 runEma ::
-  forall model route.
+  forall model route b.
   (Ema model route, Show route) =>
   -- | How to render a route, given the model
   (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m ()) ->
-  IO Cli
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m b) ->
+  IO (Maybe b)
 runEma render runModel = do
   cli <- CLI.cliAction
   runEmaWithCli cli render runModel
-  pure cli
 
 -- | Like @runEma@ but takes the CLI action
 --
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
-  forall model route.
+  forall model route b.
   (Ema model route, Show route) =>
   Cli ->
   -- | How to render a route, given the model
   (CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m ()) ->
-  IO ()
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m b) ->
+  IO (Maybe b)
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
   -- TODO: Allow library users to control logging levels, or colors.
@@ -89,9 +86,10 @@ runEmaWithCli cli render runModel = do
     cwd <- liftIO getCurrentDirectory
     logInfoN $ "Launching Ema under: " <> toText cwd
     logInfoN "Waiting for initial model ..."
-  race_
-    (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
-    (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
+  leftToMaybe
+    <$> race
+      (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
+      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
