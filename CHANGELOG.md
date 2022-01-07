@@ -5,6 +5,7 @@
 - Pin TailwindCSS to 2.x, because the 3.x broke our CDN url
 - Remove unused Cabal deps (#61)
 - `Tailwind.layoutWith`: don't hardcode `<body>` attrs
+- `runEma`: return the parsed `Cli` 
 
 ## 0.2.0.0 -- 2021-11-21
 

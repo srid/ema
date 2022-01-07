@@ -33,10 +33,11 @@ instance Ema Model Route where
 
 main :: IO ()
 main = do
-  Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model -> do
-    LVar.set model $ Model "Hello World. "
-    when (act == CLI.Run) $
-      liftIO $ threadDelay maxBound
+  void $
+    Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model -> do
+      LVar.set model $ Model "Hello World. "
+      when (act == CLI.Run) $
+        liftIO $ threadDelay maxBound
 
 render :: Ema.CLI.Action -> Model -> Route -> LByteString
 render emaAction model r =

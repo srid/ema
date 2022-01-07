@@ -43,10 +43,11 @@ runEmaPure ::
   (CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
-    LVar.set model ()
-    when (act == CLI.Run) $ do
-      liftIO $ threadDelay maxBound
+  void $
+    runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
+      LVar.set model ()
+      when (act == CLI.Run) $ do
+        liftIO $ threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
@@ -61,10 +62,11 @@ runEma ::
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m ()) ->
-  IO ()
+  IO Cli
 runEma render runModel = do
   cli <- CLI.cliAction
   runEmaWithCli cli render runModel
+  pure cli
 
 -- | Like @runEma@ but takes the CLI action
 --
