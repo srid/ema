@@ -60,7 +60,7 @@ runEma ::
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m b) ->
-  IO (Maybe b)
+  IO (Either b (Maybe [FilePath]))
 runEma render runModel = do
   cli <- CLI.cliAction
   runEmaWithCli cli render runModel
@@ -77,7 +77,7 @@ runEmaWithCli ::
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m b) ->
-  IO (Maybe b)
+  IO (Either b (Maybe [FilePath]))
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
   -- TODO: Allow library users to control logging levels, or colors.
@@ -86,10 +86,9 @@ runEmaWithCli cli render runModel = do
     cwd <- liftIO getCurrentDirectory
     logInfoN $ "Launching Ema under: " <> toText cwd
     logInfoN "Waiting for initial model ..."
-  leftToMaybe
-    <$> race
-      (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
-      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
+  race
+    (flip runLoggerLoggingT logger $ runModel (CLI.action cli) model)
+    (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) model render)
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
@@ -108,18 +107,19 @@ runEmaWithCliInCwd ::
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
   (CLI.Action -> model -> route -> Asset LByteString) ->
-  m ()
+  m (Maybe [FilePath])
 runEmaWithCliInCwd cliAction model render = do
   val <- LVar.get model
   logInfoN "... initial model is now available."
   case cliAction of
     CLI.Generate dest -> do
-      withBlockBuffering $
+      fmap Just <$> withBlockBuffering $
         Generate.generate dest val (render cliAction)
     CLI.Run -> do
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       host <- liftIO $ fromMaybe "127.0.0.1" <$> lookupEnv "HOST"
       Server.runServerWithWebSocketHotReload host port model (render cliAction)
+      pure Nothing
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

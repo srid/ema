@@ -27,7 +27,8 @@ generate ::
   FilePath ->
   model ->
   (model -> route -> Asset LByteString) ->
-  m ()
+  -- | List of generated files.
+  m [FilePath]
 generate dest model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
@@ -39,12 +40,13 @@ generate dest model render = do
             case render model r of
               AssetStatic fp -> Left (r, fp)
               AssetGenerated _fmt s -> Right (encodeRoute model r, s)
-  forM_ generatedPaths $ \(relPath, !s) -> do
+  paths <- forM generatedPaths $ \(relPath, !s) -> do
     let fp = dest </> relPath
     log LevelInfo $ toText $ "W " <> fp
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory fp)
       writeFileLBS fp s
+      pure fp
   forM_ staticPaths $ \(r, staticPath) -> do
     liftIO (doesPathExist staticPath) >>= \case
       True ->
@@ -54,6 +56,7 @@ generate dest model render = do
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
   noBirdbrainedJekyll dest
+  pure paths
 
 -- | Disable birdbrained hacks from GitHub to disable surprises like,
 -- https://github.com/jekyll/jekyll/issues/55
