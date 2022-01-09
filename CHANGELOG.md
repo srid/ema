@@ -7,6 +7,7 @@
 - `Tailwind.layoutWith`: don't hardcode `<body>` attrs
 - `runEma` and friends: 
   - return the monadic's action's return value or generated files (dependent type)
+- Provide a way to run any Javascript on reload by defining the `emaHotReloadHook()` function.
 
 ## 0.2.0.0 -- 2021-11-21
 

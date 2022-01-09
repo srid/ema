@@ -28,3 +28,9 @@ For anything outside of the Haskell code, your code becomes responsible for moni
 ## Handling errors
 
 If your code throws a Haskell exception, they will be gracefully handled and displayed in the browser, allowing you to recover without breaking hot-reload flow.
+
+## Calling Javascript after hot reload events
+
+If you need to invoke some javascript upon page reloads, define a javascript function named `emaHotReloadHook`. It will be called after patching the DOM is complete.
+
+This is useful for content that relies on further Javascript processing to be displayed properly, such as mathematics via MathJax.

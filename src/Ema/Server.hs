@@ -339,6 +339,9 @@ wsClientShim =
             } else {
               console.log("ema: ✍ Patching DOM");
               setHtml(document.documentElement, evt.data);
+              if ("emaHotReloadHook" in window) {
+                emaHotReloadHook();
+              }
               if (routeVisible != document.location.pathname) {
                 // This is a new route switch; scroll up.
                 window.scrollTo({ top: 0});
