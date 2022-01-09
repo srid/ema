@@ -15,7 +15,7 @@ jobs:
         mkdir -p output.docker 
         docker run \
           -v $PWD:/data \
-          --tmpfs tmp \
+          --tmpfs /tmp \
           sridca/emanote emanote --layers /data/docs gen /data/output.docker
         cp -r output.docker output  # Ditch docker created root-owned files
         bash output/_emanote-bin/compile-css
