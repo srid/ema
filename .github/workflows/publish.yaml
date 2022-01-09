@@ -13,7 +13,10 @@ jobs:
     - name: Build emanote site 🔧
       run: |
         mkdir -p output.docker 
-        docker run -v $PWD:/data sridca/emanote emanote --layers /data/docs gen /data/output.docker
+        docker run \
+          -v $PWD:/data \
+          --tmpfs /tmp \
+          sridca/emanote emanote --layers /data/docs gen /data/output.docker
         cp -r output.docker output  # Ditch docker created root-owned files
         bash output/_emanote-bin/compile-css
     - name: Deploy to gh-pages 🚀
