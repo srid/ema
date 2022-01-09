@@ -17,7 +17,7 @@ When switching to a new route or when receiving the new HTML, Ema uses [morphdom
 
 ### Haskell reload
 
-Finally, hot reload on _code_ changes are supported via [ghcid](https://github.com/ndmitchell/ghcid). The [template repo](https://github.com/srid/ema-template)'s `bin/run` script uses ghcid underneath. Any HTML DSL (like blaze-html -- as used by the [Tailwind helper](guide/helpers/tailwind.md)) or CSS DSL automatically gets supported for hot-reload. If you choose to use a file-based HTML template language, you can enable hot-reload on template change using the [FileSystem helper](guide/helpers/filesystem.md).
+Finally, hot reload on _code_ changes are supported via [ghcid](https://github.com/ndmitchell/ghcid). The [template repo](https://github.com/srid/ema-template)'s `bin/run` script uses ghcid underneath. Any HTML DSL (like blaze-html -- as used by the [Blaze helper](guide/helpers/blaze.md)) or CSS DSL automatically gets supported for hot-reload. If you choose to use a file-based HTML template language, you can enable hot-reload on template change using the [FileSystem helper](guide/helpers/filesystem.md).
 
 Note that if your application makes use of threads, it is important to setup cleanup handlers so that `ghcid` doesn't leave [ghost](https://stackoverflow.com/q/24999636/55246) processes behind. Helpers like [`race_`](https://hackage.haskell.org/package/async-2.2.3/docs/Control-Concurrent-Async.html#v:race_) will do this automatically (incidentally it is used by `runEma` for running the user IO action).
 

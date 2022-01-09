@@ -73,7 +73,6 @@ On final piece of the puzzle is to write the aforementioned `render` function:
 import Data.Some (Some)
 import qualified Ema
 import qualified Ema.CLI
-import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A

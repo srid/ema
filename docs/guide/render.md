@@ -13,7 +13,7 @@ render model route =
 
 The `AssetGenerated Html` tells Ema that you are generating HTML content, which will be appropriately handled by the [[hot-reload]] of the live server.
 
-Of course we want it to be real, by using our model value, as well as generate the HTML based on the route. We will also use the [blaze-html](https://hackage.haskell.org/package/blaze-html) library to make writing HTML in Haskell palatable (see also [the layout helper](guide/helpers/tailwind.md)). A more realistic starting point (if not the finishing product) would be:
+Of course we want it to be real, by using our model value, as well as generate the HTML based on the route. We will also use the [blaze-html](https://hackage.haskell.org/package/blaze-html) library to make writing HTML in Haskell palatable (see also [the layout helper](guide/helpers/blaze.md)). A more realistic starting point (if not the finishing product) would be:
 
 ```haskell
 render :: MyModel -> Route -> Asset ByteString 

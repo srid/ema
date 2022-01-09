@@ -17,7 +17,7 @@ import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import qualified Ema
 import qualified Ema.CLI
-import qualified Ema.Helper.Tailwind as Tailwind
+import qualified Ema.Helper.Blaze as EB
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -47,7 +47,7 @@ main = do
 
 render :: Some Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
-  Tailwind.layout emaAction (H.title "Clock" >> H.base ! A.href "/") $
+  EB.twindLayout emaAction (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

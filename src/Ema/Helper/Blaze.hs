@@ -4,14 +4,15 @@
 
 -- | Use Tailwind CSS with blaze-html? Try this module for rapid prototyping of
 -- websites in Ema.
-module Ema.Helper.Tailwind
-  ( -- * Main functionsbin
-    layout,
+module Ema.Helper.Blaze
+  ( -- * Main functions
     layoutWith,
+    twindLayout,
 
-    -- * Tailwind shims
-    twindShim,
-    twindShimCdn,
+    -- * Tailwind official shims
+    tailwind2ShimCdn,
+
+    -- * Twind.dev shims
     twindShimOfficial,
     twindShimUnofficial,
   )
@@ -25,40 +26,39 @@ import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
--- | A simple and off-the-shelf layout using Tailwind CSS
-layout :: Some Ema.CLI.Action -> H.Html -> H.Html -> LByteString
-layout action h b =
-  layoutWith "en" "UTF-8" (twindShim action) h $
-    -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
-    -- avoid janky shifts when switching to routes with suddenly scrollable content.
-    H.body ! A.class_ "overflow-y-scroll" $ b
-
-twindShim :: Some Ema.CLI.Action -> H.Html
-twindShim action =
-  case action of
-    Some (Ema.CLI.Generate _) ->
-      twindShimUnofficial
-    _ ->
-      -- Twind shim doesn't reliably work in dev server mode. Let's just use the
-      -- tailwind CDN.
-      twindShimCdn
-
--- | Like @layout@, but pick your own language, encoding, tailwind shim and body element.
-layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> H.Html -> LByteString
-layoutWith lang encoding tshim appHead appBody = RU.renderHtml $ do
+-- | A general layout
+layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString
+layoutWith lang encoding appHead appBody = RU.renderHtml $ do
   H.docType
   H.html ! A.lang lang $ do
     H.head $ do
       H.meta ! A.charset encoding
       -- This makes the site mobile friendly by default.
       H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
-      tshim
       appHead
     appBody
 
+-- | A simple and off-the-shelf layout using Tailwind CSS
+twindLayout :: Some Ema.CLI.Action -> H.Html -> H.Html -> LByteString
+twindLayout action h b =
+  layoutWith "en" "UTF-8" (shim >> h) $
+    -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
+    -- avoid janky shifts when switching to routes with suddenly scrollable content.
+    H.body ! A.class_ "overflow-y-scroll" $ b
+  where
+    shim :: H.Html
+    shim =
+      case action of
+        Some (Ema.CLI.Generate _) ->
+          twindShimUnofficial
+        _ ->
+          -- Twind shim doesn't reliably work in dev server mode. Let's just use the
+          -- tailwind CDN.
+          tailwind2ShimCdn
+
 -- | Loads full tailwind CSS from CDN (not good for production)
-twindShimCdn :: H.Html
-twindShimCdn =
+tailwind2ShimCdn :: H.Html
+tailwind2ShimCdn =
   H.link
     ! A.href "https://unpkg.com/tailwindcss@2/dist/tailwind.min.css"
     ! A.rel "stylesheet"
