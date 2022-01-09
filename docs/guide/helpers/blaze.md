@@ -17,10 +17,11 @@ render emaAction model route = do
       H.p "Hello world"
 ```
 
-The very site you are viewing (ema.srid.ca) is a live demonstration of this helper.
 
 ## Tailwind 3.0 
 
-**Note** that because the above [twind JS shim](https://twind.dev/handbook/the-shim.html) is used to support Tailwind styles your site will not render properly on web browsers with JavaScript disabled if you use this helper; it might also have trouble interoperating with other JS initializers on the site. See [this issue](https://github.com/srid/ema/issues/20) for upcoming alternatives.
+> **Note** that because the above [twind JS shim](https://twind.dev/handbook/the-shim.html) is used to support Tailwind styles your site will not render properly on web browsers with JavaScript disabled if you use this helper; it might also have trouble interoperating with other JS initializers on the site. See [this issue](https://github.com/srid/ema/issues/20) for upcoming alternatives.
 
-For new Ema sites, it is recommended to use Tailwind 3.0 both in live server and static site generation. See [ema-template](https://github.com/srid/ema-template) for an approach to this.
+For new Ema sites, it is recommended to use Tailwind 3.0 both in live server and static site generation. See [ema-template](https://github.com/srid/ema-template) for an approach to this.[^pr]
+
+[^pr]: [Here](https://github.com/srid/ema-template/pull/16) is the specific PR making this change.
