@@ -1,19 +1,32 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Ema.CLI where
 
+import Data.Constraint.Extras.TH (deriveArgDict)
+import Data.GADT.Compare.TH
+  ( DeriveGCompare (deriveGCompare),
+    DeriveGEQ (deriveGEq),
+  )
+import Data.GADT.Show.TH (DeriveGShow (deriveGShow))
+import Data.Some
 import Options.Applicative hiding (action)
 
-data Cli = Cli
-  { action :: Action
-  }
-  deriving (Eq, Show)
+data Action res where
+  Generate :: FilePath -> Action [FilePath]
+  Run :: Action ()
 
-data Action
-  = Generate FilePath
-  | Run
+$(deriveGEq ''Action)
+$(deriveGShow ''Action)
+$(deriveGCompare ''Action)
+$(deriveArgDict ''Action)
+
+data Cli = Cli
+  { action :: (Some Action)
+  }
   deriving (Eq, Show)
 
 cliParser :: Parser Cli
@@ -21,12 +34,12 @@ cliParser = do
   action <-
     subparser
       (command "gen" (info generate (progDesc "Generate static HTML files")))
-      <|> pure Run
+      <|> pure (Some Run)
   pure Cli {..}
   where
-    generate :: Parser Action
+    generate :: Parser (Some Action)
     generate =
-      Generate <$> argument str (metavar "DEST...")
+      Some . Generate <$> argument str (metavar "DEST...")
 
 cliAction :: IO Cli
 cliAction = do

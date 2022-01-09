@@ -5,6 +5,7 @@ module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
+import Data.Some (Some (..))
 import Ema (Ema (..))
 import qualified Ema
 import qualified Ema.CLI
@@ -36,10 +37,10 @@ main = do
   void $
     Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model -> do
       LVar.set model $ Model "Hello World. "
-      when (act == CLI.Run) $
+      when (act == Some CLI.Run) $
         liftIO $ threadDelay maxBound
 
-render :: Ema.CLI.Action -> Model -> Route -> LByteString
+render :: Some Ema.CLI.Action -> Model -> Route -> LByteString
 render emaAction model r =
   Tailwind.layout emaAction (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do

@@ -70,6 +70,7 @@ The `runEma` function is explained [here](guide/class.md), but in brief: it take
 On final piece of the puzzle is to write the aforementioned `render` function:
 
 ```haskell
+import Data.Some (Some)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
@@ -78,7 +79,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import qualified Text.Blaze.Html.Renderer.Utf8 as RU
 
-render :: Ema.CLI.Action -> Model -> Route -> Ema.Asset LByteString
+render :: Some Ema.CLI.Action -> Model -> Route -> Ema.Asset LByteString
 render _emaAction model r = Ema.AssetGenerated Ema.Html . RU.renderHtml $
   H.html $ do
     H.head $ do 

@@ -12,6 +12,7 @@ module Ema.Example.Ex03_Clock where
 import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 import Data.List ((!!))
+import Data.Some (Some)
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import qualified Ema
@@ -44,7 +45,7 @@ main = do
         LVar.set model =<< liftIO getCurrentTime
         liftIO $ threadDelay 1000000
 
-render :: Ema.CLI.Action -> UTCTime -> Route -> LByteString
+render :: Some Ema.CLI.Action -> UTCTime -> Route -> LByteString
 render emaAction now r =
   Tailwind.layout emaAction (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
