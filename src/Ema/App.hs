@@ -29,8 +29,12 @@ import Ema.Class (Ema)
 import qualified Ema.Generate as Generate
 import qualified Ema.Server as Server
 import System.Directory (getCurrentDirectory)
-import System.Environment (lookupEnv)
-import UnliftIO (BufferMode (BlockBuffering, LineBuffering), MonadUnliftIO, hFlush, hSetBuffering)
+import UnliftIO
+  ( BufferMode (BlockBuffering, LineBuffering),
+    MonadUnliftIO,
+    hFlush,
+    hSetBuffering,
+  )
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -46,7 +50,7 @@ runEmaPure render = do
   void $
     runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
       LVar.set model ()
-      when (act == Some CLI.Run) $ do
+      when (CLI.isLiveServer act) $
         liftIO $ threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
@@ -119,11 +123,9 @@ runEmaWithCliInCwd cliAction model render = do
         withBlockBuffering $
           Generate.generate dest val (render cliAction)
       pure $ CLI.Generate dest :=> Identity fs
-    Some CLI.Run -> do
-      port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
-      host <- liftIO $ fromMaybe "127.0.0.1" <$> lookupEnv "HOST"
+    Some (CLI.Run (host, port)) -> do
       Server.runServerWithWebSocketHotReload host port model (render cliAction)
-      pure $ CLI.Run :=> Identity ()
+      pure $ CLI.Run (host, port) :=> Identity ()
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

@@ -37,7 +37,7 @@ main = do
   void $
     Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model -> do
       LVar.set model $ Model "Hello World. "
-      when (act == Some CLI.Run) $
+      when (CLI.isLiveServer act) $
         liftIO $ threadDelay maxBound
 
 render :: Some Ema.CLI.Action -> Model -> Route -> LByteString

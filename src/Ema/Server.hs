@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -6,6 +8,7 @@ module Ema.Server where
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
 import Control.Monad.Logger
+import Data.Default
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
 import qualified Data.Text as T
@@ -24,6 +27,18 @@ import System.FilePath ((</>))
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
+newtype Host = Host {unHost :: Text}
+  deriving newtype (Eq, Show, Ord, IsString)
+
+newtype Port = Port {unPort :: Int}
+  deriving newtype (Eq, Show, Ord, Num, Read)
+
+instance Default Host where
+  def = "127.0.0.1"
+
+instance Default Port where
+  def = 8000
+
 runServerWithWebSocketHotReload ::
   forall model route m.
   ( Ema model route,
@@ -32,20 +47,20 @@ runServerWithWebSocketHotReload ::
     MonadUnliftIO m,
     MonadLoggerIO m
   ) =>
-  String ->
-  Int ->
+  Host ->
+  Port ->
   LVar model ->
   (model -> route -> Asset LByteString) ->
   m ()
 runServerWithWebSocketHotReload host port model render = do
   let settings =
         Warp.defaultSettings
-          & Warp.setPort port
-          & Warp.setHost (fromString host)
+          & Warp.setPort (unPort port)
+          & Warp.setHost (fromString . toString . unHost $ host)
   logger <- askLoggerIO
 
   logInfoN "============================================"
-  logInfoN $ "Running live server at http://" <> toText host <> ":" <> show port
+  logInfoN $ "Running live server at http://" <> unHost host <> ":" <> show port
   logInfoN "============================================"
   liftIO $
     Warp.runSettings settings $
