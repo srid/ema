@@ -18,8 +18,10 @@ import Control.Monad.Logger.Extras
     logToStdout,
     runLoggerLoggingT,
   )
+import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar (LVar)
 import qualified Data.LVar as LVar
+import Data.Some
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import qualified Ema.CLI as CLI
@@ -38,13 +40,13 @@ import UnliftIO (BufferMode (BlockBuffering, LineBuffering), MonadUnliftIO, hFlu
 -- function.
 runEmaPure ::
   -- | How to render a route
-  (CLI.Action -> LByteString) ->
+  (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
   void $
     runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
       LVar.set model ()
-      when (act == CLI.Run) $ do
+      when (act == Some CLI.Run) $ do
         liftIO $ threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
@@ -56,11 +58,11 @@ runEma ::
   forall model route b.
   (Ema model route, Show route) =>
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> Asset LByteString) ->
+  (Some CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m b) ->
-  IO (Either b (Maybe [FilePath]))
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b) ->
+  IO (Either b (DSum CLI.Action Identity))
 runEma render runModel = do
   cli <- CLI.cliAction
   runEmaWithCli cli render runModel
@@ -73,11 +75,11 @@ runEmaWithCli ::
   (Ema model route, Show route) =>
   Cli ->
   -- | How to render a route, given the model
-  (CLI.Action -> model -> route -> Asset LByteString) ->
+  (Some CLI.Action -> model -> route -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => CLI.Action -> LVar model -> m b) ->
-  IO (Either b (Maybe [FilePath]))
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b) ->
+  IO (Either b (DSum CLI.Action Identity))
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
   -- TODO: Allow library users to control logging levels, or colors.
@@ -95,7 +97,7 @@ runEmaWithCliInCwd ::
   forall model route m.
   (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema model route, Show route) =>
   -- | CLI arguments
-  CLI.Action ->
+  Some CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
   -- time (for hot-reload).
   --
@@ -106,20 +108,22 @@ runEmaWithCliInCwd ::
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (CLI.Action -> model -> route -> Asset LByteString) ->
-  m (Maybe [FilePath])
+  (Some CLI.Action -> model -> route -> Asset LByteString) ->
+  m (DSum CLI.Action Identity)
 runEmaWithCliInCwd cliAction model render = do
   val <- LVar.get model
   logInfoN "... initial model is now available."
   case cliAction of
-    CLI.Generate dest -> do
-      fmap Just <$> withBlockBuffering $
-        Generate.generate dest val (render cliAction)
-    CLI.Run -> do
+    Some (CLI.Generate dest) -> do
+      fs <-
+        withBlockBuffering $
+          Generate.generate dest val (render cliAction)
+      pure $ CLI.Generate dest :=> Identity fs
+    Some CLI.Run -> do
       port <- liftIO $ fromMaybe 8000 . (readMaybe @Int =<<) <$> lookupEnv "PORT"
       host <- liftIO $ fromMaybe "127.0.0.1" <$> lookupEnv "HOST"
       Server.runServerWithWebSocketHotReload host port model (render cliAction)
-      pure Nothing
+      pure $ CLI.Run :=> Identity ()
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

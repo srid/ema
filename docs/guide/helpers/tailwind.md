@@ -8,7 +8,7 @@ The `Ema.Helper.Tailwind` module provides a `layout` function that uses [twind](
 To use the layout helper in your [render](guide/render.md) function:
 
 ```haskell
-render :: Ema.CLI.Action -> MyModel -> MyRoute -> Asset LByteString
+render :: Some Ema.CLI.Action -> MyModel -> MyRoute -> Asset LByteString
 render emaAction model route = do
   AssetGenerated Html $ 
     Tailwind.layout emaAction (H.title "My site" >> H.base ! A.href "/") $ do 

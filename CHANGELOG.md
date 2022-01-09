@@ -6,7 +6,7 @@
 - Remove unused Cabal deps (#61)
 - `Tailwind.layoutWith`: don't hardcode `<body>` attrs
 - `runEma` and friends: 
-  - return the monadic's action's return value or generated files
+  - return the monadic's action's return value or generated files (dependent type)
 
 ## 0.2.0.0 -- 2021-11-21
 
