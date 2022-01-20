@@ -27,9 +27,11 @@ import System.FilePath ((</>))
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
+-- | Host string to start the server on.
 newtype Host = Host {unHost :: Text}
   deriving newtype (Eq, Show, Ord, IsString)
 
+-- | Port number to bind the server on.
 newtype Port = Port {unPort :: Int}
   deriving newtype (Eq, Show, Ord, Num, Read)
 

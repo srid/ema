@@ -9,16 +9,17 @@
 module Ema.CLI where
 
 import Data.Constraint.Extras.TH (deriveArgDict)
-import Data.Default
+import Data.Default (Default (def))
 import Data.GADT.Compare.TH
   ( DeriveGCompare (deriveGCompare),
     DeriveGEQ (deriveGEq),
   )
 import Data.GADT.Show.TH (DeriveGShow (deriveGShow))
-import Data.Some
+import Data.Some (Some (..))
 import Ema.Server (Host, Port)
 import Options.Applicative hiding (action)
 
+-- | CLI subcommand
 data Action res where
   Generate :: FilePath -> Action [FilePath]
   Run :: (Host, Port) -> Action ()

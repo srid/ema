@@ -1,14 +1,14 @@
 # Revision history for ema
 
-## Unreleased
+## 0.4.0.0 -- 2022-01-19
 
 - Pin TailwindCSS to 2.x, because the 3.x broke our CDN url
 - Remove unused Cabal deps (#61)
 - `Tailwind.layoutWith`: don't hardcode `<body>` attrs
+- Tailwind: module revamped and renamed to `Tailwind.Helper.Blaze`
 - `runEma` and friends: 
   - return the monadic's action's return value or generated files (dependent type)
 - CLI: add `run` subcommand that takes `--host` and `--port` (and remove environment hacks of $HOST and $PORT)
-- Tailwind: module revamped and renamed to `Tailwind.Helper.Blaze`
 
 ## 0.2.0.0 -- 2021-11-21
 
