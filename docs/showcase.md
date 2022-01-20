@@ -17,5 +17,5 @@ order: 10
 
 These are apps that use Ema to generate websites pertaining to their specific domain:
 
-- [Emanote](https://note.ema.srid.ca/): see [examples](https://note.ema.srid.ca/examples)
+- [Emanote](https://emanote.srid.ca/): see [examples](https://emanote.srid.ca/examples)
 - [Banyan](https://banyan.srid.ca): view [source](https://github.com/srid/banyan)
