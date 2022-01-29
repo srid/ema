@@ -302,6 +302,7 @@ wsClientShim =
 
           function switchRoute(path) {
              console.log(`ema: → Switching to $${path}`);
+             window.history.pushState({}, "", path);
              sendObservePath(path);
           }
 
@@ -309,7 +310,6 @@ wsClientShim =
               const origin = e.target.closest("a");
               if (origin) {
                 if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
-                  window.history.pushState({}, "", origin.pathname);
                   switchRoute(origin.pathname);
                   e.preventDefault();
                 };
@@ -371,6 +371,11 @@ wsClientShim =
           // the addressback, which has the effect of loading it immediately.
           window.onpopstate = function(e) {
             watchCurrentRoute();
+          };
+
+          // API for user invocations 
+          window.ema = {
+            switchRoute: switchRoute
           };
         };
         

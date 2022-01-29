@@ -2,6 +2,8 @@
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Helper to deal with slug trees
+--
+-- TODO: Move to a separate package
 module Ema.Helper.PathTree where
 
 import qualified Data.List as List

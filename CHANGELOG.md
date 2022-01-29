@@ -1,5 +1,9 @@
 # Revision history for ema
 
+## Unreleased
+
+- Websocket API: Add `ema.switchRoute` to switch to other routes in live server.
+
 ## 0.4.0.0 -- 2022-01-19
 
 - Pin TailwindCSS to 2.x, because the 3.x broke our CDN url
