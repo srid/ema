@@ -1,21 +1,13 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/d77bbfcbb650d9c219ca3286e1efb707b922d7c2";
+    nixpkgs.url = "github:nixos/nixpkgs/d9e21f284317f85b3476c0043f4efea87a226c3a";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
-    #lvar = {
-    #  url = "github:srid/lvar";
-    #  flake = false;
-    #};
-    #unionmount = {
-    #  url = "github:srid/unionmount";
-    #  flake = false;
-    #};
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ] (system:
