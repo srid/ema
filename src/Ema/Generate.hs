@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Ema.Generate where
 
@@ -70,7 +69,8 @@ noBirdbrainedJekyll dest = do
       writeFileLBS nojekyll ""
 
 newtype StaticAssetMissing = StaticAssetMissing FilePath
-  deriving (Show, Exception)
+  deriving stock (Show)
+  deriving anyclass (Exception)
 
 copyDirRecursively ::
   ( MonadIO m,

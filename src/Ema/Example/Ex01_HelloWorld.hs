@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 -- | The simplest Ema site possible.
 --
 -- A site with one route (index) that displays content generated from pure

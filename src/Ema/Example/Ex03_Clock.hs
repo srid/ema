@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | A very simple site with routes, but based on dynamically changing values
@@ -10,22 +9,22 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
-import qualified Data.LVar as LVar
+import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Some (Some)
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
-import qualified Ema
-import qualified Ema.CLI
-import qualified Ema.Helper.Blaze as EB
+import Ema qualified
+import Ema.CLI qualified
+import Ema.Helper.Blaze qualified as EB
 import Text.Blaze.Html5 ((!))
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
+import Text.Blaze.Html5 qualified as H
+import Text.Blaze.Html5.Attributes qualified as A
 
 data Route
   = Index
   | OnlyTime
-  deriving (Show, Enum, Bounded)
+  deriving stock (Show, Enum, Bounded)
 
 instance Ema UTCTime Route where
   encodeRoute _time = \case

@@ -1,7 +1,4 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Ema.Server where
 
@@ -10,19 +7,19 @@ import Control.Exception (catch, try)
 import Control.Monad.Logger
 import Data.Default
 import Data.LVar (LVar)
-import qualified Data.LVar as LVar
-import qualified Data.Text as T
+import Data.LVar qualified as LVar
+import Data.Text qualified as T
 import Ema.Asset
 import Ema.Class (Ema (..))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
-import qualified Network.HTTP.Types as H
-import qualified Network.Wai as Wai
-import qualified Network.Wai.Handler.Warp as Warp
-import qualified Network.Wai.Handler.WebSockets as WaiWs
-import qualified Network.Wai.Middleware.Static as Static
+import Network.HTTP.Types qualified as H
+import Network.Wai qualified as Wai
+import Network.Wai.Handler.Warp qualified as Warp
+import Network.Wai.Handler.WebSockets qualified as WaiWs
+import Network.Wai.Middleware.Static qualified as Static
 import Network.WebSockets (ConnectionException)
-import qualified Network.WebSockets as WS
+import Network.WebSockets qualified as WS
 import System.FilePath ((</>))
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
@@ -61,9 +58,9 @@ runServerWithWebSocketHotReload host port model render = do
           & Warp.setHost (fromString . toString . unHost $ host)
   logger <- askLoggerIO
 
-  logInfoN "============================================"
-  logInfoN $ "Running live server at http://" <> unHost host <> ":" <> show port
-  logInfoN "============================================"
+  logInfoN "=============================================="
+  logInfoN $ "Ema live server running: http://" <> unHost host <> ":" <> show port
+  logInfoN "=============================================="
   liftIO $
     Warp.runSettings settings $
       assetsMiddleware $

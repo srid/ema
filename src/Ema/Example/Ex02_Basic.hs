@@ -1,24 +1,22 @@
-{-# LANGUAGE TypeApplications #-}
-
 -- | A very simple site with two routes, and HTML rendered using Blaze DSL
 module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
-import qualified Data.LVar as LVar
+import Data.LVar qualified as LVar
 import Data.Some (Some (..))
 import Ema (Ema (..))
-import qualified Ema
-import qualified Ema.CLI
-import qualified Ema.CLI as CLI
-import qualified Ema.Helper.Blaze as EB
+import Ema qualified
+import Ema.CLI qualified
+import Ema.CLI qualified as CLI
+import Ema.Helper.Blaze qualified as EB
 import Text.Blaze.Html5 ((!))
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
+import Text.Blaze.Html5 qualified as H
+import Text.Blaze.Html5.Attributes qualified as A
 
 data Route
   = Index
   | About
-  deriving (Show, Enum, Bounded)
+  deriving stock (Show, Enum, Bounded)
 
 newtype Model = Model {unModel :: Text}
 

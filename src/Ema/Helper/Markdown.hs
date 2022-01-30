@@ -1,10 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-
 -- | Helper to deal with Markdown files
 --
 -- TODO: Publish this eventually to Hackage, along with wiki-link stuff from
@@ -20,17 +13,17 @@ module Ema.Helper.Markdown
   )
 where
 
-import qualified Commonmark as CM
-import qualified Commonmark.Extensions as CE
-import qualified Commonmark.Pandoc as CP
+import Commonmark qualified as CM
+import Commonmark.Extensions qualified as CE
+import Commonmark.Pandoc qualified as CP
 import Control.Monad.Combinators (manyTill)
 import Data.Aeson (FromJSON)
-import qualified Data.Yaml as Y
-import qualified Text.Megaparsec as M
-import qualified Text.Megaparsec.Char as M
-import qualified Text.Pandoc.Builder as B
+import Data.Yaml qualified as Y
+import Text.Megaparsec qualified as M
+import Text.Megaparsec.Char qualified as M
+import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
-import qualified Text.Pandoc.Walk as W
+import Text.Pandoc.Walk qualified as W
 
 -- | Parse a Markdown file using commonmark-hs with all extensions enabled
 parseMarkdownWithFrontMatter ::

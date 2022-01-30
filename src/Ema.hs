@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Ema
   ( module X,
   )

@@ -1,6 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Ema.Route
   ( routeUrl,
     routeUrlWith,
@@ -10,16 +7,16 @@ where
 
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Text as T
+import Data.List.NonEmpty qualified as NE
+import Data.Text qualified as T
 import Ema.Class (Ema (encodeRoute))
 import Ema.Route.Slug (unicodeNormalize)
-import qualified Network.URI.Encode as UE
+import Network.URI.Encode qualified as UE
 
 data UrlStrategy
   = UrlPretty
   | UrlDirect
-  deriving (Eq, Show, Ord)
+  deriving stock (Eq, Show, Ord)
 
 instance FromJSON UrlStrategy where
   parseJSON val =

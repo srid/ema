@@ -1,6 +1,4 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
 
 -- | Use Tailwind CSS with blaze-html? Try this module for rapid prototyping of
 -- websites in Ema.
@@ -19,12 +17,12 @@ module Ema.Helper.Blaze
 where
 
 import Data.Some (Some (Some))
-import qualified Ema.CLI
+import Ema.CLI qualified
 import NeatInterpolation (text)
-import qualified Text.Blaze.Html.Renderer.Utf8 as RU
+import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
+import Text.Blaze.Html5 qualified as H
+import Text.Blaze.Html5.Attributes qualified as A
 
 -- | A general layout
 layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString

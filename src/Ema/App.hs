@@ -1,8 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Ema.App
   ( runEma,
     runEmaPure,
@@ -20,14 +15,14 @@ import Control.Monad.Logger.Extras
   )
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar (LVar)
-import qualified Data.LVar as LVar
+import Data.LVar qualified as LVar
 import Data.Some
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
-import qualified Ema.CLI as CLI
+import Ema.CLI qualified as CLI
 import Ema.Class (Ema)
-import qualified Ema.Generate as Generate
-import qualified Ema.Server as Server
+import Ema.Generate qualified as Generate
+import Ema.Server qualified as Server
 import System.Directory (getCurrentDirectory)
 import UnliftIO
   ( BufferMode (BlockBuffering, LineBuffering),

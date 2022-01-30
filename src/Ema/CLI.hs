@@ -1,10 +1,6 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module Ema.CLI where
 
@@ -36,7 +32,7 @@ isLiveServer _ = False
 data Cli = Cli
   { action :: (Some Action)
   }
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
 cliParser :: Parser Cli
 cliParser = do

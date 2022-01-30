@@ -1,15 +1,12 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
-
 -- | Helper to deal with slug trees
 --
 -- TODO: Move to a separate package
 module Ema.Helper.PathTree where
 
-import qualified Data.List as List
-import qualified Data.List.NonEmpty as NE
+import Data.List qualified as List
+import Data.List.NonEmpty qualified as NE
 import Data.Tree (Tree (Node))
-import qualified Data.Tree as Tree
+import Data.Tree qualified as Tree
 
 -- -------------------
 -- Data.Tree helpers
