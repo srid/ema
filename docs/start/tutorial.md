@@ -109,8 +109,8 @@ If everything compiles, you should see the site update in the web browser. A cou
 On final note, you will note that nothing is actually *generated* so far. This is because Ema has been running in the dev server mode, which is quite useful during development. To actually generate the files, you can use the `gen` command when running the [CLI](concepts/cli.md):
 
 ```sh
-mkdir ./output
-nix run . -- -C ./content gen $(pwd)/output
+mkdir ~/output
+nix run . -- gen $(pwd)/output
 ```
 
 ## Exercises
