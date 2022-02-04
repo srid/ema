@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Websocket API: Add `ema.switchRoute` to switch to other routes in live server.
+- Helpers
+  - `Ema.Helpers.PathTree` moved to separate package *pathtree*.
 
 ## 0.4.0.0 -- 2022-01-19
 
