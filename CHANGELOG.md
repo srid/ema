@@ -6,6 +6,7 @@
 - Helpers
   - `Ema.Helpers.PathTree` moved to separate package *pathtree*.
   - `Ema.Helpers.FileSystem` moved to separate package *unionmount*.
+  - `Ema.Helpers.Markdown` moved to separate package *commonmark-simple*.
 
 ## 0.4.0.0 -- 2022-01-19
 
