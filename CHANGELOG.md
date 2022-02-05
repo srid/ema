@@ -3,11 +3,13 @@
 ## Unreleased
 
 - Websocket API: Add `ema.switchRoute` to switch to other routes in live server.
-- Helpers
-  - `Ema.Helpers.PathTree` moved to separate package *pathtree*.
-  - `Ema.Helpers.FileSystem` moved to separate package *unionmount*.
-  - `Ema.Helpers.Markdown` moved to separate package *commonmark-simple*.
-  - `Ema.Helpers.Blaze` is no more. See `ema-template` if you need a ready made template using blaze HTML and TailwindCSS.
+- Smaller core: remove helpers and examples (examples can be enabled by a flag)
+  - Helpers
+    - `Ema.Helpers.PathTree` moved to separate package *pathtree*.
+    - `Ema.Helpers.FileSystem` moved to separate package *unionmount*.
+    - `Ema.Helpers.Markdown` moved to separate package *commonmark-simple*.
+    - `Ema.Helpers.Blaze` is no more. See `ema-template` if you need a ready made template using blaze HTML and TailwindCSS.
+  - Examples `with-examples` cabal flag is made False by default.
 
 ## 0.4.0.0 -- 2022-01-19
 

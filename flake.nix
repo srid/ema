@@ -39,7 +39,6 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               # lvar = self.callCabal2nix "lvar" inputs.lvar { };
-              # unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv

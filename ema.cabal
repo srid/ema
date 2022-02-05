@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema
-version:            0.5.4.0
+version:            0.5.4.1
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -22,7 +22,7 @@ extra-source-files:
 
 flag with-examples
   description: Include examples and their dependencies
-  default:     True
+  default:     False
 
 library
   -- Modules included in this executable, other than Main.
@@ -51,7 +51,6 @@ library
     , relude                  >=0.7      && <1.0
     , text
     , unicode-transforms
-    , unionmount
     , unliftio
     , uri-encode
     , wai
