@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema
-version:            0.5.4.1
+version:            0.5.5.0
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -38,6 +38,7 @@ library
     , containers
     , data-default
     , dependent-sum
+    , url-slug
     , dependent-sum-template
     , directory
     , filepath
@@ -50,9 +51,7 @@ library
     , optparse-applicative
     , relude                  >=0.7      && <1.0
     , text
-    , unicode-transforms
     , unliftio
-    , uri-encode
     , wai
     , wai-middleware-static
     , wai-websockets
@@ -126,7 +125,6 @@ library
     Ema.Class
     Ema.Generate
     Ema.Route
-    Ema.Route.Slug
     Ema.Server
 
   if flag(with-examples)

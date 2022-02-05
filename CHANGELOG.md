@@ -10,6 +10,7 @@
     - `Ema.Helpers.Markdown` moved to separate package *commonmark-simple*.
     - `Ema.Helpers.Blaze` is no more. See `ema-template` if you need a ready made template using blaze HTML and TailwindCSS.
   - Examples `with-examples` cabal flag is made False by default.
+  - `Ema.Route.Slug` moved to separate package *url-slug*
 
 ## 0.4.0.0 -- 2022-01-19
 

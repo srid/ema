@@ -8,6 +8,9 @@
       flake = false;
     };
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+
+    url-slug.url = "github:srid/url-slug";
+    url-slug.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -39,6 +42,7 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               # lvar = self.callCabal2nix "lvar" inputs.lvar { };
+              url-slug = inputs.url-slug.defaultPackage.${system};
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv

@@ -10,8 +10,7 @@ import Data.Aeson.Types (Parser)
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
 import Ema.Class (Ema (encodeRoute))
-import Ema.Route.Slug (unicodeNormalize)
-import Network.URI.Encode qualified as UE
+import Network.URI.Slug qualified as Slug
 
 data UrlStrategy
   = UrlPretty
@@ -40,14 +39,15 @@ routeUrlWith urlStrategy model =
     relUrlFromPath fp =
       case T.stripSuffix (urlStrategySuffix urlStrategy) (toText fp) of
         Just htmlFp ->
-          case nonEmpty (UE.encodeText . unicodeNormalize <$> T.splitOn "/" htmlFp) of
+          case nonEmpty (urlSlugFromText <$> T.splitOn "/" htmlFp) of
             Nothing ->
               ""
             Just (removeLastIf "index" -> partsSansIndex) ->
               T.intercalate "/" partsSansIndex
         Nothing ->
-          T.intercalate "/" $ UE.encodeText . unicodeNormalize <$> T.splitOn "/" (toText fp)
+          T.intercalate "/" $ urlSlugFromText <$> T.splitOn "/" (toText fp)
       where
+        urlSlugFromText = Slug.encodeSlug . fromString @Slug.Slug . toString
         removeLastIf :: Eq a => a -> NonEmpty a -> [a]
         removeLastIf x xs =
           if NE.last xs == x
