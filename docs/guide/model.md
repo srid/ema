@@ -26,7 +26,7 @@ runEma render $ \_act model ->
     liftIO $ threadDelay $ 1 * 1000000
 ```
 
-In this contrived example ([full code here](https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs)), we are using `UTCTime` as the model. We set the initial value using `LVar.set`, and then continually update the current time every second. Every time the model gets updated, the web browser will [hot reload](concepts/hot-reload.md) to display the up to date value. For the `BlogPosts` model, you would typically use [fsnotify](https://hackage.haskell.org/package/fsnotify) to monitor changes to the underlying Markdown files, but note that Ema provides [a helper](guide/helpers/filesystem.md) for that.
+In this contrived example ([full code here](https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs)), we are using `UTCTime` as the model. We set the initial value using `LVar.set`, and then continually update the current time every second. Every time the model gets updated, the web browser will [hot reload](concepts/hot-reload.md) to display the up to date value. For the `BlogPosts` model, you would typically use [fsnotify](https://hackage.haskell.org/package/fsnotify) to monitor changes to the underlying Markdown files, or even better use [the unionmount library](guide/helpers/filesystem.md).
 
 ## Advanced tips
 
