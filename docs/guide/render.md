@@ -13,7 +13,7 @@ render model route =
 
 The `AssetGenerated Html` tells Ema that you are generating HTML content, which will be appropriately handled by the [[hot-reload]] of the live server.
 
-Of course we want it to be real, by using our model value, as well as generate the HTML based on the route. We will also use the [blaze-html](https://hackage.haskell.org/package/blaze-html) library to make writing HTML in Haskell palatable (see also [the layout helper](guide/helpers/blaze.md)). A more realistic starting point (if not the finishing product) would be:
+Of course we want it to be real, by using our model value, as well as generate the HTML based on the route. We will also use the [blaze-html](https://hackage.haskell.org/package/blaze-html) library to make writing HTML in Haskell palatable. A more realistic starting point (if not the finishing product) would be:
 
 ```haskell
 render :: MyModel -> Route -> Asset ByteString 
@@ -41,7 +41,7 @@ Note that Ema provides a `routeUrl` helper function that serializes your route t
 
 Spend a few moments trying to appreciate how this is *much simpler* to write than dealing with HTML template files spread across the disk as is the case with traditional static site generators. If you [choose](https://vrom911.github.io/blog/html-libraries) to go the DSL route, Haskell's type-safety now applies to your HTML as well. On top of it, Ema's [hot reload](concepts/hot-reload.md) will instantly update the dev server's browser view whenever you change your HTML (or any of the Haskell source code).
 
-Of course when using Ema nothing prevents you from choosing to use traditional HTML templates, and you can get [hot reload](concepts/hot-reload.md) on them too with [a little bit of plumbing](guide/helpers/filesystem.md).
+Of course when using Ema nothing prevents you from choosing to use traditional HTML templates, and you can get [hot reload](concepts/hot-reload.md) on them too with [[filesystem|a little bit of plumbing]].
 
 {.last}
-[Next]{.next}, you might want to peruse [the helper topics](guide/helpers.md) if you need some extra functionality provided.
+[Next]{.next}, you might want to peruse [[howto]].

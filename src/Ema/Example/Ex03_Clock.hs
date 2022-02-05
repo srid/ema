@@ -11,12 +11,10 @@ module Ema.Example.Ex03_Clock where
 import Control.Concurrent (threadDelay)
 import Data.LVar qualified as LVar
 import Data.List ((!!))
-import Data.Some (Some)
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import Ema qualified
-import Ema.CLI qualified
-import Ema.Helper.Blaze qualified as EB
+import Ema.Example.Common (twindLayout)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -38,15 +36,15 @@ instance Ema UTCTime Route where
 main :: IO ()
 main = do
   void $
-    Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \_act model ->
+    Ema.runEma (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model ->
       forever $ do
         -- logDebugNS "ex:clock" "Refreshing time"
         LVar.set model =<< liftIO getCurrentTime
         liftIO $ threadDelay 1000000
 
-render :: Some Ema.CLI.Action -> UTCTime -> Route -> LByteString
-render emaAction now r =
-  EB.twindLayout emaAction (H.title "Clock" >> H.base ! A.href "/") $
+render :: UTCTime -> Route -> LByteString
+render now r =
+  twindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

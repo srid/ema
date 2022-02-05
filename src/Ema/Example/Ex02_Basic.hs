@@ -3,12 +3,10 @@ module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import Data.LVar qualified as LVar
-import Data.Some (Some (..))
 import Ema (Ema (..))
 import Ema qualified
-import Ema.CLI qualified
 import Ema.CLI qualified as CLI
-import Ema.Helper.Blaze qualified as EB
+import Ema.Example.Common (twindLayout)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -33,14 +31,14 @@ instance Ema Model Route where
 main :: IO ()
 main = do
   void $
-    Ema.runEma (\act m -> Ema.AssetGenerated Ema.Html . render act m) $ \act model -> do
+    Ema.runEma (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \act model -> do
       LVar.set model $ Model "Hello World. "
       when (CLI.isLiveServer act) $
         liftIO $ threadDelay maxBound
 
-render :: Some Ema.CLI.Action -> Model -> Route -> LByteString
-render emaAction model r =
-  EB.twindLayout emaAction (H.title "Basic site" >> H.base ! A.href "/") $
+render :: Model -> Route -> LByteString
+render model r =
+  twindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

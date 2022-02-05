@@ -31,4 +31,4 @@ CS.parseMarkdownWithFrontMatter @Metadata
 
 The template repo, as well as [Emanote](https://github.com/srid/emanote) (used to generate this site), uses this helper to parse Markdown files into Pandoc AST. Consult [the template repo's source code](https://github.com/srid/ema-template/blob/master/src/Main.hs) for details.
 
-Note that with Ema you can get [hot reload](concepts/hot-reload.md) support for your Markdown files using [the `unionmount` package](guide/helpers/filesystem.md).
+Note that with Ema you can get [hot reload](concepts/hot-reload.md) support for your Markdown files using [[filesystem|the `unionmount` package]].

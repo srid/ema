@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema
-version:            0.5.3.0
+version:            0.5.4.0
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -22,10 +22,6 @@ extra-source-files:
 
 flag with-examples
   description: Include examples and their dependencies
-  default:     True
-
-flag with-helpers
-  description: Include helper modules based on blaze-html
   default:     True
 
 library
@@ -64,13 +60,11 @@ library
     , warp
     , websockets
 
-  if (flag(with-helpers) || flag(with-examples))
+  if flag(with-examples)
     build-depends:
       , blaze-html
       , blaze-markup
-
-    if flag(with-examples)
-      build-depends: time
+      , time
 
   mixins:
     base hiding (Prelude),
@@ -127,10 +121,6 @@ library
     Ema
     Ema.CLI
 
-  if (flag(with-helpers) || flag(with-examples))
-    exposed-modules:
-      Ema.Helper.Blaze
-
   other-modules:
     Ema.App
     Ema.Asset
@@ -142,6 +132,7 @@ library
 
   if flag(with-examples)
     exposed-modules:
+      Ema.Example.Common
       Ema.Example.Ex01_HelloWorld
       Ema.Example.Ex02_Basic
       Ema.Example.Ex03_Clock

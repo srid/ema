@@ -7,6 +7,7 @@
   - `Ema.Helpers.PathTree` moved to separate package *pathtree*.
   - `Ema.Helpers.FileSystem` moved to separate package *unionmount*.
   - `Ema.Helpers.Markdown` moved to separate package *commonmark-simple*.
+  - `Ema.Helpers.Blaze` is no more. See `ema-template` if you need a ready made template using blaze HTML and TailwindCSS.
 
 ## 0.4.0.0 -- 2022-01-19
 
