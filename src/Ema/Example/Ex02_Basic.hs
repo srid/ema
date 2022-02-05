@@ -6,7 +6,7 @@ import Data.LVar qualified as LVar
 import Ema (Ema (..))
 import Ema qualified
 import Ema.CLI qualified as CLI
-import Ema.Example.Common (twindLayout)
+import Ema.Example.Common (tailwindLayout)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -38,7 +38,7 @@ main = do
 
 render :: Model -> Route -> LByteString
 render model r =
-  twindLayout (H.title "Basic site" >> H.base ! A.href "/") $
+  tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

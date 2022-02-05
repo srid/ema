@@ -14,7 +14,7 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import Ema qualified
-import Ema.Example.Common (twindLayout)
+import Ema.Example.Common (tailwindLayout)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -44,7 +44,7 @@ main = do
 
 render :: UTCTime -> Route -> LByteString
 render now r =
-  twindLayout (H.title "Clock" >> H.base ! A.href "/") $
+  tailwindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of

@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema
-version:            0.5.5.0
+version:            0.6.0.0
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -38,7 +38,6 @@ library
     , containers
     , data-default
     , dependent-sum
-    , url-slug
     , dependent-sum-template
     , directory
     , filepath
@@ -52,6 +51,7 @@ library
     , relude                  >=0.7      && <1.0
     , text
     , unliftio
+    , url-slug
     , wai
     , wai-middleware-static
     , wai-websockets
@@ -128,7 +128,7 @@ library
     Ema.Server
 
   if flag(with-examples)
-    exposed-modules:
+    other-modules:
       Ema.Example.Common
       Ema.Example.Ex01_HelloWorld
       Ema.Example.Ex02_Basic

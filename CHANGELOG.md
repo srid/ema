@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## Unreleased
+## 0.6.0.0 -- 2022-02-05
 
 - Websocket API: Add `ema.switchRoute` to switch to other routes in live server.
 - Smaller core: remove helpers and examples (examples can be enabled by a flag)
@@ -9,7 +9,7 @@
     - `Ema.Helpers.FileSystem` moved to separate package *unionmount*.
     - `Ema.Helpers.Markdown` moved to separate package *commonmark-simple*.
     - `Ema.Helpers.Blaze` is no more. See `ema-template` if you need a ready made template using blaze HTML and TailwindCSS.
-  - Examples `with-examples` cabal flag is made False by default.
+  - Examples `with-examples` cabal flag is made False by default. Examples are not exposed modules.
   - `Ema.Route.Slug` moved to separate package *url-slug*
 
 ## 0.4.0.0 -- 2022-01-19

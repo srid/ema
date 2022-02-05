@@ -1,8 +1,5 @@
--- | Use Tailwind CSS with blaze-html? Try this module for rapid prototyping of
--- websites in Ema.
 module Ema.Example.Common
-  ( -- * Main functions
-    twindLayout,
+  ( tailwindLayout,
   )
 where
 
@@ -12,8 +9,8 @@ import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
 
 -- | A simple and off-the-shelf layout using Tailwind CSS
-twindLayout :: H.Html -> H.Html -> LByteString
-twindLayout h b =
+tailwindLayout :: H.Html -> H.Html -> LByteString
+tailwindLayout h b =
   layoutWith "en" "UTF-8" (tailwind2ShimCdn >> h) $
     -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
     -- avoid janky shifts when switching to routes with suddenly scrollable content.
