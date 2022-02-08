@@ -1,5 +1,9 @@
 # Revision history for ema
 
+## Unreleased
+
+- Fix bug in `Ex02_Basic.hs` (wasn't generating HTML files)
+
 ## 0.6.0.0 -- 2022-02-05
 
 - Websocket API: Add `ema.switchRoute` to switch to other routes in live server.
