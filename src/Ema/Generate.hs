@@ -6,7 +6,7 @@ module Ema.Generate where
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Ema.Asset (Asset (..))
-import Ema.Class (Ema (allRoutes, encodeRoute))
+import Ema.Class (Ema (RouteFor, allRoutes, encodeRoute))
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -16,16 +16,16 @@ log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
 
 generate ::
-  forall model route m.
+  forall model m.
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    Ema model route,
+    Ema model,
     HasCallStack
   ) =>
   FilePath ->
   model ->
-  (model -> route -> Asset LByteString) ->
+  (model -> RouteFor model -> Asset LByteString) ->
   -- | List of generated files.
   m [FilePath]
 generate dest model render = do

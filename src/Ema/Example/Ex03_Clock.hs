@@ -24,7 +24,8 @@ data Route
   | OnlyTime
   deriving stock (Show, Enum, Bounded)
 
-instance Ema UTCTime Route where
+instance Ema UTCTime where
+  type RouteFor UTCTime = Route
   encodeRoute _time = \case
     Index -> "index.html"
     OnlyTime -> "time.html"
@@ -35,12 +36,12 @@ instance Ema UTCTime Route where
 
 main :: IO ()
 main = do
-  void $
-    Ema.runEma (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model ->
-      forever $ do
-        -- logDebugNS "ex:clock" "Refreshing time"
-        LVar.set model =<< liftIO getCurrentTime
-        liftIO $ threadDelay 1000000
+  site <- Ema.mkSite (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model ->
+    forever $ do
+      -- logDebugNS "ex:clock" "Refreshing time"
+      LVar.set model =<< liftIO getCurrentTime
+      liftIO $ threadDelay 1000000
+  void $ Ema.runEma site
 
 render :: UTCTime -> Route -> LByteString
 render now r =
