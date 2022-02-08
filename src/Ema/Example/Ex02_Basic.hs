@@ -5,7 +5,6 @@ import Control.Concurrent (threadDelay)
 import Data.LVar qualified as LVar
 import Ema (Ema (..))
 import Ema qualified
-import Ema.App
 import Ema.Example.Common (tailwindLayout)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
@@ -31,7 +30,7 @@ instance Ema Model where
 
 main :: IO ()
 main = do
-  site <- mkSite (const $ \m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model -> do
+  site <- Ema.mkSite (const $ \m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model -> do
     LVar.set model $ Model "Hello World."
     liftIO $ threadDelay maxBound
   void $ Ema.runEma site

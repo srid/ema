@@ -2,10 +2,6 @@ module Ema.App
   ( runEma,
     runEmaPure,
     runEmaWithCli,
-
-    -- * Site TODO: Different module?
-    Site (..),
-    mkSite,
   )
 where
 
@@ -18,7 +14,6 @@ import Control.Monad.Logger.Extras
     runLoggerLoggingT,
   )
 import Data.Dependent.Sum (DSum ((:=>)))
-import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
@@ -27,6 +22,7 @@ import Ema.CLI qualified as CLI
 import Ema.Class
 import Ema.Generate qualified as Generate
 import Ema.Server qualified as Server
+import Ema.Site
 import System.Directory (getCurrentDirectory)
 import UnliftIO
   ( BufferMode (BlockBuffering, LineBuffering),
@@ -69,26 +65,6 @@ runEma ::
 runEma site = do
   cli <- CLI.cliAction
   runEmaWithCli cli site
-
-data Site model b = Site
-  { siteData :: LVar model,
-    siteRun :: forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b,
-    siteRender :: Some CLI.Action -> model -> RouteFor model -> Asset LByteString
-  }
-
-mkSite ::
-  forall model m b.
-  MonadIO m =>
-  ( Some CLI.Action ->
-    model ->
-    RouteFor model ->
-    Asset LByteString
-  ) ->
-  (forall m1. MonadIO m1 => Some CLI.Action -> LVar model -> m1 b) ->
-  m (Site model b)
-mkSite render run = do
-  model <- LVar.empty
-  pure $ Site model run render
 
 -- | Like @runEma@ but takes the CLI action
 --
@@ -134,6 +110,7 @@ runEmaWithCliInCwd cliAction site = do
   val <- LVar.get $ siteData site
   logInfoN "... initial model is now available."
   -- TODO: Have these work with multiple sites (nonempty list)
+  -- Should work in both generate and server
   case cliAction of
     Some (CLI.Generate dest) -> do
       fs <-
@@ -141,7 +118,7 @@ runEmaWithCliInCwd cliAction site = do
           Generate.generate dest val (siteRender site cliAction)
       pure $ CLI.Generate dest :=> Identity fs
     Some (CLI.Run (host, port)) -> do
-      Server.runServerWithWebSocketHotReload host port (siteData site) (siteRender site cliAction)
+      Server.runServerWithWebSocketHotReload cliAction host port site
       pure $ CLI.Run (host, port) :=> Identity ()
   where
     -- Temporarily use block buffering before calling an IO action that is

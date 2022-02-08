@@ -121,6 +121,7 @@ library
 
   other-modules:
     Ema.App
+    Ema.Site
     Ema.Asset
     Ema.Class
     Ema.Generate

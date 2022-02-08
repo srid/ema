@@ -5,12 +5,14 @@ module Ema.Server where
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
 import Control.Monad.Logger
-import Data.Default
-import Data.LVar (LVar)
 import Data.LVar qualified as LVar
+import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset
+import Ema.CLI
+import Ema.CLI qualified as CLI
 import Ema.Class (Ema (..))
+import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
@@ -24,34 +26,21 @@ import System.FilePath ((</>))
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
--- | Host string to start the server on.
-newtype Host = Host {unHost :: Text}
-  deriving newtype (Eq, Show, Ord, IsString)
-
--- | Port number to bind the server on.
-newtype Port = Port {unPort :: Int}
-  deriving newtype (Eq, Show, Ord, Num, Read)
-
-instance Default Host where
-  def = "127.0.0.1"
-
-instance Default Port where
-  def = 8000
-
 runServerWithWebSocketHotReload ::
-  forall model m.
+  forall model m b.
   ( Ema model,
     Show (RouteFor model),
     MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m
   ) =>
+  Some CLI.Action ->
   Host ->
   Port ->
-  LVar model ->
-  (model -> RouteFor model -> Asset LByteString) ->
+  Site model b ->
   m ()
-runServerWithWebSocketHotReload host port model render = do
+-- TODO: remove host/port (already in cliA)
+runServerWithWebSocketHotReload cliA host port site = do
   let settings =
         Warp.defaultSettings
           & Warp.setPort (unPort port)
@@ -70,6 +59,7 @@ runServerWithWebSocketHotReload host port model render = do
           (httpApp logger)
   where
     wsApp pendingConn = do
+      let model = siteData site
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO
       lift $
@@ -142,7 +132,7 @@ runServerWithWebSocketHotReload host port model render = do
       Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do
-        val <- LVar.get model
+        val <- LVar.get $ siteData site
         let path = Wai.pathInfo req
             mr = routeFromPathInfo val path
         logInfoNS "HTTP" $ show path <> " as " <> show mr
@@ -161,7 +151,7 @@ runServerWithWebSocketHotReload host port model render = do
                 let mimeType = Static.getMimeType $ encodeRoute val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (render m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteRender site cliA m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
