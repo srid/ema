@@ -27,7 +27,7 @@ import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
-  forall model m b.
+  forall model m.
   ( Ema model,
     Show (RouteFor model),
     MonadIO m,
@@ -37,7 +37,7 @@ runServerWithWebSocketHotReload ::
   Some CLI.Action ->
   Host ->
   Port ->
-  Site model b ->
+  Site model ->
   m ()
 -- TODO: remove host/port (already in cliA)
 runServerWithWebSocketHotReload cliA host port site = do

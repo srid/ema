@@ -53,15 +53,15 @@ runEmaPure render = do
 -- It uses @race_@ to properly clean up the update action when the ema thread
 -- exits, and vice-versa.
 runEma ::
-  forall model b.
+  forall model.
   (Ema model, Show (RouteFor model)) =>
-  Site model b ->
+  Site model ->
   -- | How to render a route, given the model
   -- (Some CLI.Action -> model -> RouteFor model -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   -- (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b) ->
-  IO (Either b (DSum CLI.Action Identity))
+  IO (Maybe (DSum CLI.Action Identity))
 runEma site = do
   cli <- CLI.cliAction
   runEmaWithCli cli site
@@ -70,14 +70,14 @@ runEma site = do
 --
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
-  forall model b.
+  forall model.
   (Ema model, Show (RouteFor model)) =>
   Cli ->
   -- | How to render a route, given the model
-  Site model b ->
+  Site model ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  IO (Either b (DSum CLI.Action Identity))
+  IO (Maybe (DSum CLI.Action Identity))
 runEmaWithCli cli site = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout
@@ -85,13 +85,14 @@ runEmaWithCli cli site = do
     cwd <- liftIO getCurrentDirectory
     logInfoN $ "Launching Ema under: " <> toText cwd
     logInfoN "Waiting for initial model ..."
-  race
-    (flip runLoggerLoggingT logger $ siteRun site (CLI.action cli) $ siteData site)
-    (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) site)
+  rightToMaybe
+    <$> race
+      (flip runLoggerLoggingT logger $ siteRun site (CLI.action cli) $ siteData site)
+      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) site)
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
-  forall model m b.
+  forall model m.
   (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema model, Show (RouteFor model)) =>
   -- | CLI arguments
   Some CLI.Action ->
@@ -101,7 +102,7 @@ runEmaWithCliInCwd ::
   -- Use @Data.LVar.new@ to create it, and then -- over time -- @Data.LVar.set@
   -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
   -- site as this model data changes.
-  Site model b ->
+  Site model ->
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.

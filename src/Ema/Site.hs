@@ -15,22 +15,22 @@ import UnliftIO
   ( MonadUnliftIO,
   )
 
-data Site model b = Site
+data Site model = Site
   { siteData :: LVar model,
-    siteRun :: forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b,
+    siteRun :: forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m (),
     siteRender :: Some CLI.Action -> model -> RouteFor model -> Asset LByteString
   }
 
 mkSite ::
-  forall model m b.
+  forall model m.
   MonadIO m =>
   ( Some CLI.Action ->
     model ->
     RouteFor model ->
     Asset LByteString
   ) ->
-  (forall m1. MonadIO m1 => Some CLI.Action -> LVar model -> m1 b) ->
-  m (Site model b)
+  (forall m1. MonadIO m1 => Some CLI.Action -> LVar model -> m1 ()) ->
+  m (Site model)
 mkSite render run = do
   model <- LVar.empty
   pure $ Site model run render
