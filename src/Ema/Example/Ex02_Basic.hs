@@ -18,7 +18,8 @@ data Route
 
 newtype Model = Model {unModel :: Text}
 
-instance Ema Model Route where
+instance Ema Route where
+  type ModelFor Route = Model
   encodeRoute _model =
     \case
       Index -> "index.html"
@@ -31,7 +32,7 @@ instance Ema Model Route where
 main :: IO ()
 main = do
   void $
-    Ema.runEma (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \act model -> do
+    Ema.runEma (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model -> do
       LVar.set model $ Model "Hello World. "
       liftIO $ threadDelay maxBound
 
