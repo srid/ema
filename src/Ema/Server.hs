@@ -27,9 +27,9 @@ import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
-  forall model m.
-  ( Ema model,
-    Show (RouteFor model),
+  forall r m.
+  ( Ema r,
+    Show r,
     MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m
@@ -37,7 +37,7 @@ runServerWithWebSocketHotReload ::
   Some CLI.Action ->
   Host ->
   Port ->
-  Site model ->
+  Site r ->
   m ()
 -- TODO: remove host/port (already in cliA)
 runServerWithWebSocketHotReload cliA host port site = do
@@ -185,11 +185,11 @@ pathInfoFromWsMsg =
 -- | Decode a URL path into a route
 --
 -- This function is used only in live server.
-decodeUrlRoute :: forall model. Ema model => model -> Text -> Maybe (RouteFor model)
+decodeUrlRoute :: forall r. Ema r => ModelFor r -> Text -> Maybe r
 decodeUrlRoute model (toString -> s) = do
-  decodeRoute @model model s
-    <|> decodeRoute @model model (s <> ".html")
-    <|> decodeRoute @model model (s </> "index.html")
+  decodeRoute @r model s
+    <|> decodeRoute @r model (s <> ".html")
+    <|> decodeRoute @r model (s </> "index.html")
 
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"

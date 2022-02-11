@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 -- | A very simple site with routes, but based on dynamically changing values
 --
 -- The current time is computed in the server every second, and the resultant
@@ -24,8 +22,8 @@ data Route
   | OnlyTime
   deriving stock (Show, Enum, Bounded)
 
-instance Ema UTCTime where
-  type RouteFor UTCTime = Route
+instance Ema Route where
+  type ModelFor Route = UTCTime
   encodeRoute _time = \case
     Index -> "index.html"
     OnlyTime -> "time.html"

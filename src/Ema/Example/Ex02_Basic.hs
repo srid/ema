@@ -17,8 +17,8 @@ data Route
 
 newtype Model = Model {unModel :: Text}
 
-instance Ema Model where
-  type RouteFor Model = Route
+instance Ema Route where
+  type ModelFor Route = Model
   encodeRoute _model =
     \case
       Index -> "index.html"

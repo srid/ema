@@ -15,21 +15,16 @@ import Control.Monad.Logger.Extras
   )
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
-import Data.Some
+import Data.Some ( Some(..) )
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Class
-import Ema.Generate qualified as Generate
 import Ema.Server qualified as Server
 import Ema.Site
 import System.Directory (getCurrentDirectory)
-import UnliftIO
-  ( BufferMode (BlockBuffering, LineBuffering),
-    MonadUnliftIO,
-    hFlush,
-    hSetBuffering,
-  )
+import UnliftIO (MonadUnliftIO)
+import Prelude hiding (All)
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -53,9 +48,9 @@ runEmaPure render = do
 -- It uses @race_@ to properly clean up the update action when the ema thread
 -- exits, and vice-versa.
 runEma ::
-  forall model.
-  (Ema model, Show (RouteFor model)) =>
-  Site model ->
+  forall r.
+  (Ema r, Show r) =>
+  Site r ->
   -- | How to render a route, given the model
   -- (Some CLI.Action -> model -> RouteFor model -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
@@ -70,11 +65,11 @@ runEma site = do
 --
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
-  forall model.
-  (Ema model, Show (RouteFor model)) =>
+  forall r.
+  (Ema r, Show r) =>
   Cli ->
   -- | How to render a route, given the model
-  Site model ->
+  Site r ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   IO (Maybe (DSum CLI.Action Identity))
@@ -92,8 +87,8 @@ runEmaWithCli cli site = do
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
-  forall model m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema model, Show (RouteFor model)) =>
+  forall r m.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r, Show r) =>
   -- | CLI arguments
   Some CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
@@ -102,29 +97,19 @@ runEmaWithCliInCwd ::
   -- Use @Data.LVar.new@ to create it, and then -- over time -- @Data.LVar.set@
   -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
   -- site as this model data changes.
-  Site model ->
+  Site r ->
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
   m (DSum CLI.Action Identity)
 runEmaWithCliInCwd cliAction site = do
-  val <- LVar.get $ siteData site
-  logInfoN "... initial model is now available."
   -- TODO: Have these work with multiple sites (nonempty list)
   -- Should work in both generate and server
   case cliAction of
     Some (CLI.Generate dest) -> do
-      fs <-
-        withBlockBuffering $
-          Generate.generate dest val (siteRender site cliAction)
-      pure $ CLI.Generate dest :=> Identity fs
+      res <- generateSite cliAction dest site
+      pure $ CLI.Generate dest :=> Identity res
     Some (CLI.Run (host, port)) -> do
+      -- TODO: Wait for model to be available
       Server.runServerWithWebSocketHotReload cliAction host port site
       pure $ CLI.Run (host, port) :=> Identity ()
-  where
-    -- Temporarily use block buffering before calling an IO action that is
-    -- known ahead to log rapidly, so as to not hamper serial processing speed.
-    withBlockBuffering f =
-      hSetBuffering stdout (BlockBuffering Nothing)
-        *> f
-        <* (hSetBuffering stdout LineBuffering >> hFlush stdout)

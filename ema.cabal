@@ -57,6 +57,7 @@ library
     , wai-websockets
     , warp
     , websockets
+    , sop-core
 
   if flag(with-examples)
     build-depends:
