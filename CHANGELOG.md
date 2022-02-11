@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Fix bug in `Ex02_Basic.hs` (wasn't generating HTML files)
+- Typeclass
+  - Change typeclass to be indexed only route (`Ema r`)
+  - Allow `allRoutes` to be determined from `Universe` instead of `Enum`/`Bounded`. Generic instances are available for free as well.
 
 ## 0.6.0.0 -- 2022-02-05
 

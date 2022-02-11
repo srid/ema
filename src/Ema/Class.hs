@@ -2,8 +2,9 @@
 
 module Ema.Class where
 
+import Data.Universe (Finite (universeF))
+
 -- | Enrich a model to work with Ema
--- TODO: Rename to `Routable`? (keeping only encode/decode)
 class Ema r where
   type ModelFor r :: Type
 
@@ -17,11 +18,9 @@ class Ema r where
   --
   -- The `gen` command will generate only these routes. On live server, this
   -- function is never used.
-  -- TODO: Rename to staticRoutes? Or be isomorphic to live server.
-  -- TODO: Move to `Site` type
   allRoutes :: ModelFor r -> [r]
-  default allRoutes :: (Bounded r, Enum r) => ModelFor r -> [r]
-  allRoutes _ = [minBound .. maxBound]
+  default allRoutes :: (Finite r) => ModelFor r -> [r]
+  allRoutes _ = universeF
 
 -- | The unit model is useful when using Ema in pure fashion (see
 -- @Ema.runEmaPure@) with a single route (index.html) only.
@@ -32,4 +31,3 @@ instance Ema () where
     [] -> Just ()
     _ -> Nothing
   allRoutes () = one ()
-

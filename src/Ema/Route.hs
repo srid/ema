@@ -9,7 +9,7 @@ import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
-import Ema.Class (Ema (encodeRoute, ModelFor))
+import Ema.Class (Ema (ModelFor, encodeRoute))
 import Network.URI.Slug qualified as Slug
 
 data UrlStrategy
@@ -57,6 +57,6 @@ routeUrlWith urlStrategy model =
           UrlPretty -> ".html"
           UrlDirect -> ""
 
-routeUrl :: forall r . Ema r => ModelFor r -> r -> Text
+routeUrl :: forall r. Ema r => ModelFor r -> r -> Text
 routeUrl =
   routeUrlWith UrlPretty
