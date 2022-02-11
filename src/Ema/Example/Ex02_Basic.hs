@@ -8,7 +8,6 @@ import Data.LVar qualified as LVar
 import Data.Universe (Finite, Universe (..), universeGeneric)
 import Ema (Ema (..))
 import Ema qualified
-import Ema.CLI qualified as CLI
 import Ema.Example.Common (tailwindLayout)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H

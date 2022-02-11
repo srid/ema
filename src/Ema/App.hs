@@ -45,8 +45,7 @@ runEmaPure render = do
   void $
     runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
       LVar.set model ()
-      when (CLI.isLiveServer act) $
-        liftIO $ threadDelay maxBound
+      liftIO $ threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
