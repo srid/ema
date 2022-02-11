@@ -49,6 +49,7 @@ library
     , neat-interpolation
     , optparse-applicative
     , relude                  >=0.7      && <1.0
+    , sop-core
     , text
     , unliftio
     , url-slug
@@ -57,7 +58,6 @@ library
     , wai-websockets
     , warp
     , websockets
-    , sop-core
 
   if flag(with-examples)
     build-depends:
@@ -122,12 +122,12 @@ library
 
   other-modules:
     Ema.App
-    Ema.Site
     Ema.Asset
     Ema.Class
     Ema.Generate
     Ema.Route
     Ema.Server
+    Ema.Site
 
   if flag(with-examples)
     other-modules:

@@ -11,28 +11,29 @@ module Ema.Site
 where
 
 import Control.Monad.Logger (MonadLoggerIO, logInfoN)
+import Data.Functor.Compose (Compose (Compose))
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
-import Data.SOP (All, HCollapse (hcollapse), I (I), K (..), NP (Nil, (:*)), hcmap, NS (S, Z), unI)
-import System.FilePath
+import Data.SOP (All, HCollapse (hcollapse), I (I), K (..), NP (Nil, (:*)), NS (S, Z), hcmap, unI)
 import Data.Some (Some)
+import Data.Text qualified as T
 import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Class
 import Ema.Generate qualified as Generate
+import GHC.TypeLits
+import System.FilePath
 import UnliftIO
   ( MonadUnliftIO,
   )
-import UnliftIO.IO
-    ( stdout,
-      hFlush,
-      hSetBuffering,
-      BufferMode(LineBuffering, BlockBuffering) )
-import Prelude hiding (Compose)
-import Data.Functor.Compose (Compose (Compose))
 import UnliftIO.Concurrent (forkIO)
-import GHC.TypeLits
-import qualified Data.Text as T
+import UnliftIO.IO
+  ( BufferMode (BlockBuffering, LineBuffering),
+    hFlush,
+    hSetBuffering,
+    stdout,
+  )
+import Prelude hiding (Compose)
 
 -- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
 -- context value.
@@ -45,17 +46,28 @@ partialIsoIsLawfulForCtx (to, from, getas) ctx =
 data Site r = Site
   { siteData :: LVar (ModelFor r),
     -- siteUrlEncoder :: PartialIsoEnumerableWithCtx model FilePath r,
-    siteRun :: 
-      forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => 
-      Some CLI.Action -> LVar (ModelFor r) -> m (),
-    siteRender :: 
-      Some CLI.Action -> ModelFor r -> r -> Asset LByteString
+    siteRun ::
+      forall m.
+      (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+      Some CLI.Action ->
+      LVar (ModelFor r) ->
+      m (),
+    siteRender ::
+      Some CLI.Action ->
+      ModelFor r ->
+      r ->
+      Asset LByteString
   }
 
 data RoutePrefix (p :: Symbol) r = RoutePrefix r
 
 type NoteRoute = ()
+
 type NoteRouteMouted = RoutePrefix "notes" NoteRoute
+
+liftSite :: forall p r. Site r -> Site (RoutePrefix p r)
+liftSite site =
+  undefined
 
 instance (Ema r, KnownSymbol p) => Ema (RoutePrefix p r) where
   type ModelFor (RoutePrefix p r) = ModelFor r
@@ -101,8 +113,6 @@ mkMultiSite sites = do
     listenNext lvar subId =
       undefined
 
-
-
 instance (rs ~ (mx ': ms), SelectNP ModelFor' ms, SelectSum I ModelFor' ms, Data.SOP.All Ema rs) => Ema (MultiSite rs) where
   type ModelFor (MultiSite rs) = NP ModelFor' rs
   decodeRoute sites fp = do
@@ -112,7 +122,7 @@ instance (rs ~ (mx ': ms), SelectNP ModelFor' ms, SelectSum I ModelFor' ms, Data
     selectSum sites r $ \(model :: I model) (RouteFor' r :: RouteFor' model) ->
       encodeRoute (unI model) r
   allRoutes sites =
-    -- collapseSites sites $ \site -> 
+    -- collapseSites sites $ \site ->
     --  allRoutes sites
     undefined
 
@@ -149,7 +159,6 @@ instance SelectNP f xs => SelectNP f (x ': xs) where
       Just v -> Just $ Z v
 
 -}
-
 
 mkSite ::
   forall r m.

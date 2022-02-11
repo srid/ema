@@ -15,7 +15,7 @@ import Control.Monad.Logger.Extras
   )
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
-import Data.Some ( Some(..) )
+import Data.Some (Some (..))
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
