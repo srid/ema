@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Ema.Site
   ( Site (..),
@@ -65,9 +66,15 @@ type NoteRoute = ()
 
 type NoteRouteMouted = RoutePrefix "notes" NoteRoute
 
-liftSite :: forall p r. Site r -> Site (RoutePrefix p r)
-liftSite site =
-  undefined
+ex :: Site r -> Site (RoutePrefix "foo" r)
+ex s = siteUnder @"foo" s
+
+siteUnder :: forall p r. Site r -> Site (RoutePrefix p r)
+siteUnder Site {..} =
+  Site siteData siteRun siteRender'
+  where 
+    siteRender' cliAct model (RoutePrefix r) =
+      siteRender cliAct model r
 
 instance (Ema r, KnownSymbol p) => Ema (RoutePrefix p r) where
   type ModelFor (RoutePrefix p r) = ModelFor r
