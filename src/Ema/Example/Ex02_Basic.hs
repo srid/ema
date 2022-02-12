@@ -30,9 +30,13 @@ instance Ema Route where
 
 main :: IO ()
 main = do
-  let site :: Site Route = Site (const $ \m -> Ema.AssetGenerated Ema.Html . render m) $ \_act updateModel -> do
-        updateModel . const $ Model "Hello World."
-        liftIO $ threadDelay maxBound
+  let site :: Site Route =
+        Site
+          { siteRender = \_ m r ->
+              Ema.AssetGenerated Ema.Html $ render m r,
+            siteModelPatcher = \_ set -> do
+              void $ set $ Model "Hello World."
+          }
   void $ Ema.runEma site
 
 render :: Model -> Route -> LByteString

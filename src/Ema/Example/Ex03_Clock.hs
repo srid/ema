@@ -34,11 +34,17 @@ instance Ema Route where
 
 main :: IO ()
 main = do
-  let site :: Site Route = Site (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act updateModel ->
-        forever $ do
-          -- logDebugNS "ex:clock" "Refreshing time"
-          updateModel . const =<< liftIO getCurrentTime
-          liftIO $ threadDelay 1000000
+  let site :: Site Route =
+        Site
+          { siteRender = \_ m r ->
+              Ema.AssetGenerated Ema.Html $ render m r,
+            siteModelPatcher = \_ set -> do
+              patch <- set =<< liftIO getCurrentTime
+              forever $ do
+                t <- liftIO getCurrentTime
+                patch $ \_ -> t
+                liftIO $ threadDelay 1000000
+          }
   void $ Ema.runEma site
 
 render :: UTCTime -> Route -> LByteString

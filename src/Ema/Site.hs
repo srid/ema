@@ -43,11 +43,13 @@ data Site r = Site
       ModelFor r ->
       r ->
       Asset LByteString,
-    siteRunModel ::
+    -- | Thread that will patch the model over time.
+    siteModelPatcher ::
       forall m.
       (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
       Some CLI.Action ->
-      ((ModelFor r -> ModelFor r) -> m ()) ->
+      -- Sets the initial mode, and returns a function to patch it.
+      (ModelFor r -> m ((ModelFor r -> ModelFor r) -> m ())) ->
       m ()
   }
 
@@ -62,7 +64,7 @@ ex s = siteUnder @"foo" s
 
 siteUnder :: forall p r. Site r -> Site (RoutePrefix p r)
 siteUnder Site {..} =
-  Site siteRender' siteRunModel
+  Site siteRender' siteModelPatcher
   where
     siteRender' cliAct model (RoutePrefix r) =
       siteRender cliAct model r
@@ -99,7 +101,7 @@ mkMultiSite sites = do
       models <- LVar.get modelLvar
       void $ sequence $ collapseSites sites $ \site -> do
         -- TODO: no fork
-        forkIO $ siteRunModel site cliAct (siteData site)
+        forkIO $ siteModelPatcher site cliAct (siteData site)
         forkIO $ do
           subId <- LVar.addListener $ siteData site
           forever $ do

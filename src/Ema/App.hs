@@ -37,8 +37,8 @@ runEmaPure ::
   (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  let site :: Site () = Site @() (\act () () -> AssetGenerated Html $ render act) $ \_act updateModel -> do
-        updateModel $ const ()
+  let site :: Site () = Site @() (\act () () -> AssetGenerated Html $ render act) $ \_act setModel -> do
+        void $ setModel ()
         liftIO $ threadDelay maxBound
   void $ runEma site
 
@@ -81,10 +81,14 @@ runEmaWithCli cli site = do
     logInfoN $ "Launching Ema under: " <> toText cwd
     logInfoN "Waiting for initial model ..."
   model <- LVar.empty
-  let updateModel = LVar.modify model
+  let setModel v = LVar.set model v >> pure (LVar.modify model)
   rightToMaybe
     <$> race
-      (flip runLoggerLoggingT logger $ siteRunModel site (CLI.action cli) updateModel)
+      ( flip runLoggerLoggingT logger $ do
+          siteModelPatcher site (CLI.action cli) setModel
+          logInfoN "modelPatcher exited; keeping thread alive ..."
+          liftIO $ threadDelay maxBound
+      )
       (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) site model)
 
 -- | Run Ema live dev server
