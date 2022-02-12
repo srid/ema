@@ -9,11 +9,9 @@ module Ema.Example.Ex03_Clock where
 import Control.Concurrent (threadDelay)
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Ema (Ema (..))
+import Ema (PartialIsoEnumerableWithCtx, Site (..), defaultEnum)
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
-import Ema.Site
-import Ema.Site (PartialIsoEnumerableWithCtx, defaultEnum)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -23,9 +21,7 @@ data Route
   | OnlyTime
   deriving stock (Show, Enum, Bounded)
 
-instance Ema Route where
-  type ModelFor Route = UTCTime
-
+routeEncoder :: PartialIsoEnumerableWithCtx m FilePath Route
 routeEncoder =
   (enc, dec, all_)
   where
@@ -36,11 +32,11 @@ routeEncoder =
       "index.html" -> Just Index
       "time.html" -> Just OnlyTime
       _ -> Nothing
-    all_ = defaultEnum @Route
+    all_ _ = defaultEnum @Route
 
 main :: IO ()
 main = do
-  let site :: Site Route =
+  let site :: Site Route UTCTime =
         Site
           { siteRender = \_ enc m r ->
               Ema.AssetGenerated Ema.Html $ render enc m r,
@@ -49,7 +45,8 @@ main = do
               forever $ do
                 t <- liftIO getCurrentTime
                 patch $ \_ -> t
-                liftIO $ threadDelay 1000000
+                liftIO $ threadDelay 1000000,
+            siteRouteEncoder = routeEncoder
           }
   void $ Ema.runEma site
 

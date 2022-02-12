@@ -49,7 +49,6 @@ library
     , neat-interpolation
     , optparse-applicative
     , relude                  >=0.7      && <1.0
-    , sop-core
     , text
     , unliftio
     , url-slug
@@ -123,7 +122,6 @@ library
   other-modules:
     Ema.App
     Ema.Asset
-    Ema.Class
     Ema.Generate
     Ema.Route
     Ema.Server

@@ -19,7 +19,6 @@ import Data.Some (Some (..))
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
-import Ema.Class
 import Ema.Generate (generateSite)
 import Ema.Server qualified as Server
 import Ema.Site
@@ -38,9 +37,9 @@ runEmaPure ::
   (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  let site :: Site () =
+  let site :: Site () () =
         Site
-          { siteRender = \act enc () () -> AssetGenerated Html $ render act,
+          { siteRender = \act _enc () () -> AssetGenerated Html $ render act,
             siteModelPatcher = \_act setModel -> do
               void $ setModel ()
               liftIO $ threadDelay maxBound,
@@ -54,9 +53,9 @@ runEmaPure render = do
 -- It uses @race_@ to properly clean up the update action when the ema thread
 -- exits, and vice-versa.
 runEma ::
-  forall r.
-  (Ema r, Show r) =>
-  Site r ->
+  forall r a.
+  (Show r) =>
+  Site r a ->
   -- | How to render a route, given the model
   -- (Some CLI.Action -> model -> RouteFor model -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
@@ -71,11 +70,11 @@ runEma site = do
 --
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
-  forall r.
-  (Ema r, Show r) =>
+  forall r a.
+  (Show r) =>
   Cli ->
   -- | How to render a route, given the model
-  Site r ->
+  Site r a ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   IO (Maybe (DSum CLI.Action Identity))
@@ -99,8 +98,8 @@ runEmaWithCli cli site = do
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
-  forall r m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r, Show r) =>
+  forall r a m.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Show r) =>
   -- | CLI arguments
   Some CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
@@ -109,11 +108,11 @@ runEmaWithCliInCwd ::
   -- Use @Data.LVar.new@ to create it, and then -- over time -- @Data.LVar.set@
   -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
   -- site as this model data changes.
-  Site r ->
+  Site r a ->
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  LVar.LVar (ModelFor r) ->
+  LVar.LVar a ->
   m (DSum CLI.Action Identity)
 runEmaWithCliInCwd cliAction site model = do
   -- TODO: Have these work with multiple sites (nonempty list)

@@ -1,12 +1,9 @@
 -- | A very simple site with two routes, and HTML rendered using Blaze DSL
 module Ema.Example.Ex02_Basic where
 
-import Control.Concurrent (threadDelay)
-import Ema (Ema (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Ema.Site
-import Ema.Site (Site (siteRouteEncoder))
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -18,9 +15,7 @@ data Route
 
 newtype Model = Model {unModel :: Text}
 
-instance Ema Route where
-  type ModelFor Route = Model
-
+routeEncoder :: PartialIsoEnumerableWithCtx m FilePath Route
 routeEncoder =
   (enc, dec, all_)
   where
@@ -36,7 +31,7 @@ routeEncoder =
 
 main :: IO ()
 main = do
-  let site :: Site Route =
+  let site :: Site Route Model =
         Site
           { siteRender = \_ enc m r ->
               Ema.AssetGenerated Ema.Html $ render enc m r,

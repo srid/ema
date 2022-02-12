@@ -15,7 +15,6 @@ import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
-import Ema.Class
 import GHC.TypeLits
 import System.FilePath
 import Text.Show (Show (show))
@@ -35,11 +34,11 @@ partialIsoIsLawfulForCtx (to, from, getas) ctx =
 defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
 
-data Site r = Site
+data Site r a = Site
   { siteRender ::
       Some CLI.Action ->
-      PartialIsoEnumerableWithCtx (ModelFor r) FilePath r ->
-      ModelFor r ->
+      PartialIsoEnumerableWithCtx a FilePath r ->
+      a ->
       r ->
       Asset LByteString,
     -- | Thread that will patch the model over time.
@@ -48,10 +47,10 @@ data Site r = Site
       (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
       Some CLI.Action ->
       -- Sets the initial mode, and returns a function to patch it.
-      (ModelFor r -> m ((ModelFor r -> ModelFor r) -> m ())) ->
+      (a -> m ((a -> a) -> m ())) ->
       m (),
     siteRouteEncoder ::
-      PartialIsoEnumerableWithCtx (ModelFor r) FilePath r
+      PartialIsoEnumerableWithCtx a FilePath r
   }
 
 data RoutePrefix (p :: Symbol) r = RoutePrefix {unRoutePrefix :: r}
@@ -59,24 +58,21 @@ data RoutePrefix (p :: Symbol) r = RoutePrefix {unRoutePrefix :: r}
 instance (Show r, KnownSymbol p) => Show (RoutePrefix p r) where
   show (RoutePrefix r) = symbolVal (Proxy @p) <> ":" <> Text.Show.show r
 
-instance Ema r => Ema (RoutePrefix p r) where
-  type ModelFor (RoutePrefix p r) = ModelFor r
-
-siteUnder :: forall p r. (Ema r, KnownSymbol p, ModelFor r ~ ModelFor (RoutePrefix p r)) => Site r -> Site (RoutePrefix p r)
+siteUnder :: forall p r a. (KnownSymbol p) => Site r a -> Site (RoutePrefix p r) a
 siteUnder Site {..} =
   Site siteRender' siteModelPatcher routeEncoder
   where
     siteRender' cliAct rEnc model (RoutePrefix r) =
       siteRender cliAct (conv rEnc) model r
     conv ::
-      PartialIsoEnumerableWithCtx (ModelFor r) FilePath (RoutePrefix p r) ->
-      PartialIsoEnumerableWithCtx (ModelFor r) FilePath r
+      PartialIsoEnumerableWithCtx a FilePath (RoutePrefix p r) ->
+      PartialIsoEnumerableWithCtx a FilePath r
     conv (to, from, enum) =
       ( \m r -> to m (RoutePrefix r),
         \m fp -> unRoutePrefix <$> from m fp,
         \m -> unRoutePrefix <$> enum m
       )
-    routeEncoder :: PartialIsoEnumerableWithCtx (ModelFor r) FilePath (RoutePrefix p r)
+    routeEncoder :: PartialIsoEnumerableWithCtx a FilePath (RoutePrefix p r)
     routeEncoder =
       let (to, from, all_) = siteRouteEncoder
        in ( (\m r -> prefix </> to m (unRoutePrefix r)),

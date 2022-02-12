@@ -10,7 +10,6 @@ import Data.LVar qualified as LVar
 import Data.Some
 import Ema.Asset (Asset (..))
 import Ema.CLI qualified as CLI
-import Ema.Class (Ema (ModelFor))
 import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -26,15 +25,15 @@ log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
 
 generateSite ::
-  forall m r.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r) =>
+  forall m r a.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
   Some CLI.Action ->
   FilePath ->
-  Site r ->
-  LVar (ModelFor r) ->
+  Site r a ->
+  LVar a ->
   m [FilePath]
 generateSite cliAction dest site model = do
-  val :: ModelFor r <- LVar.get model
+  val :: a <- LVar.get model
   logInfoN "... initial model is now available."
   let enc = siteRouteEncoder site
   withBlockBuffering $
@@ -48,17 +47,16 @@ generateSite cliAction dest site model = do
         <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
 
 generate ::
-  forall r m.
+  forall r a m.
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    Ema r,
     HasCallStack
   ) =>
   FilePath ->
-  PartialIsoEnumerableWithCtx (ModelFor r) FilePath r ->
-  ModelFor r ->
-  (ModelFor r -> r -> Asset LByteString) ->
+  PartialIsoEnumerableWithCtx a FilePath r ->
+  a ->
+  (a -> r -> Asset LByteString) ->
   -- | List of generated files.
   m [FilePath]
 generate dest (encodeRoute, _, allRoutes) model render = do

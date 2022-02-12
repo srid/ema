@@ -12,7 +12,6 @@ import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
 import Ema.CLI qualified as CLI
-import Ema.Class (Ema (ModelFor))
 import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -28,9 +27,8 @@ import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
-  forall r m.
-  ( Ema r,
-    Show r,
+  forall r a m.
+  ( Show r,
     MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m
@@ -38,8 +36,8 @@ runServerWithWebSocketHotReload ::
   Some CLI.Action ->
   Host ->
   Port ->
-  Site r ->
-  LVar (ModelFor r) ->
+  Site r a ->
+  LVar a ->
   m ()
 -- TODO: remove host/port (already in cliA)
 runServerWithWebSocketHotReload cliA host port site model = do
@@ -163,16 +161,16 @@ runServerWithWebSocketHotReload cliA host port site model = do
     routeFromPathInfo m =
       decodeUrlRoute m . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.
-    unsafeCatch :: Exception e => a -> (e -> a) -> a
+    unsafeCatch :: forall x e. Exception e => x -> (e -> x) -> x
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
     -- Decode a URL path into a route
     --
     -- This function is used only in live server.
-    decodeUrlRoute :: ModelFor r -> Text -> Maybe r
-    decodeUrlRoute model (toString -> s) = do
-      decodeRoute model s
-        <|> decodeRoute model (s <> ".html")
-        <|> decodeRoute model (s </> "index.html")
+    decodeUrlRoute :: a -> Text -> Maybe r
+    decodeUrlRoute m (toString -> s) = do
+      decodeRoute m s
+        <|> decodeRoute m (s <> ".html")
+        <|> decodeRoute m (s </> "index.html")
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
