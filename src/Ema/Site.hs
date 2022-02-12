@@ -1,6 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Site
   ( Site (..),
@@ -72,7 +72,7 @@ ex s = siteUnder @"foo" s
 siteUnder :: forall p r. Site r -> Site (RoutePrefix p r)
 siteUnder Site {..} =
   Site siteData siteRun siteRender'
-  where 
+  where
     siteRender' cliAct model (RoutePrefix r) =
       siteRender cliAct model r
 

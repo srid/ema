@@ -27,8 +27,8 @@ class Ema r where
 -- @Ema.runEmaPure@) with a single route (index.html) only.
 instance Ema () where
   type ModelFor () = ()
-  encodeRoute () () = []
+  encodeRoute () () = "index.html"
   decodeRoute () = \case
-    [] -> Just ()
+    "index.html" -> Just ()
     _ -> Nothing
   allRoutes () = one ()

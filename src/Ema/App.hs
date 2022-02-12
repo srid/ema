@@ -20,6 +20,7 @@ import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Class
+import Ema.Generate qualified as Generate
 import Ema.Server qualified as Server
 import Ema.Site
 import System.Directory (getCurrentDirectory)

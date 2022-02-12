@@ -32,6 +32,8 @@ generate dest model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
   let routes = allRoutes model
+  when (null routes) $
+    error "allRoutes is empty; nothing to generate"
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   let (staticPaths, generatedPaths) =
         lefts &&& rights $
