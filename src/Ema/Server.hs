@@ -5,6 +5,7 @@ module Ema.Server where
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
 import Control.Monad.Logger
+import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some)
 import Data.Text qualified as T
@@ -38,9 +39,10 @@ runServerWithWebSocketHotReload ::
   Host ->
   Port ->
   Site r ->
+  LVar (ModelFor r) ->
   m ()
 -- TODO: remove host/port (already in cliA)
-runServerWithWebSocketHotReload cliA host port site = do
+runServerWithWebSocketHotReload cliA host port site model = do
   let settings =
         Warp.defaultSettings
           & Warp.setPort (unPort port)
@@ -59,7 +61,6 @@ runServerWithWebSocketHotReload cliA host port site = do
           (httpApp logger)
   where
     wsApp pendingConn = do
-      let model = siteData site
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO
       lift $
@@ -132,7 +133,7 @@ runServerWithWebSocketHotReload cliA host port site = do
       Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do
-        val <- LVar.get $ siteData site
+        val <- LVar.get model
         let path = Wai.pathInfo req
             mr = routeFromPathInfo val path
         logInfoNS "HTTP" $ show path <> " as " <> show mr

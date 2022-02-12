@@ -20,7 +20,6 @@ import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Class
-import Ema.Generate qualified as Generate
 import Ema.Server qualified as Server
 import Ema.Site
 import System.Directory (getCurrentDirectory)
@@ -38,9 +37,9 @@ runEmaPure ::
   (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  site <- mkSite @() (\act () () -> AssetGenerated Html $ render act) $ \_act model -> do
-    LVar.set model ()
-    liftIO $ threadDelay maxBound
+  let site :: Site () = Site @() (\act () () -> AssetGenerated Html $ render act) $ \_act updateModel -> do
+        updateModel $ const ()
+        liftIO $ threadDelay maxBound
   void $ runEma site
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
@@ -81,10 +80,12 @@ runEmaWithCli cli site = do
     cwd <- liftIO getCurrentDirectory
     logInfoN $ "Launching Ema under: " <> toText cwd
     logInfoN "Waiting for initial model ..."
+  model <- LVar.empty
+  let updateModel = LVar.modify model
   rightToMaybe
     <$> race
-      (flip runLoggerLoggingT logger $ siteRun site (CLI.action cli) $ siteData site)
-      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) site)
+      (flip runLoggerLoggingT logger $ siteRunModel site (CLI.action cli) updateModel)
+      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) site model)
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
@@ -102,15 +103,16 @@ runEmaWithCliInCwd ::
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
+  LVar.LVar (ModelFor r) ->
   m (DSum CLI.Action Identity)
-runEmaWithCliInCwd cliAction site = do
+runEmaWithCliInCwd cliAction site model = do
   -- TODO: Have these work with multiple sites (nonempty list)
   -- Should work in both generate and server
   case cliAction of
     Some (CLI.Generate dest) -> do
-      res <- generateSite cliAction dest site
+      res <- generateSite cliAction dest site model
       pure $ CLI.Generate dest :=> Identity res
     Some (CLI.Run (host, port)) -> do
       -- TODO: Wait for model to be available
-      Server.runServerWithWebSocketHotReload cliAction host port site
+      Server.runServerWithWebSocketHotReload cliAction host port site model
       pure $ CLI.Run (host, port) :=> Identity ()

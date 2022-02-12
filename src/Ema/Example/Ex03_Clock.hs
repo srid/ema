@@ -7,12 +7,12 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
-import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (Ema (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
+import Ema.Site
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -34,11 +34,11 @@ instance Ema Route where
 
 main :: IO ()
 main = do
-  site <- Ema.mkSite (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model ->
-    forever $ do
-      -- logDebugNS "ex:clock" "Refreshing time"
-      LVar.set model =<< liftIO getCurrentTime
-      liftIO $ threadDelay 1000000
+  let site :: Site Route = Site (\_act m -> Ema.AssetGenerated Ema.Html . render m) $ \_act updateModel ->
+        forever $ do
+          -- logDebugNS "ex:clock" "Refreshing time"
+          updateModel . const =<< liftIO getCurrentTime
+          liftIO $ threadDelay 1000000
   void $ Ema.runEma site
 
 render :: UTCTime -> Route -> LByteString

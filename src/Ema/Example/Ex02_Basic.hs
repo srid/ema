@@ -2,10 +2,10 @@
 module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
-import Data.LVar qualified as LVar
 import Ema (Ema (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
+import Ema.Site
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -30,9 +30,9 @@ instance Ema Route where
 
 main :: IO ()
 main = do
-  site <- Ema.mkSite (const $ \m -> Ema.AssetGenerated Ema.Html . render m) $ \_act model -> do
-    LVar.set model $ Model "Hello World."
-    liftIO $ threadDelay maxBound
+  let site :: Site Route = Site (const $ \m -> Ema.AssetGenerated Ema.Html . render m) $ \_act updateModel -> do
+        updateModel . const $ Model "Hello World."
+        liftIO $ threadDelay maxBound
   void $ Ema.runEma site
 
 render :: Model -> Route -> LByteString

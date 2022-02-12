@@ -4,18 +4,13 @@
 
 module Ema.Site
   ( Site (..),
-    mkSite,
     generateSite,
-    generateSites,
-    collapseSites,
   )
 where
 
 import Control.Monad.Logger (MonadLoggerIO, logInfoN)
-import Data.Functor.Compose (Compose (Compose))
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
-import Data.SOP (All, HCollapse (hcollapse), I (I), K (..), NP (Nil, (:*)), NS (S, Z), hcmap, unI)
 import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset (Asset)
@@ -27,14 +22,12 @@ import System.FilePath
 import UnliftIO
   ( MonadUnliftIO,
   )
-import UnliftIO.Concurrent (forkIO)
 import UnliftIO.IO
   ( BufferMode (BlockBuffering, LineBuffering),
     hFlush,
     hSetBuffering,
-    stdout,
   )
-import Prelude hiding (Compose)
+import Prelude
 
 -- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
 -- context value.
@@ -45,19 +38,17 @@ partialIsoIsLawfulForCtx (to, from, getas) ctx =
   all (\a -> let s = to ctx a in Just a == from ctx s) (getas ctx)
 
 data Site r = Site
-  { siteData :: LVar (ModelFor r),
-    -- siteUrlEncoder :: PartialIsoEnumerableWithCtx model FilePath r,
-    siteRun ::
-      forall m.
-      (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
-      Some CLI.Action ->
-      LVar (ModelFor r) ->
-      m (),
-    siteRender ::
+  { siteRender ::
       Some CLI.Action ->
       ModelFor r ->
       r ->
-      Asset LByteString
+      Asset LByteString,
+    siteRunModel ::
+      forall m.
+      (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+      Some CLI.Action ->
+      ((ModelFor r -> ModelFor r) -> m ()) ->
+      m ()
   }
 
 data RoutePrefix (p :: Symbol) r = RoutePrefix r
@@ -71,7 +62,7 @@ ex s = siteUnder @"foo" s
 
 siteUnder :: forall p r. Site r -> Site (RoutePrefix p r)
 siteUnder Site {..} =
-  Site siteData siteRun siteRender'
+  Site siteRender' siteRunModel
   where
     siteRender' cliAct model (RoutePrefix r) =
       siteRender cliAct model r
@@ -108,7 +99,7 @@ mkMultiSite sites = do
       models <- LVar.get modelLvar
       void $ sequence $ collapseSites sites $ \site -> do
         -- TODO: no fork
-        forkIO $ siteRun site cliAct (siteData site)
+        forkIO $ siteRunModel site cliAct (siteData site)
         forkIO $ do
           subId <- LVar.addListener $ siteData site
           forever $ do
@@ -167,29 +158,16 @@ instance SelectNP f xs => SelectNP f (x ': xs) where
 
 -}
 
-mkSite ::
-  forall r m.
-  MonadIO m =>
-  ( Some CLI.Action ->
-    ModelFor r ->
-    r ->
-    Asset LByteString
-  ) ->
-  (forall m1. MonadIO m1 => Some CLI.Action -> LVar (ModelFor r) -> m1 ()) ->
-  m (Site r)
-mkSite render run = do
-  model <- LVar.empty
-  pure $ Site model run render
-
 generateSite ::
-  forall m model.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema model) =>
+  forall m r.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r) =>
   Some CLI.Action ->
   FilePath ->
-  Site model ->
+  Site r ->
+  LVar (ModelFor r) ->
   m [FilePath]
-generateSite cliAction dest site = do
-  val <- LVar.get $ siteData site
+generateSite cliAction dest site model = do
+  val :: ModelFor r <- LVar.get model
   logInfoN "... initial model is now available."
   withBlockBuffering $
     Generate.generate dest val (siteRender site cliAction)
@@ -201,6 +179,7 @@ generateSite cliAction dest site = do
         *> f
         <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
 
+{-
 generateSites ::
   forall (models :: [Type]) m mx ms.
   (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Data.SOP.All Ema models, models ~ (mx ': ms)) =>
@@ -221,3 +200,5 @@ collapseSites sites f =
   let genSites :: NP (K r) models = hcmap (Proxy :: Proxy Ema) (K . f) sites
       res :: [r] = hcollapse genSites
    in res
+
+-}
