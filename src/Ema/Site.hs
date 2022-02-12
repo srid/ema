@@ -4,28 +4,23 @@
 
 module Ema.Site
   ( Site (..),
-    generateSite,
+    PartialIsoEnumerableWithCtx,
+    defaultEnum,
+    siteUnder,
   )
 where
 
-import Control.Monad.Logger (MonadLoggerIO, logInfoN)
-import Data.LVar (LVar)
-import Data.LVar qualified as LVar
+import Control.Monad.Logger (MonadLoggerIO)
 import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Class
-import Ema.Generate qualified as Generate
 import GHC.TypeLits
 import System.FilePath
+import Text.Show (Show (show))
 import UnliftIO
   ( MonadUnliftIO,
-  )
-import UnliftIO.IO
-  ( BufferMode (BlockBuffering, LineBuffering),
-    hFlush,
-    hSetBuffering,
   )
 import Prelude
 
@@ -37,9 +32,13 @@ partialIsoIsLawfulForCtx :: Eq a => PartialIsoEnumerableWithCtx ctx s a -> ctx -
 partialIsoIsLawfulForCtx (to, from, getas) ctx =
   all (\a -> let s = to ctx a in Just a == from ctx s) (getas ctx)
 
+defaultEnum :: (Bounded r, Enum r) => [r]
+defaultEnum = [minBound .. maxBound]
+
 data Site r = Site
   { siteRender ::
       Some CLI.Action ->
+      PartialIsoEnumerableWithCtx (ModelFor r) FilePath r ->
       ModelFor r ->
       r ->
       Asset LByteString,
@@ -50,34 +49,44 @@ data Site r = Site
       Some CLI.Action ->
       -- Sets the initial mode, and returns a function to patch it.
       (ModelFor r -> m ((ModelFor r -> ModelFor r) -> m ())) ->
-      m ()
+      m (),
+    siteRouteEncoder ::
+      PartialIsoEnumerableWithCtx (ModelFor r) FilePath r
   }
 
-data RoutePrefix (p :: Symbol) r = RoutePrefix r
+data RoutePrefix (p :: Symbol) r = RoutePrefix {unRoutePrefix :: r}
 
-type NoteRoute = ()
+instance (Show r, KnownSymbol p) => Show (RoutePrefix p r) where
+  show (RoutePrefix r) = symbolVal (Proxy @p) <> ":" <> Text.Show.show r
 
-type NoteRouteMouted = RoutePrefix "notes" NoteRoute
-
-ex :: Site r -> Site (RoutePrefix "foo" r)
-ex s = siteUnder @"foo" s
-
-siteUnder :: forall p r. Site r -> Site (RoutePrefix p r)
-siteUnder Site {..} =
-  Site siteRender' siteModelPatcher
-  where
-    siteRender' cliAct model (RoutePrefix r) =
-      siteRender cliAct model r
-
-instance (Ema r, KnownSymbol p) => Ema (RoutePrefix p r) where
+instance Ema r => Ema (RoutePrefix p r) where
   type ModelFor (RoutePrefix p r) = ModelFor r
-  encodeRoute m (RoutePrefix r) =
-    symbolVal (Proxy @p) </> encodeRoute @r m r
-  decodeRoute m fp = do
-    fp' <- fmap toString $ T.stripPrefix (toText $ symbolVal (Proxy @p) <> "/") $ toText fp
-    RoutePrefix <$> decodeRoute @r m fp'
-  allRoutes =
-    fmap RoutePrefix . allRoutes @r
+
+siteUnder :: forall p r. (Ema r, KnownSymbol p, ModelFor r ~ ModelFor (RoutePrefix p r)) => Site r -> Site (RoutePrefix p r)
+siteUnder Site {..} =
+  Site siteRender' siteModelPatcher routeEncoder
+  where
+    siteRender' cliAct rEnc model (RoutePrefix r) =
+      siteRender cliAct (conv rEnc) model r
+    conv ::
+      PartialIsoEnumerableWithCtx (ModelFor r) FilePath (RoutePrefix p r) ->
+      PartialIsoEnumerableWithCtx (ModelFor r) FilePath r
+    conv (to, from, enum) =
+      ( \m r -> to m (RoutePrefix r),
+        \m fp -> unRoutePrefix <$> from m fp,
+        \m -> unRoutePrefix <$> enum m
+      )
+    routeEncoder :: PartialIsoEnumerableWithCtx (ModelFor r) FilePath (RoutePrefix p r)
+    routeEncoder =
+      let (to, from, all_) = siteRouteEncoder
+       in ( (\m r -> prefix </> to m (unRoutePrefix r)),
+            ( \m fp -> do
+                fp' <- fmap toString $ T.stripPrefix (toText $ symbolVal (Proxy @p) <> "/") $ toText fp
+                fmap RoutePrefix . from m $ fp'
+            ),
+            (fmap RoutePrefix . all_)
+          )
+    prefix = symbolVal (Proxy @p)
 
 {-
 type MultiSite rs = (NS I rs)
@@ -159,27 +168,6 @@ instance SelectNP f xs => SelectNP f (x ': xs) where
       Just v -> Just $ Z v
 
 -}
-
-generateSite ::
-  forall m r.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r) =>
-  Some CLI.Action ->
-  FilePath ->
-  Site r ->
-  LVar (ModelFor r) ->
-  m [FilePath]
-generateSite cliAction dest site model = do
-  val :: ModelFor r <- LVar.get model
-  logInfoN "... initial model is now available."
-  withBlockBuffering $
-    Generate.generate dest val (siteRender site cliAction)
-  where
-    -- Temporarily use block buffering before calling an IO action that is
-    -- known ahead to log rapidly, so as to not hamper serial processing speed.
-    withBlockBuffering f =
-      hSetBuffering stdout (BlockBuffering Nothing)
-        *> f
-        <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
 
 {-
 generateSites ::

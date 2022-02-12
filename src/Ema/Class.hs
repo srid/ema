@@ -1,12 +1,16 @@
 {-# LANGUAGE DefaultSignatures #-}
 
-module Ema.Class where
+module Ema.Class (Ema (ModelFor)) where
 
 -- | Enrich a model to work with Ema
 -- TODO: Rename to `Routable`? (keeping only encode/decode)
 class Ema r where
   type ModelFor r :: Type
 
+instance Ema () where
+  type ModelFor () = ()
+
+{-
   -- | Get the filepath on disk corresponding to this route.
   encodeRoute :: ModelFor r -> r -> FilePath
 
@@ -32,3 +36,5 @@ instance Ema () where
     "index.html" -> Just ()
     _ -> Nothing
   allRoutes () = one ()
+
+-}

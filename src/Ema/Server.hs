@@ -12,7 +12,7 @@ import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
 import Ema.CLI qualified as CLI
-import Ema.Class (Ema (..))
+import Ema.Class (Ema (ModelFor))
 import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -60,6 +60,7 @@ runServerWithWebSocketHotReload cliA host port site model = do
           (flip runLoggingT logger . wsApp)
           (httpApp logger)
   where
+    (encodeRoute, decodeRoute, _) = siteRouteEncoder site
     wsApp pendingConn = do
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO
@@ -152,7 +153,7 @@ runServerWithWebSocketHotReload cliA host port site model = do
                 let mimeType = Static.getMimeType $ encodeRoute val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (siteRender site cliA m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteRender site cliA (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
@@ -164,6 +165,14 @@ runServerWithWebSocketHotReload cliA host port site model = do
     -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: Exception e => a -> (e -> a) -> a
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
+    -- Decode a URL path into a route
+    --
+    -- This function is used only in live server.
+    decodeUrlRoute :: ModelFor r -> Text -> Maybe r
+    decodeUrlRoute model (toString -> s) = do
+      decodeRoute model s
+        <|> decodeRoute model (s <> ".html")
+        <|> decodeRoute model (s </> "index.html")
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
@@ -182,15 +191,6 @@ emaErrorHtml s =
 pathInfoFromWsMsg :: Text -> [Text]
 pathInfoFromWsMsg =
   filter (/= "") . T.splitOn "/" . T.drop 1
-
--- | Decode a URL path into a route
---
--- This function is used only in live server.
-decodeUrlRoute :: forall r. Ema r => ModelFor r -> Text -> Maybe r
-decodeUrlRoute model (toString -> s) = do
-  decodeRoute @r model s
-    <|> decodeRoute @r model (s <> ".html")
-    <|> decodeRoute @r model (s </> "index.html")
 
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"

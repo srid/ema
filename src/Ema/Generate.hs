@@ -5,15 +5,47 @@ module Ema.Generate where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
+import Data.LVar
+import Data.LVar qualified as LVar
+import Data.Some
 import Ema.Asset (Asset (..))
-import Ema.Class (Ema (ModelFor, allRoutes, encodeRoute))
+import Ema.CLI qualified as CLI
+import Ema.Class (Ema (ModelFor))
+import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 import UnliftIO (MonadUnliftIO)
+import UnliftIO.IO
+  ( BufferMode (BlockBuffering, LineBuffering),
+    hFlush,
+    hSetBuffering,
+  )
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
+
+generateSite ::
+  forall m r.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r) =>
+  Some CLI.Action ->
+  FilePath ->
+  Site r ->
+  LVar (ModelFor r) ->
+  m [FilePath]
+generateSite cliAction dest site model = do
+  val :: ModelFor r <- LVar.get model
+  logInfoN "... initial model is now available."
+  let enc = siteRouteEncoder site
+  withBlockBuffering $
+    generate dest enc val (siteRender site cliAction enc)
+  where
+    -- Temporarily use block buffering before calling an IO action that is
+    -- known ahead to log rapidly, so as to not hamper serial processing speed.
+    withBlockBuffering f =
+      hSetBuffering stdout (BlockBuffering Nothing)
+        *> f
+        <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
 
 generate ::
   forall r m.
@@ -24,11 +56,12 @@ generate ::
     HasCallStack
   ) =>
   FilePath ->
+  PartialIsoEnumerableWithCtx (ModelFor r) FilePath r ->
   ModelFor r ->
   (ModelFor r -> r -> Asset LByteString) ->
   -- | List of generated files.
   m [FilePath]
-generate dest model render = do
+generate dest (encodeRoute, _, allRoutes) model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
   let routes = allRoutes model

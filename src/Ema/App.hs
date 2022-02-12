@@ -20,6 +20,7 @@ import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Class
+import Ema.Generate (generateSite)
 import Ema.Server qualified as Server
 import Ema.Site
 import System.Directory (getCurrentDirectory)
@@ -37,9 +38,14 @@ runEmaPure ::
   (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  let site :: Site () = Site @() (\act () () -> AssetGenerated Html $ render act) $ \_act setModel -> do
-        void $ setModel ()
-        liftIO $ threadDelay maxBound
+  let site :: Site () =
+        Site
+          { siteRender = \act enc () () -> AssetGenerated Html $ render act,
+            siteModelPatcher = \_act setModel -> do
+              void $ setModel ()
+              liftIO $ threadDelay maxBound,
+            siteRouteEncoder = (\_ () -> "index.html", (\_ fp -> guard (fp == "index.html")), (\_ -> [()]))
+          }
   void $ runEma site
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update

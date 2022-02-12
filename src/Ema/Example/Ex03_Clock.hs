@@ -13,6 +13,7 @@ import Ema (Ema (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Ema.Site
+import Ema.Site (PartialIsoEnumerableWithCtx, defaultEnum)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -24,20 +25,25 @@ data Route
 
 instance Ema Route where
   type ModelFor Route = UTCTime
-  encodeRoute _time = \case
-    Index -> "index.html"
-    OnlyTime -> "time.html"
-  decodeRoute _time = \case
-    "index.html" -> Just Index
-    "time.html" -> Just OnlyTime
-    _ -> Nothing
+
+routeEncoder =
+  (enc, dec, all_)
+  where
+    enc _time = \case
+      Index -> "index.html"
+      OnlyTime -> "time.html"
+    dec _time = \case
+      "index.html" -> Just Index
+      "time.html" -> Just OnlyTime
+      _ -> Nothing
+    all_ = defaultEnum @Route
 
 main :: IO ()
 main = do
   let site :: Site Route =
         Site
-          { siteRender = \_ m r ->
-              Ema.AssetGenerated Ema.Html $ render m r,
+          { siteRender = \_ enc m r ->
+              Ema.AssetGenerated Ema.Html $ render enc m r,
             siteModelPatcher = \_ set -> do
               patch <- set =<< liftIO getCurrentTime
               forever $ do
@@ -47,8 +53,8 @@ main = do
           }
   void $ Ema.runEma site
 
-render :: UTCTime -> Route -> LByteString
-render now r =
+render :: PartialIsoEnumerableWithCtx UTCTime FilePath Route -> UTCTime -> Route -> LByteString
+render enc now r =
   tailwindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
@@ -73,7 +79,7 @@ render now r =
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
     routeHref r' =
-      A.href (fromString . toString $ Ema.routeUrl now r')
+      A.href (fromString . toString $ Ema.routeUrl enc now r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]
