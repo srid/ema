@@ -9,7 +9,7 @@ import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
-import Ema.Class (Ema (encodeRoute))
+import Ema.Class (Ema (ModelFor, encodeRoute))
 import Network.URI.Slug qualified as Slug
 
 data UrlStrategy
@@ -31,7 +31,7 @@ instance FromJSON UrlStrategy where
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
-routeUrlWith :: forall r model. Ema model r => UrlStrategy -> model -> r -> Text
+routeUrlWith :: forall r. Ema r => UrlStrategy -> ModelFor r -> r -> Text
 routeUrlWith urlStrategy model =
   relUrlFromPath . encodeRoute model
   where
@@ -57,6 +57,6 @@ routeUrlWith urlStrategy model =
           UrlPretty -> ".html"
           UrlDirect -> ""
 
-routeUrl :: forall r model. Ema model r => model -> r -> Text
+routeUrl :: forall r. Ema r => ModelFor r -> r -> Text
 routeUrl =
   routeUrlWith UrlPretty

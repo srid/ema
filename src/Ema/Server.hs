@@ -39,17 +39,17 @@ instance Default Port where
   def = 8000
 
 runServerWithWebSocketHotReload ::
-  forall model route m.
-  ( Ema model route,
-    Show route,
+  forall r m.
+  ( Ema r,
+    Show r,
     MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m
   ) =>
   Host ->
   Port ->
-  LVar model ->
-  (model -> route -> Asset LByteString) ->
+  LVar (ModelFor r) ->
+  (ModelFor r -> r -> Asset LByteString) ->
   m ()
 runServerWithWebSocketHotReload host port model render = do
   let settings =
@@ -195,11 +195,11 @@ pathInfoFromWsMsg =
 -- | Decode a URL path into a route
 --
 -- This function is used only in live server.
-decodeUrlRoute :: forall model route. Ema model route => model -> Text -> Maybe route
+decodeUrlRoute :: forall r. Ema r => ModelFor r -> Text -> Maybe r
 decodeUrlRoute model (toString -> s) = do
-  decodeRoute @model @route model s
-    <|> decodeRoute @model @route model (s <> ".html")
-    <|> decodeRoute @model @route model (s </> "index.html")
+  decodeRoute @r model s
+    <|> decodeRoute @r model (s <> ".html")
+    <|> decodeRoute @r model (s </> "index.html")
 
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"

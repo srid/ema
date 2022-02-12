@@ -20,7 +20,7 @@ import Data.Some
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
-import Ema.Class (Ema)
+import Ema.Class (Ema (..))
 import Ema.Generate qualified as Generate
 import Ema.Server qualified as Server
 import System.Directory (getCurrentDirectory)
@@ -45,8 +45,7 @@ runEmaPure render = do
   void $
     runEma (\act () () -> AssetGenerated Html $ render act) $ \act model -> do
       LVar.set model ()
-      when (CLI.isLiveServer act) $
-        liftIO $ threadDelay maxBound
+      liftIO $ threadDelay maxBound
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.
@@ -54,13 +53,13 @@ runEmaPure render = do
 -- It uses @race_@ to properly clean up the update action when the ema thread
 -- exits, and vice-versa.
 runEma ::
-  forall model route b.
-  (Ema model route, Show route) =>
+  forall r b.
+  (Ema r, Show r) =>
   -- | How to render a route, given the model
-  (Some CLI.Action -> model -> route -> Asset LByteString) ->
+  (Some CLI.Action -> ModelFor r -> r -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar (ModelFor r) -> m b) ->
   IO (Either b (DSum CLI.Action Identity))
 runEma render runModel = do
   cli <- CLI.cliAction
@@ -70,14 +69,14 @@ runEma render runModel = do
 --
 -- Useful if you are handling CLI arguments yourself.
 runEmaWithCli ::
-  forall model route b.
-  (Ema model route, Show route) =>
+  forall r b.
+  (Ema r, Show r) =>
   Cli ->
   -- | How to render a route, given the model
-  (Some CLI.Action -> model -> route -> Asset LByteString) ->
+  (Some CLI.Action -> ModelFor r -> r -> Asset LByteString) ->
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
-  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b) ->
+  (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar (ModelFor r) -> m b) ->
   IO (Either b (DSum CLI.Action Identity))
 runEmaWithCli cli render runModel = do
   model <- LVar.empty
@@ -93,8 +92,8 @@ runEmaWithCli cli render runModel = do
 
 -- | Run Ema live dev server
 runEmaWithCliInCwd ::
-  forall model route m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema model route, Show route) =>
+  forall r m.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Ema r, Show r) =>
   -- | CLI arguments
   Some CLI.Action ->
   -- | Your site model type, as a @LVar@ in order to support modifications over
@@ -103,11 +102,11 @@ runEmaWithCliInCwd ::
   -- Use @Data.LVar.new@ to create it, and then -- over time -- @Data.LVar.set@
   -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
   -- site as this model data changes.
-  LVar model ->
+  LVar (ModelFor r) ->
   -- | Your site render function. Takes the current @model@ value, and the page
   -- @route@ type as arguments. It must return the raw HTML to render to browser
   -- or generate on disk.
-  (Some CLI.Action -> model -> route -> Asset LByteString) ->
+  (Some CLI.Action -> ModelFor r -> r -> Asset LByteString) ->
   m (DSum CLI.Action Identity)
 runEmaWithCliInCwd cliAction model render = do
   val <- LVar.get model

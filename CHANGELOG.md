@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Fix bug in `Ex02_Basic.hs` (wasn't generating HTML files)
+- Fix `runEmaPure` not generating routes
+- Typeclass
+  - Change typeclass to be indexed only route (`Ema r`)
 
 ## 0.6.0.0 -- 2022-02-05
 
