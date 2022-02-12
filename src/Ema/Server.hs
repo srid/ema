@@ -60,8 +60,8 @@ runServerWithWebSocketHotReload cliA host port site = do
   where
     wsApp pendingConn = do
       let model = siteData site
-      conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
-      logger <- askLoggerIO
+      conn :: WS.Connection <- (fmap $ traceShow "conn") $ lift $ WS.acceptRequest pendingConn
+      logger <- traceShow "conn acc" $ askLoggerIO
       lift $
         WS.withPingThread conn 30 (pure ()) $
           flip runLoggingT logger $ do
@@ -151,7 +151,7 @@ runServerWithWebSocketHotReload cliA host port site = do
                 let mimeType = Static.getMimeType $ encodeRoute val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (siteRender site cliA m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteRender site cliA id m $ traceShow "rrrr" r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err

@@ -23,6 +23,7 @@ import Ema.Class
 import Ema.Generate qualified as Generate
 import Ema.Server qualified as Server
 import Ema.Site
+import Relude.Extra.Lens
 import System.Directory (getCurrentDirectory)
 import UnliftIO (MonadUnliftIO)
 import Prelude hiding (All)
@@ -35,10 +36,12 @@ import Prelude hiding (All)
 -- function.
 runEmaPure ::
   -- | How to render a route
-  (Some CLI.Action -> LByteString) ->
+  (forall r'. Some CLI.Action -> Lens' r' () -> LByteString) ->
   IO ()
 runEmaPure render = do
-  site <- mkSite @() (\act () () -> AssetGenerated Html $ render act) $ \_act model -> do
+  -- TODO: we need iso? show proof for need.
+  -- In Ex_Hello.hs
+  site <- mkSite @() (\act iso _ _ -> AssetGenerated Html $ render act iso) $ \_act model -> do
     LVar.set model ()
     liftIO $ threadDelay maxBound
   void $ runEma site

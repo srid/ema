@@ -8,6 +8,8 @@ module Ema.Site
     generateSite,
     generateSites,
     collapseSites,
+    siteUnder,
+    RoutePrefix,
   )
 where
 
@@ -23,7 +25,9 @@ import Ema.CLI qualified as CLI
 import Ema.Class
 import Ema.Generate qualified as Generate
 import GHC.TypeLits
+import Relude.Extra.Lens
 import System.FilePath
+import Text.Show (Show (show))
 import UnliftIO
   ( MonadUnliftIO,
   )
@@ -54,34 +58,53 @@ data Site r = Site
       LVar (ModelFor r) ->
       m (),
     siteRender ::
+      forall r'.
+      (Ema r', ModelFor r' ~ ModelFor r) =>
       Some CLI.Action ->
+      Lens' r' r ->
       ModelFor r ->
-      r ->
+      r' ->
       Asset LByteString
   }
 
 data RoutePrefix (p :: Symbol) r = RoutePrefix r
 
+instance Show r => Show (RoutePrefix p r) where
+  show (RoutePrefix r) = "PP" <> Text.Show.show r
+
 type NoteRoute = ()
 
 type NoteRouteMouted = RoutePrefix "notes" NoteRoute
 
-ex :: Site r -> Site (RoutePrefix "foo" r)
-ex s = siteUnder @"foo" s
-
-siteUnder :: forall p r. Site r -> Site (RoutePrefix p r)
+siteUnder :: forall p r. (Ema r, Show r) => Site r -> Site (RoutePrefix p r)
 siteUnder Site {..} =
   Site siteData siteRun siteRender'
   where
-    siteRender' cliAct model (RoutePrefix r) =
-      siteRender cliAct model r
+    -- FIXME: "forgets" RoutePrefix, and thus uses incorreect instance
+    siteRender' ::
+      forall r'.
+      (Ema r', ModelFor r' ~ ModelFor r) =>
+      Some CLI.Action ->
+      Lens' r' (RoutePrefix p r) ->
+      ModelFor (RoutePrefix p r) ->
+      r' ->
+      Asset LByteString
+    siteRender' cliAct rIso model r =
+      let le :: Lens' (RoutePrefix p r) r
+          le =
+            lens
+              (\(RoutePrefix r) -> traceShowId r)
+              (\(RoutePrefix _) r -> traceShowId $ RoutePrefix r)
+       in siteRender cliAct (rIso . le) model $ traceShow "siteRender:r" r
 
 instance (Ema r, KnownSymbol p) => Ema (RoutePrefix p r) where
   type ModelFor (RoutePrefix p r) = ModelFor r
   encodeRoute m (RoutePrefix r) =
     symbolVal (Proxy @p) </> encodeRoute @r m r
   decodeRoute m fp = do
-    fp' <- fmap toString $ T.stripPrefix (toText $ symbolVal (Proxy @p) <> "/") $ toText fp
+    fp' <-
+      fmap toString $
+        T.stripPrefix (toText $ symbolVal (Proxy @p) <> "/") $ toText fp
     RoutePrefix <$> decodeRoute @r m fp'
   allRoutes =
     fmap RoutePrefix . allRoutes @r
@@ -95,7 +118,8 @@ mkMultiSite :: forall m models mx ms. (
     MonadIO m,
     MonadUnliftIO  m,
     MonadLoggerIO m,
-    SelectSum I RouteFor' models, SelectSum Site RouteFor' models, SelectSum2 I Site RouteFor' models) =>  NP Site models -> m (Site (MultiSite models))
+    SelectSum I RouteFor' models, SelectSum Site RouteFor' models, SelectSum2 I Site RouteFor' models) =>
+    NP Site models -> m (Site (MultiSite models))
 mkMultiSite sites = do
   model <- LVar.empty
   pure $ Site model run render listenNext
@@ -170,9 +194,12 @@ instance SelectNP f xs => SelectNP f (x ': xs) where
 mkSite ::
   forall r m.
   MonadIO m =>
-  ( Some CLI.Action ->
+  ( forall r'.
+    (Ema r', ModelFor r' ~ ModelFor r) =>
+    Some CLI.Action ->
+    Lens' r' r ->
     ModelFor r ->
-    r ->
+    r' ->
     Asset LByteString
   ) ->
   (forall m1. MonadIO m1 => Some CLI.Action -> LVar (ModelFor r) -> m1 ()) ->
@@ -192,7 +219,7 @@ generateSite cliAction dest site = do
   val <- LVar.get $ siteData site
   logInfoN "... initial model is now available."
   withBlockBuffering $
-    Generate.generate dest val (siteRender site cliAction)
+    Generate.generate dest val (\m r -> siteRender site cliAction id m r)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

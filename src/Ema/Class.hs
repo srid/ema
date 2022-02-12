@@ -2,9 +2,10 @@
 
 module Ema.Class where
 
--- | Enrich a model to work with Ema
+-- | Enrich a route to work with Ema
 -- TODO: Rename to `Routable`? (keeping only encode/decode)
 class Ema r where
+  -- | The model associated with this route.
   type ModelFor r :: Type
 
   -- | Get the filepath on disk corresponding to this route.
@@ -23,7 +24,7 @@ class Ema r where
   default allRoutes :: (Bounded r, Enum r) => ModelFor r -> [r]
   allRoutes _ = [minBound .. maxBound]
 
--- | The unit model is useful when using Ema in pure fashion (see
+-- | The unit route is useful when using Ema in pure fashion (see
 -- @Ema.runEmaPure@) with a single route (index.html) only.
 instance Ema () where
   type ModelFor () = ()
