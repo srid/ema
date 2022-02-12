@@ -1,11 +1,8 @@
-{-# LANGUAGE DeriveAnyClass #-}
-
 -- | A very simple site with two routes, and HTML rendered using Blaze DSL
 module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import Data.LVar qualified as LVar
-import Data.Universe (Finite, Universe (..), universeGeneric)
 import Ema (Ema (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
@@ -16,10 +13,7 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Index
   | About
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (Finite)
-
-instance Universe Route where universe = universeGeneric
+  deriving stock (Show, Enum, Bounded)
 
 newtype Model = Model {unModel :: Text}
 

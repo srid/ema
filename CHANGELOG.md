@@ -6,7 +6,6 @@
 - Fix `runEmaPure` not generating routes
 - Typeclass
   - Change typeclass to be indexed only route (`Ema r`)
-  - Allow `allRoutes` to be determined from `Universe` instead of `Enum`/`Bounded`. Generic instances are available for free as well.
 
 ## 0.6.0.0 -- 2022-02-05
 

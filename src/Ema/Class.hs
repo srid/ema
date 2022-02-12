@@ -2,8 +2,6 @@
 
 module Ema.Class where
 
-import Data.Universe (Finite (universeF))
-
 -- | Enrich a model to work with Ema
 class Ema r where
   type ModelFor r :: Type
@@ -19,8 +17,8 @@ class Ema r where
   -- The `gen` command will generate only these routes. On live server, this
   -- function is never used.
   allRoutes :: ModelFor r -> [r]
-  default allRoutes :: (Finite r) => ModelFor r -> [r]
-  allRoutes _ = universeF
+  default allRoutes :: (Bounded r, Enum r) => ModelFor r -> [r]
+  allRoutes _ = [minBound .. maxBound]
 
 -- | The unit model is useful when using Ema in pure fashion (see
 -- @Ema.runEmaPure@) with a single route (index.html) only.

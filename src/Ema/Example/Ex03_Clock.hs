@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
-
 -- | A very simple site with routes, but based on dynamically changing values
 --
 -- The current time is computed in the server every second, and the resultant
@@ -12,7 +10,6 @@ import Control.Concurrent (threadDelay)
 import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Data.Universe (Finite, Universe (..), universeGeneric)
 import Ema (Ema (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
@@ -23,10 +20,7 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Index
   | OnlyTime
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (Finite)
-
-instance Universe Route where universe = universeGeneric
+  deriving stock (Show, Enum, Bounded)
 
 instance Ema Route where
   type ModelFor Route = UTCTime

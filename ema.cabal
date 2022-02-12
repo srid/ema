@@ -50,7 +50,6 @@ library
     , optparse-applicative
     , relude                  >=0.7      && <1.0
     , text
-    , universe
     , unliftio
     , url-slug
     , wai
