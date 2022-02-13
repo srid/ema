@@ -7,6 +7,7 @@
 - Multisite
   - Typeclass is gone, replaced by `Site` datatype that can easily be composed
   - Main thread can now exit (if no model updates are necessary); no need for `threadDelay maxBound` hacks.
+- Route encoding isomorphism checks
 
 ## 0.6.0.0 -- 2022-02-05
 

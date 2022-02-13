@@ -184,10 +184,10 @@ runServerWithWebSocketHotReload cliA host port site model = do
     decodeUrlRoute :: a -> Text -> Either (FilePath, r) (Maybe r)
     decodeUrlRoute m (toString -> s) =
       let candidates = [s, s <> ".html", s </> "index.html"]
-       in case asum ((\c -> (c,) <$> decodeRoute enc m c) <$> candidates) of
+       in case asum (decodeRoute enc m <$> candidates) of
             Nothing -> pure Nothing
-            Just (s', r) ->
-              if checkRouteEncoderForSingleRoute enc m r s'
+            Just r ->
+              if any (checkRouteEncoderForSingleRoute enc m r) candidates
                 then pure $ Just r
                 else Left (encodeRoute enc m r, r)
 
@@ -214,8 +214,8 @@ decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
 badRouteEncodingMsg :: Show r => (FilePath, r) -> Text
-badRouteEncodingMsg (s, r) =
-  toText $ "Ema: route '" <> show r <> "' encodes to '" <> s <> "' but it is not isomporphic (the reverse conversion is not true). You should fix your `RouteEncoder`."
+badRouteEncodingMsg (rs, r) =
+  toText $ "Ema: route '" <> show r <> "' encodes to '" <> rs <> "' but it is not isomporphic (the reverse conversion is not true). You should fix your `RouteEncoder`."
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString

@@ -88,9 +88,10 @@ constModal x _ startModel = do
     -- TODO: log it
     pure ()
 
--- TODO: Using (Generic r)
--- simpleSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
--- simpleSite render = undefined
+-- Create a site that using routes determined statically at compile time.
+-- TODO: Implement this using (Generic r)
+-- staticRouteSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
+-- staticRouteSite render = undefined
 
 (+:) :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 (+:) = mergeSite
