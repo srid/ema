@@ -23,9 +23,9 @@ data Route
   | OnlyTime
   deriving stock (Show, Eq, Enum, Bounded)
 
-routeEncoder :: RouteEncoder a Route
+routeEncoder :: RouteEncoder Route a
 routeEncoder =
-  (enc, dec, all_)
+  RouteEncoder (enc, dec, all_)
   where
     enc _time = \case
       Index -> "index.html"
@@ -57,7 +57,7 @@ main :: IO ()
 main = do
   void $ Ema.runSite site
 
-render :: RouteEncoder UTCTime Route -> UTCTime -> Route -> LByteString
+render :: RouteEncoder Route UTCTime -> UTCTime -> Route -> LByteString
 render enc now r =
   tailwindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do

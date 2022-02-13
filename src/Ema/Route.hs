@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Ema.Route
   ( -- * Create URL from route
     routeUrl,
@@ -5,7 +7,7 @@ module Ema.Route
     UrlStrategy (..),
 
     -- * Route encoder
-    RouteEncoder,
+    RouteEncoder (RouteEncoder),
     encodeRoute,
     decodeRoute,
     allRoutes,
@@ -19,64 +21,78 @@ where
 
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
+import Data.Functor.Contravariant
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
 import Network.URI.Slug qualified as Slug
 
 -- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
 -- context value.
-type PartialIsoEnumerableWithCtx ctx s a = (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
+type PartialIsoEnumerableWithCtx s ctx a = (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 
-partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Bool
+partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx s ctx a -> ctx -> a -> s -> Bool
 partialIsoIsLawfulFor (to, from, _) ctx a s =
   (s == to ctx a)
     && (Just a == from ctx s)
 
-type RouteEncoder model route = PartialIsoEnumerableWithCtx model FilePath route
+data RouteEncoder r a = RouteEncoder {unRouteEncoder :: PartialIsoEnumerableWithCtx FilePath a r}
 
-encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (f, _, _) = f
+instance Contravariant (RouteEncoder r) where
+  contramap :: forall a b. (a -> b) -> RouteEncoder r b -> RouteEncoder r a
+  contramap f enc =
+    RouteEncoder
+      ( \m r ->
+          encodeRoute enc (f m) r,
+        \m fp ->
+          decodeRoute enc (f m) fp,
+        \m ->
+          allRoutes enc (f m)
+      )
 
-decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (_, f, _) = f
+encodeRoute :: RouteEncoder r model -> model -> r -> FilePath
+encodeRoute (RouteEncoder (f, _, _)) = f
 
-allRoutes :: RouteEncoder model r -> model -> [r]
-allRoutes (_, _, f) = f
+decodeRoute :: RouteEncoder r model -> model -> FilePath -> Maybe r
+decodeRoute (RouteEncoder (_, f, _)) = f
+
+allRoutes :: RouteEncoder r model -> model -> [r]
+allRoutes (RouteEncoder (_, _, f)) = f
 
 -- | Returns a new route encoder that supports either of the input routes.
-mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
+mergeRouteEncoder :: RouteEncoder r1 a -> RouteEncoder r2 b -> RouteEncoder (Either r1 r2) (a, b)
 mergeRouteEncoder enc1 enc2 =
-  ( \m ->
-      either
-        (encodeRoute enc1 (fst m))
-        (encodeRoute enc2 (snd m)),
-    \m fp ->
-      asum
-        [ Left <$> decodeRoute enc1 (fst m) fp,
-          Right <$> decodeRoute enc2 (snd m) fp
-        ],
-    \m ->
-      mconcat
-        [ Left <$> allRoutes enc1 (fst m),
-          Right <$> allRoutes enc2 (snd m)
-        ]
-  )
+  RouteEncoder
+    ( \m ->
+        either
+          (encodeRoute enc1 (fst m))
+          (encodeRoute enc2 (snd m)),
+      \m fp ->
+        asum
+          [ Left <$> decodeRoute enc1 (fst m) fp,
+            Right <$> decodeRoute enc2 (snd m) fp
+          ],
+      \m ->
+        mconcat
+          [ Left <$> allRoutes enc1 (fst m),
+            Right <$> allRoutes enc2 (snd m)
+          ]
+    )
 
 -- TODO: Determine this generically somehow
 -- See https://github.com/srid/ema/issues/76
 defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
 
-checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder model route -> model -> route -> FilePath -> Bool
-checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor
+checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder route model -> model -> route -> FilePath -> Bool
+checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor . unRouteEncoder
 
 -- | Return the relative URL of the given route
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
-routeUrlWith :: UrlStrategy -> RouteEncoder a r -> a -> r -> Text
-routeUrlWith urlStrategy (enc, _, _) model =
-  relUrlFromPath . enc model
+routeUrlWith :: UrlStrategy -> RouteEncoder r a -> a -> r -> Text
+routeUrlWith urlStrategy enc model =
+  relUrlFromPath . encodeRoute enc model
   where
     relUrlFromPath :: FilePath -> Text
     relUrlFromPath fp =
@@ -100,7 +116,7 @@ routeUrlWith urlStrategy (enc, _, _) model =
           UrlPretty -> ".html"
           UrlDirect -> ""
 
-routeUrl :: RouteEncoder a r -> a -> r -> Text
+routeUrl :: RouteEncoder r a -> a -> r -> Text
 routeUrl =
   routeUrlWith UrlPretty
 

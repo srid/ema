@@ -53,7 +53,7 @@ generate ::
     Show r
   ) =>
   FilePath ->
-  RouteEncoder a r ->
+  RouteEncoder r a ->
   a ->
   (a -> r -> Asset LByteString) ->
   -- | List of generated files.

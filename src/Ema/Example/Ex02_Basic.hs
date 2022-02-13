@@ -14,9 +14,9 @@ data Route
 
 newtype Model = Model {unModel :: Text}
 
-routeEncoder :: RouteEncoder a Route
+routeEncoder :: RouteEncoder Route a
 routeEncoder =
-  (enc, dec, all_)
+  RouteEncoder (enc, dec, all_)
   where
     enc _model =
       \case
@@ -42,7 +42,7 @@ main :: IO ()
 main = do
   void $ Ema.runSite site
 
-render :: RouteEncoder Model Route -> Model -> Route -> LByteString
+render :: RouteEncoder Route Model -> Model -> Route -> LByteString
 render enc model r =
   tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
