@@ -12,6 +12,11 @@ import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
 import Ema.CLI qualified as CLI
+import Ema.Route
+  ( checkRouteEncoderForSingleRoute,
+    decodeRoute,
+    encodeRoute,
+  )
 import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -31,7 +36,8 @@ runServerWithWebSocketHotReload ::
   ( Show r,
     MonadIO m,
     MonadUnliftIO m,
-    MonadLoggerIO m
+    MonadLoggerIO m,
+    Eq r
   ) =>
   Some CLI.Action ->
   Host ->
@@ -58,7 +64,7 @@ runServerWithWebSocketHotReload cliA host port site model = do
           (flip runLoggingT logger . wsApp)
           (httpApp logger)
   where
-    (encodeRoute, decodeRoute, _) = siteRouteEncoder site
+    enc = siteRouteEncoder site
     wsApp pendingConn = do
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO
@@ -80,20 +86,23 @@ runServerWithWebSocketHotReload cliA host port site model = do
                   pure $ routeFromPathInfo val pathInfo
                 sendRouteHtmlToClient pathInfo s = do
                   decodeRouteWithCurrentModel pathInfo >>= \case
-                    Nothing ->
+                    Left err -> do
+                      log LevelError $ badRouteEncodingMsg err
+                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
+                    Right Nothing ->
                       liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
-                    Just r -> do
+                    Right (Just r) -> do
                       case renderCatchingErrors logger s r of
                         AssetStatic staticPath ->
                           -- HACK: Websocket client should check for REDIRECT prefix.
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
                           liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
                         AssetGenerated Html html ->
-                          liftIO $ WS.sendTextData conn $ html <> emaStatusHtml
+                          liftIO $ WS.sendTextData conn $ html <> wsClientHtml
                         AssetGenerated Other _s ->
                           -- HACK: Websocket client should check for REDIRECT prefix.
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute s r)
+                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute enc s r)
                       log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -137,18 +146,23 @@ runServerWithWebSocketHotReload cliA host port site model = do
             mr = routeFromPathInfo val path
         logInfoNS "HTTP" $ show path <> " as " <> show mr
         case mr of
-          Nothing ->
-            liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/plain")] $ encodeUtf8 decodeRouteNothingMsg
-          Just r -> do
+          Left err -> do
+            logErrorNS "App" $ badRouteEncodingMsg err
+            let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> wsClientJS
+            liftIO $ f $ Wai.responseLBS H.status500 [(H.hContentType, "text/html")] s
+          Right Nothing -> do
+            let s = emaErrorHtmlResponse decodeRouteNothingMsg <> wsClientJS
+            liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
+          Right (Just r) -> do
             case renderCatchingErrors logger val r of
               AssetStatic staticPath -> do
                 let mimeType = Static.getMimeType staticPath
                 liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
               AssetGenerated Html html -> do
-                let s = html <> emaStatusHtml <> wsClientShim
+                let s = html <> wsClientHtml <> wsClientJS
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
-                let mimeType = Static.getMimeType $ encodeRoute val r
+                let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       unsafeCatch (siteRender site cliA (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
@@ -156,33 +170,39 @@ runServerWithWebSocketHotReload cliA host port site model = do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
           pure $
-            AssetGenerated Html . emaErrorHtml $
+            AssetGenerated Html . mkHtmlErrorMsg $
               show @Text err
     routeFromPathInfo m =
       decodeUrlRoute m . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.
     unsafeCatch :: forall x e. Exception e => x -> (e -> x) -> x
     unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
-    -- Decode a URL path into a route
+    -- Decode an URL path into a route
     --
-    -- This function is used only in live server.
-    decodeUrlRoute :: a -> Text -> Maybe r
-    decodeUrlRoute m (toString -> s) = do
-      decodeRoute m s
-        <|> decodeRoute m (s <> ".html")
-        <|> decodeRoute m (s </> "index.html")
+    -- This function is used only in live server. If the route is not
+    -- isomoprhic, this returns a Left, with the mismatched encoding.
+    decodeUrlRoute :: a -> Text -> Either (FilePath, r) (Maybe r)
+    decodeUrlRoute m (toString -> s) =
+      let candidates = [s, s <> ".html", s </> "index.html"]
+       in case asum ((\c -> (c,) <$> decodeRoute enc m c) <$> candidates) of
+            Nothing -> pure Nothing
+            Just (s', r) ->
+              if checkRouteEncoderForSingleRoute enc m r s'
+                then pure $ Just r
+                else Left (encodeRoute enc m r, r)
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
 emaErrorHtmlResponse err =
-  emaErrorHtml err <> emaStatusHtml
+  mkHtmlErrorMsg err <> wsClientHtml
 
-emaErrorHtml :: Text -> LByteString
-emaErrorHtml s =
+-- TODO: Make this pretty
+mkHtmlErrorMsg :: Text -> LByteString
+mkHtmlErrorMsg s =
   encodeUtf8 $
-    "<html><head><meta charset=\"UTF-8\"></head><body><h1>Ema App threw an exception</h1><pre style=\"border: 1px solid; padding: 1em 1em 1em 1em;\">"
+    "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body class=\"overflow-y: scroll;\"><h1>Ema App threw an exception</h1><div style=\"font-family: monospace; border: 1px solid; padding: 1em 1em 1em 1em; overflow-wrap: anywhere;\">"
       <> s
-      <> "</pre><p>Once you fix the source of the error, this page will automatically refresh.</body>"
+      <> "</div><p>Once you fix the source of the error, this page will automatically refresh.</body>"
 
 -- | Return the equivalent of WAI's @pathInfo@, from the raw path string
 -- (`document.location.pathname`) the browser sends us.
@@ -193,9 +213,13 @@ pathInfoFromWsMsg =
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
+badRouteEncodingMsg :: Show r => (FilePath, r) -> Text
+badRouteEncodingMsg (s, r) =
+  toText $ "Ema: route '" <> show r <> "' encodes to '" <> s <> "' but it is not isomporphic (the reverse conversion is not true). You should fix your `RouteEncoder`."
+
 -- Browser-side JavaScript code for interacting with the Haskell server
-wsClientShim :: LByteString
-wsClientShim =
+wsClientJS :: LByteString
+wsClientJS =
   encodeUtf8
     [text|
         <script type="module" src="https://cdn.jsdelivr.net/npm/morphdom@2.6.1/dist/morphdom-umd.min.js"></script>
@@ -369,8 +393,8 @@ wsClientShim =
         </script>
     |]
 
-emaStatusHtml :: LByteString
-emaStatusHtml =
+wsClientHtml :: LByteString
+wsClientHtml =
   encodeUtf8
     [text|
       <div class="absolute top-0 left-0 p-2" style="display: none;" id="ema-indicator">

@@ -10,6 +10,9 @@ module Ema.Route
     decodeRoute,
     allRoutes,
     defaultEnum,
+
+    -- * Internal
+    checkRouteEncoderForSingleRoute,
   )
 where
 
@@ -23,9 +26,10 @@ import Network.URI.Slug qualified as Slug
 -- context value.
 type PartialIsoEnumerableWithCtx ctx s a = (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 
-_partialIsoIsLawfulForCtx :: Eq a => PartialIsoEnumerableWithCtx ctx s a -> ctx -> Bool
-_partialIsoIsLawfulForCtx (to, from, getas) ctx =
-  all (\a -> let s = to ctx a in Just a == from ctx s) (getas ctx)
+partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Bool
+partialIsoIsLawfulFor (to, from, _) ctx a s =
+  (s == to ctx a)
+    && (Just a == from ctx s)
 
 type RouteEncoder model route = PartialIsoEnumerableWithCtx model FilePath route
 
@@ -38,8 +42,13 @@ decodeRoute (_, f, _) = f
 allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (_, _, f) = f
 
+-- TODO: Determine this generically somehow
+-- See https://github.com/srid/ema/issues/76
 defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
+
+checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder model route -> model -> route -> FilePath -> Bool
+checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor
 
 -- | Return the relative URL of the given route
 --

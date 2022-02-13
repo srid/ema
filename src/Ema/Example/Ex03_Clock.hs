@@ -21,7 +21,7 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Index
   | OnlyTime
-  deriving stock (Show, Enum, Bounded)
+  deriving stock (Show, Eq, Enum, Bounded)
 
 routeEncoder :: RouteEncoder a Route
 routeEncoder =

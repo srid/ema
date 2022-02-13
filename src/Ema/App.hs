@@ -24,7 +24,7 @@ import System.Directory (getCurrentDirectory)
 -- | Run the given Ema site, and return the generated files.
 --
 -- On live-server mode, this function will never return.
-runSite :: forall r a. (Show r) => Site a r -> IO [FilePath]
+runSite :: forall r a. (Show r, Eq r) => Site a r -> IO [FilePath]
 runSite site = do
   cli <- CLI.cliAction
   runSiteWithCli cli site
@@ -32,7 +32,7 @@ runSite site = do
 -- | Like @runSite@ but takes the CLI action
 --
 -- Useful if you are handling CLI arguments yourself.
-runSiteWithCli :: forall r a. (Show r) => Cli -> Site a r -> IO [FilePath]
+runSiteWithCli :: forall r a. (Show r, Eq r) => Cli -> Site a r -> IO [FilePath]
 runSiteWithCli cli site = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout

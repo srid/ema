@@ -8,7 +8,7 @@ import Control.Monad.Logger
 import Data.Some (Some)
 import Ema.Asset (Asset (..))
 import Ema.CLI qualified as CLI
-import Ema.Route (RouteEncoder)
+import Ema.Route (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
 import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -25,7 +25,7 @@ log = logWithoutLoc "Generate"
 
 generateSite ::
   forall m r a.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r) =>
   Some CLI.Action ->
   FilePath ->
   Site a r ->
@@ -48,7 +48,9 @@ generate ::
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    HasCallStack
+    HasCallStack,
+    Eq r,
+    Show r
   ) =>
   FilePath ->
   RouteEncoder a r ->
@@ -56,19 +58,22 @@ generate ::
   (a -> r -> Asset LByteString) ->
   -- | List of generated files.
   m [FilePath]
-generate dest (encodeRoute, _, allRoutes) model render = do
+generate dest enc model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
-  let routes = allRoutes model
+  let routes = allRoutes enc model
   when (null routes) $
     error "allRoutes is empty; nothing to generate"
+  forM_ routes $ \route -> do
+    unless (checkRouteEncoderForSingleRoute enc model route $ encodeRoute enc model route) $
+      error $ "Encoding for route '" <> show route <> "' is not isomorphic."
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   let (staticPaths, generatedPaths) =
         lefts &&& rights $
           routes <&> \r ->
             case render model r of
               AssetStatic fp -> Left (r, fp)
-              AssetGenerated _fmt s -> Right (encodeRoute model r, s)
+              AssetGenerated _fmt s -> Right (encodeRoute enc model r, s)
   paths <- forM generatedPaths $ \(relPath, !s) -> do
     let fp = dest </> relPath
     log LevelInfo $ toText $ "W " <> fp
@@ -81,7 +86,7 @@ generate dest (encodeRoute, _, allRoutes) model render = do
       True ->
         -- TODO: In current branch, we don't expect this to be a directory.
         -- Although the user may pass it, but review before merge.
-        copyDirRecursively (encodeRoute model r) staticPath dest
+        copyDirRecursively (encodeRoute enc model r) staticPath dest
       False ->
         log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
   noBirdbrainedJekyll dest

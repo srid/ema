@@ -10,7 +10,7 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Index
   | About
-  deriving stock (Show, Enum, Bounded)
+  deriving stock (Show, Eq, Enum, Bounded)
 
 newtype Model = Model {unModel :: Text}
 

@@ -181,6 +181,7 @@ data PrefixedRoute r = PrefixedRoute
   { _prefixedRoutePrefix :: String,
     _prefixedRouteRoute :: r
   }
+  deriving stock (Eq, Ord)
 
 instance (Show r) => Show (PrefixedRoute r) where
   show (PrefixedRoute p r) = p <> ":" <> Text.Show.show r
