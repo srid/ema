@@ -44,16 +44,16 @@ main = do
   void $
     Ema.runEma $
       siteUnder @"hello" site
-        `eitherSites` Ex03.site
+        +: Ex03.site
 
 render :: PartialIsoEnumerableWithCtx Model FilePath Route -> Model -> Route -> LByteString
 render enc model r =
   tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
+        H.toHtml (unModel model)
         case r of
           Index -> do
-            H.toHtml (unModel model)
             "You are on the index page. "
             routeElem About "Go to About"
           About -> do
