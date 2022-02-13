@@ -36,7 +36,7 @@ runServerWithWebSocketHotReload ::
   Some CLI.Action ->
   Host ->
   Port ->
-  Site r a ->
+  Site a r ->
   LVar a ->
   m ()
 -- TODO: remove host/port (already in cliA)

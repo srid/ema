@@ -14,7 +14,7 @@ data Route
 
 newtype Model = Model {unModel :: Text}
 
-routeEncoder :: PartialIsoEnumerableWithCtx m FilePath Route
+routeEncoder :: RouteEncoder a Route
 routeEncoder =
   (enc, dec, all_)
   where
@@ -28,8 +28,8 @@ routeEncoder =
       _ -> Nothing
     all_ _ = defaultEnum @Route
 
-site :: Site Route Model
-site :: Site Route Model =
+site :: Site Model Route
+site =
   Site
     { siteName = "Ex02",
       siteRender = \_ enc m r ->
@@ -40,9 +40,9 @@ site :: Site Route Model =
 
 main :: IO ()
 main = do
-  void $ Ema.runEma site
+  void $ Ema.runSite site
 
-render :: PartialIsoEnumerableWithCtx Model FilePath Route -> Model -> Route -> LByteString
+render :: RouteEncoder Model Route -> Model -> Route -> LByteString
 render enc model r =
   tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do

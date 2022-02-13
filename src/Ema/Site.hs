@@ -25,7 +25,7 @@ import Data.Text qualified as T
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI qualified as CLI
 import Ema.Route
-  ( PartialIsoEnumerableWithCtx,
+  ( RouteEncoder,
     allRoutes,
     decodeRoute,
     encodeRoute,
@@ -36,11 +36,11 @@ import UnliftIO (MonadUnliftIO, race, race_)
 import UnliftIO.Concurrent (threadDelay)
 
 -- | A self-contained Ema site.
-data Site r a = Site
+data Site a r = Site
   { siteName :: Text,
     siteRender ::
       Some CLI.Action ->
-      PartialIsoEnumerableWithCtx a FilePath r ->
+      RouteEncoder a r ->
       a ->
       r ->
       Asset LByteString,
@@ -56,7 +56,7 @@ data Site r a = Site
       (a -> (LVar a -> m ()) -> m b) ->
       m b,
     siteRouteEncoder ::
-      PartialIsoEnumerableWithCtx a FilePath r
+      RouteEncoder a r
   }
 
 -- | Create a site with a single 'index.html' route, whose contents is specified
@@ -84,19 +84,21 @@ constModal ::
   a ->
   (Some CLI.Action -> (a -> (LVar a -> m ()) -> m b) -> m b)
 constModal x _ startModel = do
-  startModel x $ \_ -> pure ()
+  startModel x $ \_ ->
+    -- TODO: log it
+    pure ()
 
 -- TODO: Using (Generic r)
 -- simpleSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
 -- simpleSite render = undefined
 
-(+:) :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
+(+:) :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 (+:) = mergeSite
 
 -- | Merge two sites to produce a single site.
 -- TODO: Avoid unnecessary updates site1 webpage when only site2 changes (eg:
 -- basic shouldn't refresh when clock changes)
-mergeSite :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
+mergeSite :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 mergeSite site1 site2 =
   Site name render patch enc
   where
@@ -150,21 +152,21 @@ mergeSite site1 site2 =
 
 -- | Transform the given site such that all of its routes are encoded to be
 -- under the given prefix.
-mountUnder :: forall r a. String -> Site r a -> Site (PrefixedRoute r) a
+mountUnder :: forall r a. String -> Site a r -> Site a (PrefixedRoute r)
 mountUnder prefix Site {..} =
   Site siteName siteRender' siteModelPatcher routeEncoder
   where
     siteRender' cliAct rEnc model (PrefixedRoute _ r) =
       siteRender cliAct (conv rEnc) model r
     conv ::
-      PartialIsoEnumerableWithCtx a FilePath (PrefixedRoute r) ->
-      PartialIsoEnumerableWithCtx a FilePath r
+      RouteEncoder a (PrefixedRoute r) ->
+      RouteEncoder a r
     conv (to, from, enum) =
       ( \m r -> to m (PrefixedRoute prefix r),
         \m fp -> _prefixedRouteRoute <$> from m fp,
         \m -> _prefixedRouteRoute <$> enum m
       )
-    routeEncoder :: PartialIsoEnumerableWithCtx a FilePath (PrefixedRoute r)
+    routeEncoder :: RouteEncoder a (PrefixedRoute r)
     routeEncoder =
       let (to, from, all_) = siteRouteEncoder
        in ( \m r -> prefix </> to m (_prefixedRouteRoute r),

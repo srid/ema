@@ -1,6 +1,6 @@
 module Ema.App
-  ( runEma,
-    runEmaWithCli,
+  ( runSite,
+    runSiteWithCli,
   )
 where
 
@@ -24,16 +24,16 @@ import System.Directory (getCurrentDirectory)
 -- | Run the given Ema site, and return the generated files.
 --
 -- On live-server mode, this function will never return.
-runEma :: forall r a. (Show r) => Site r a -> IO [FilePath]
-runEma site = do
+runSite :: forall r a. (Show r) => Site a r -> IO [FilePath]
+runSite site = do
   cli <- CLI.cliAction
-  runEmaWithCli cli site
+  runSiteWithCli cli site
 
--- | Like @runEma@ but takes the CLI action
+-- | Like @runSite@ but takes the CLI action
 --
 -- Useful if you are handling CLI arguments yourself.
-runEmaWithCli :: forall r a. (Show r) => Cli -> Site r a -> IO [FilePath]
-runEmaWithCli cli site = do
+runSiteWithCli :: forall r a. (Show r) => Cli -> Site a r -> IO [FilePath]
+runSiteWithCli cli site = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout
   model <- LVar.empty

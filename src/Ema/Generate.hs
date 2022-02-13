@@ -8,7 +8,7 @@ import Control.Monad.Logger
 import Data.Some (Some)
 import Ema.Asset (Asset (..))
 import Ema.CLI qualified as CLI
-import Ema.Route (PartialIsoEnumerableWithCtx)
+import Ema.Route (RouteEncoder)
 import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -28,7 +28,7 @@ generateSite ::
   (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
   Some CLI.Action ->
   FilePath ->
-  Site r a ->
+  Site a r ->
   a ->
   m [FilePath]
 generateSite cliAction dest site model = do
@@ -51,7 +51,7 @@ generate ::
     HasCallStack
   ) =>
   FilePath ->
-  PartialIsoEnumerableWithCtx a FilePath r ->
+  RouteEncoder a r ->
   a ->
   (a -> r -> Asset LByteString) ->
   -- | List of generated files.

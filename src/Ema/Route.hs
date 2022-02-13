@@ -5,7 +5,7 @@ module Ema.Route
     UrlStrategy (..),
 
     -- * Route encoder
-    PartialIsoEnumerableWithCtx,
+    RouteEncoder,
     encodeRoute,
     decodeRoute,
     allRoutes,
@@ -27,13 +27,15 @@ _partialIsoIsLawfulForCtx :: Eq a => PartialIsoEnumerableWithCtx ctx s a -> ctx 
 _partialIsoIsLawfulForCtx (to, from, getas) ctx =
   all (\a -> let s = to ctx a in Just a == from ctx s) (getas ctx)
 
-encodeRoute :: PartialIsoEnumerableWithCtx ctx FilePath r -> ctx -> r -> FilePath
+type RouteEncoder model route = PartialIsoEnumerableWithCtx model FilePath route
+
+encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (f, _, _) = f
 
-decodeRoute :: PartialIsoEnumerableWithCtx ctx FilePath r -> ctx -> FilePath -> Maybe r
+decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (_, f, _) = f
 
-allRoutes :: PartialIsoEnumerableWithCtx ctx FilePath r -> ctx -> [r]
+allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (_, _, f) = f
 
 defaultEnum :: (Bounded r, Enum r) => [r]
@@ -43,7 +45,7 @@ defaultEnum = [minBound .. maxBound]
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
-routeUrlWith :: UrlStrategy -> PartialIsoEnumerableWithCtx a FilePath r -> a -> r -> Text
+routeUrlWith :: UrlStrategy -> RouteEncoder a r -> a -> r -> Text
 routeUrlWith urlStrategy (enc, _, _) model =
   relUrlFromPath . enc model
   where
@@ -69,7 +71,7 @@ routeUrlWith urlStrategy (enc, _, _) model =
           UrlPretty -> ".html"
           UrlDirect -> ""
 
-routeUrl :: PartialIsoEnumerableWithCtx a FilePath r -> a -> r -> Text
+routeUrl :: RouteEncoder a r -> a -> r -> Text
 routeUrl =
   routeUrlWith UrlPretty
 

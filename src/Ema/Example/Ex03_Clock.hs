@@ -11,7 +11,7 @@ import Control.Monad.Logger (logInfoNS)
 import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Ema (PartialIsoEnumerableWithCtx, Site (..))
+import Ema
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Text.Blaze.Html5 ((!))
@@ -23,7 +23,7 @@ data Route
   | OnlyTime
   deriving stock (Show, Enum, Bounded)
 
-routeEncoder :: PartialIsoEnumerableWithCtx m FilePath Route
+routeEncoder :: RouteEncoder a Route
 routeEncoder =
   (enc, dec, all_)
   where
@@ -36,7 +36,7 @@ routeEncoder =
       _ -> Nothing
     all_ _ = Ema.defaultEnum @Route
 
-site :: Site Route UTCTime
+site :: Site UTCTime Route
 site =
   Site
     { siteName = "Ex03",
@@ -55,9 +55,9 @@ site =
 
 main :: IO ()
 main = do
-  void $ Ema.runEma site
+  void $ Ema.runSite site
 
-render :: PartialIsoEnumerableWithCtx UTCTime FilePath Route -> UTCTime -> Route -> LByteString
+render :: RouteEncoder UTCTime Route -> UTCTime -> Route -> LByteString
 render enc now r =
   tailwindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
