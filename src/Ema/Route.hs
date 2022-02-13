@@ -1,7 +1,15 @@
 module Ema.Route
-  ( routeUrl,
+  ( -- * Create URL from route
+    routeUrl,
     routeUrlWith,
     UrlStrategy (..),
+
+    -- * Route encoder
+    PartialIsoEnumerableWithCtx,
+    encodeRoute,
+    decodeRoute,
+    allRoutes,
+    defaultEnum,
   )
 where
 
@@ -9,23 +17,27 @@ import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
-import Ema.Site
 import Network.URI.Slug qualified as Slug
 
-data UrlStrategy
-  = UrlPretty
-  | UrlDirect
-  deriving stock (Eq, Show, Ord)
+-- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
+-- context value.
+type PartialIsoEnumerableWithCtx ctx s a = (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 
-instance FromJSON UrlStrategy where
-  parseJSON val =
-    f UrlPretty "pretty" val <|> f UrlDirect "direct" val
-    where
-      f :: UrlStrategy -> Text -> Value -> Parser UrlStrategy
-      f c s v = do
-        x <- parseJSON v
-        guard $ x == s
-        pure c
+_partialIsoIsLawfulForCtx :: Eq a => PartialIsoEnumerableWithCtx ctx s a -> ctx -> Bool
+_partialIsoIsLawfulForCtx (to, from, getas) ctx =
+  all (\a -> let s = to ctx a in Just a == from ctx s) (getas ctx)
+
+encodeRoute :: PartialIsoEnumerableWithCtx ctx FilePath r -> ctx -> r -> FilePath
+encodeRoute (f, _, _) = f
+
+decodeRoute :: PartialIsoEnumerableWithCtx ctx FilePath r -> ctx -> FilePath -> Maybe r
+decodeRoute (_, f, _) = f
+
+allRoutes :: PartialIsoEnumerableWithCtx ctx FilePath r -> ctx -> [r]
+allRoutes (_, _, f) = f
+
+defaultEnum :: (Bounded r, Enum r) => [r]
+defaultEnum = [minBound .. maxBound]
 
 -- | Return the relative URL of the given route
 --
@@ -60,3 +72,21 @@ routeUrlWith urlStrategy (enc, _, _) model =
 routeUrl :: PartialIsoEnumerableWithCtx a FilePath r -> a -> r -> Text
 routeUrl =
   routeUrlWith UrlPretty
+
+-- | How to produce URL paths from routes
+data UrlStrategy
+  = -- | Use pretty URLs. "foo/bar.html" produces "/foo/bar" as URL.
+    UrlPretty
+  | -- | Use filepaths as URLs. "foo/bar.html" produces "/foo/bar.html" as URL.
+    UrlDirect
+  deriving stock (Eq, Show, Ord)
+
+instance FromJSON UrlStrategy where
+  parseJSON val =
+    f UrlPretty "pretty" val <|> f UrlDirect "direct" val
+    where
+      f :: UrlStrategy -> Text -> Value -> Parser UrlStrategy
+      f c s v = do
+        x <- parseJSON v
+        guard $ x == s
+        pure c

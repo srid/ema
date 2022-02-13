@@ -4,9 +4,12 @@
 
 module Ema.Site
   ( Site (..),
-    PartialIsoEnumerableWithCtx,
-    defaultEnum,
-    siteUnder,
+
+    -- * Creating sites
+    singlePageSite,
+
+    -- * Combinators
+    mountUnder,
     mergeSite,
     (+:),
   )
@@ -17,25 +20,19 @@ import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some)
 import Data.Text qualified as T
-import Ema.Asset (Asset)
+import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI qualified as CLI
-import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import System.FilePath (FilePath, (</>))
+import Ema.Route
+  ( PartialIsoEnumerableWithCtx,
+    allRoutes,
+    decodeRoute,
+    encodeRoute,
+  )
+import System.FilePath ((</>))
 import Text.Show (Show (show))
 import UnliftIO (MonadUnliftIO, race, race_)
-import Prelude
 
--- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
--- context value.
-type PartialIsoEnumerableWithCtx ctx s a = (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
-
-partialIsoIsLawfulForCtx :: Eq a => PartialIsoEnumerableWithCtx ctx s a -> ctx -> Bool
-partialIsoIsLawfulForCtx (to, from, getas) ctx =
-  all (\a -> let s = to ctx a in Just a == from ctx s) (getas ctx)
-
-defaultEnum :: (Bounded r, Enum r) => [r]
-defaultEnum = [minBound .. maxBound]
-
+-- | A self-contained Ema site.
 data Site r a = Site
   { siteRender ::
       Some CLI.Action ->
@@ -57,28 +54,29 @@ data Site r a = Site
       PartialIsoEnumerableWithCtx a FilePath r
   }
 
+-- | Create a site with a single 'index.html' route, who contents is specified
+-- by the given function.
+singlePageSite :: (Some CLI.Action -> LByteString) -> Site () ()
+singlePageSite render =
+  Site
+    { siteRender = \act _enc () () -> AssetGenerated Html $ render act,
+      siteModelPatcher = \_act setModel -> do
+        setModel () (\(_ :: LVar.LVar ()) -> pure ()), -- pure ()),
+      siteRouteEncoder =
+        ( \() () -> "index.html",
+          \_ fp -> guard (fp == "index.html"),
+          \_ -> [()]
+        )
+    }
+
 -- TODO: Using (Generic r)
-simpleSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
-simpleSite render = undefined
-
-encodeRoute :: Site r a -> a -> r -> FilePath
-encodeRoute site m r =
-  let (f, _, _) = siteRouteEncoder site
-   in f m r
-
-decodeRoute :: Site r a -> a -> FilePath -> Maybe r
-decodeRoute site m fp =
-  let (_, f, _) = siteRouteEncoder site
-   in f m fp
-
-allRoutes :: Site r a -> a -> [r]
-allRoutes site m =
-  let (_, _, f) = siteRouteEncoder site
-   in f m
+-- simpleSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
+-- simpleSite render = undefined
 
 (+:) :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
 (+:) = mergeSite
 
+-- | Merge two sites to produce a single site.
 mergeSite :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
 mergeSite site1 site2 =
   Site render patch enc
@@ -88,14 +86,14 @@ mergeSite site1 site2 =
       Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
     enc =
       ( \(a, b) -> \case
-          Left r -> encodeRoute site1 a r
-          Right r -> encodeRoute site2 b r,
+          Left r -> encodeRoute (siteRouteEncoder site1) a r
+          Right r -> encodeRoute (siteRouteEncoder site2) b r,
         \(a, b) fp ->
-          fmap Left (decodeRoute site1 a fp)
-            <|> fmap Right (decodeRoute site2 b fp),
+          fmap Left (decodeRoute (siteRouteEncoder site1) a fp)
+            <|> fmap Right (decodeRoute (siteRouteEncoder site2) b fp),
         \(a, b) ->
-          fmap Left (allRoutes site1 a)
-            <> fmap Right (allRoutes site2 b)
+          fmap Left (allRoutes (siteRouteEncoder site1) a)
+            <> fmap Right (allRoutes (siteRouteEncoder site2) b)
       )
     patch ::
       forall m b.
@@ -126,34 +124,37 @@ mergeSite site1 site2 =
                       Right b -> LVar.modify lvar $ \(a, _) -> (a, b)
               )
 
--- TODO: Change to `PrefixedRoute String r`
-data RoutePrefix (p :: Symbol) r = RoutePrefix {unRoutePrefix :: r}
-
-instance (Show r, KnownSymbol p) => Show (RoutePrefix p r) where
-  show (RoutePrefix r) = symbolVal (Proxy @p) <> ":" <> Text.Show.show r
-
-siteUnder :: forall p r a. (KnownSymbol p) => Site r a -> Site (RoutePrefix p r) a
-siteUnder Site {..} =
+-- | Transform the given site such that all of its routes are encoded to be
+-- under the given prefix.
+mountUnder :: forall r a. String -> Site r a -> Site (PrefixedRoute r) a
+mountUnder prefix Site {..} =
   Site siteRender' siteModelPatcher routeEncoder
   where
-    siteRender' cliAct rEnc model (RoutePrefix r) =
+    siteRender' cliAct rEnc model (PrefixedRoute _ r) =
       siteRender cliAct (conv rEnc) model r
     conv ::
-      PartialIsoEnumerableWithCtx a FilePath (RoutePrefix p r) ->
+      PartialIsoEnumerableWithCtx a FilePath (PrefixedRoute r) ->
       PartialIsoEnumerableWithCtx a FilePath r
     conv (to, from, enum) =
-      ( \m r -> to m (RoutePrefix r),
-        \m fp -> unRoutePrefix <$> from m fp,
-        \m -> unRoutePrefix <$> enum m
+      ( \m r -> to m (PrefixedRoute prefix r),
+        \m fp -> _prefixedRouteRoute <$> from m fp,
+        \m -> _prefixedRouteRoute <$> enum m
       )
-    routeEncoder :: PartialIsoEnumerableWithCtx a FilePath (RoutePrefix p r)
+    routeEncoder :: PartialIsoEnumerableWithCtx a FilePath (PrefixedRoute r)
     routeEncoder =
       let (to, from, all_) = siteRouteEncoder
-       in ( (\m r -> prefix </> to m (unRoutePrefix r)),
-            ( \m fp -> do
-                fp' <- fmap toString $ T.stripPrefix (toText $ symbolVal (Proxy @p) <> "/") $ toText fp
-                fmap RoutePrefix . from m $ fp'
-            ),
-            (fmap RoutePrefix . all_)
+       in ( \m r -> prefix </> to m (_prefixedRouteRoute r),
+            \m fp -> do
+              fp' <- fmap toString $ T.stripPrefix (toText $ prefix <> "/") $ toText fp
+              fmap (PrefixedRoute prefix) . from m $ fp',
+            fmap (PrefixedRoute prefix) . all_
           )
-    prefix = symbolVal (Proxy @p)
+
+-- | A route that is prefixed at some URL prefix
+data PrefixedRoute r = PrefixedRoute
+  { _prefixedRoutePrefix :: String,
+    _prefixedRouteRoute :: r
+  }
+
+instance (Show r) => Show (PrefixedRoute r) where
+  show (PrefixedRoute p r) = p <> ":" <> Text.Show.show r

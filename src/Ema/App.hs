@@ -15,7 +15,6 @@ import Control.Monad.Logger.Extras
   )
 import Data.LVar qualified as LVar
 import Data.Some (Some (..))
-import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Generate (generateSite)
@@ -35,15 +34,7 @@ runEmaPure ::
   (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
-  let site :: Site () () =
-        Site
-          { siteRender = \act _enc () () -> AssetGenerated Html $ render act,
-            siteModelPatcher = \_act setModel -> do
-              setModel () (\(_ :: LVar.LVar ()) -> pure ()), -- pure ()),
-            siteRouteEncoder =
-              (\() () -> "index.html", (\_ fp -> guard (fp == "index.html")), (\_ -> [()]))
-          }
-  void $ runEma site
+  void $ runEma $ singlePageSite render
 
 -- | Convenient version of @runEmaWith@ that takes initial model and an update
 -- function. You typically want to use this.

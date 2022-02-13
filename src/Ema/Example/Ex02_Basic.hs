@@ -1,10 +1,8 @@
 -- | A very simple site with two routes, and HTML rendered using Blaze DSL
 module Ema.Example.Ex02_Basic where
 
-import Ema qualified
+import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Example.Ex03_Clock qualified as Ex03
-import Ema.Site
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -30,21 +28,20 @@ routeEncoder =
       _ -> Nothing
     all_ _ = defaultEnum @Route
 
+site :: Site Route Model
+site :: Site Route Model =
+  Site
+    { siteRender = \_ enc m r ->
+        Ema.AssetGenerated Ema.Html $ render enc m r,
+      siteModelPatcher = \_ set -> do
+        set (Model "Hello World.") $ \_lvar ->
+          pure (),
+      siteRouteEncoder = routeEncoder
+    }
+
 main :: IO ()
 main = do
-  let site :: Site Route Model =
-        Site
-          { siteRender = \_ enc m r ->
-              Ema.AssetGenerated Ema.Html $ render enc m r,
-            siteModelPatcher = \_ set -> do
-              set (Model "Hello World.") $ \_lvar ->
-                pure (),
-            siteRouteEncoder = routeEncoder
-          }
-  void $
-    Ema.runEma $
-      siteUnder @"hello" site
-        +: Ex03.site
+  void $ Ema.runEma site
 
 render :: PartialIsoEnumerableWithCtx Model FilePath Route -> Model -> Route -> LByteString
 render enc model r =

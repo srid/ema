@@ -10,7 +10,7 @@ import Control.Concurrent (threadDelay)
 import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
-import Ema (PartialIsoEnumerableWithCtx, Site (..), defaultEnum)
+import Ema (PartialIsoEnumerableWithCtx, Site (..))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Text.Blaze.Html5 ((!))
@@ -33,7 +33,7 @@ routeEncoder =
       "index.html" -> Just Index
       "time.html" -> Just OnlyTime
       _ -> Nothing
-    all_ _ = defaultEnum @Route
+    all_ _ = Ema.defaultEnum @Route
 
 site :: Site Route UTCTime
 site =
