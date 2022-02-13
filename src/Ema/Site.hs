@@ -7,6 +7,7 @@ module Ema.Site
     PartialIsoEnumerableWithCtx,
     defaultEnum,
     siteUnder,
+    eitherSites,
   )
 where
 
@@ -59,14 +60,39 @@ data Site r a = Site
       PartialIsoEnumerableWithCtx a FilePath r
   }
 
+encodeRoute :: Site r a -> a -> r -> FilePath
+encodeRoute site m r =
+  let (f, _, _) = siteRouteEncoder site
+   in f m r
+
+decodeRoute :: Site r a -> a -> FilePath -> Maybe r
+decodeRoute site m fp =
+  let (_, f, _) = siteRouteEncoder site
+   in f m fp
+
+allRoutes :: Site r a -> a -> [r]
+allRoutes site m =
+  let (_, _, f) = siteRouteEncoder site
+   in f m
+
 eitherSites :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
 eitherSites site1 site2 =
   Site render patch enc
   where
-    render cliAct rEnc x = \case
+    render cliAct _ x = \case
       Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
       Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
-    enc = undefined
+    enc =
+      ( \(a, b) -> \case
+          Left r -> encodeRoute site1 a r
+          Right r -> encodeRoute site2 b r,
+        \(a, b) fp ->
+          fmap Left (decodeRoute site1 a fp)
+            <|> fmap Right (decodeRoute site2 b fp),
+        \(a, b) ->
+          fmap Left (allRoutes site1 a)
+            <> fmap Right (allRoutes site2 b)
+      )
     patch ::
       forall m b.
       (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>

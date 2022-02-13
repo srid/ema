@@ -3,6 +3,7 @@ module Ema.Example.Ex02_Basic where
 
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
+import Ema.Example.Ex03_Clock qualified as Ex03
 import Ema.Site
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
@@ -40,7 +41,10 @@ main = do
                 pure (),
             siteRouteEncoder = routeEncoder
           }
-  void $ Ema.runEma $ siteUnder @"hello" site
+  void $
+    Ema.runEma $
+      siteUnder @"hello" site
+        `eitherSites` Ex03.site
 
 render :: PartialIsoEnumerableWithCtx Model FilePath Route -> Model -> Route -> LByteString
 render enc model r =

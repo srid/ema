@@ -35,21 +35,23 @@ routeEncoder =
       _ -> Nothing
     all_ _ = defaultEnum @Route
 
+site :: Site Route UTCTime
+site =
+  Site
+    { siteRender = \_ enc m r ->
+        Ema.AssetGenerated Ema.Html $ render enc m r,
+      siteModelPatcher = \_ startModel -> do
+        t0 <- liftIO getCurrentTime
+        startModel t0 $ \lvar ->
+          forever $ do
+            liftIO $ threadDelay 1000000
+            t <- liftIO getCurrentTime
+            LVar.set lvar t,
+      siteRouteEncoder = routeEncoder
+    }
+
 main :: IO ()
 main = do
-  let site :: Site Route UTCTime =
-        Site
-          { siteRender = \_ enc m r ->
-              Ema.AssetGenerated Ema.Html $ render enc m r,
-            siteModelPatcher = \_ startModel -> do
-              t0 <- liftIO getCurrentTime
-              startModel t0 $ \lvar ->
-                forever $ do
-                  liftIO $ threadDelay 1000000
-                  t <- liftIO getCurrentTime
-                  LVar.set lvar t,
-            siteRouteEncoder = routeEncoder
-          }
   void $ Ema.runEma site
 
 render :: PartialIsoEnumerableWithCtx UTCTime FilePath Route -> UTCTime -> Route -> LByteString
