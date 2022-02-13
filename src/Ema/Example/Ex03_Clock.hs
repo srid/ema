@@ -39,7 +39,8 @@ routeEncoder =
 site :: Site Route UTCTime
 site =
   Site
-    { siteRender = \_ enc m r ->
+    { siteName = "Ex03",
+      siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelPatcher = \_ startModel -> do
         t0 <- liftIO getCurrentTime

@@ -10,5 +10,5 @@ main :: IO ()
 main = do
   let speaker :: Text = "Ema"
   void . Ema.runEma $
-    Ema.singlePageSite $ \_ ->
+    Ema.singlePageSite "Ex01" $ \_ ->
       encodeUtf8 $ "<b>Hello</b>, from " <> speaker

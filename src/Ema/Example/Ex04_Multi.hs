@@ -12,7 +12,7 @@ import Text.Blaze.Html5.Attributes qualified as A
 
 main :: IO ()
 main = do
-  let site = Ema.singlePageSite $ const renderIndex
+  let site = Ema.singlePageSite "main" $ const renderIndex
   void $
     Ema.runEma $
       site

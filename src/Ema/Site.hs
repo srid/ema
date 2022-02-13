@@ -37,7 +37,8 @@ import UnliftIO.Concurrent (threadDelay)
 
 -- | A self-contained Ema site.
 data Site r a = Site
-  { siteRender ::
+  { siteName :: Text,
+    siteRender ::
       Some CLI.Action ->
       PartialIsoEnumerableWithCtx a FilePath r ->
       a ->
@@ -62,10 +63,11 @@ data Site r a = Site
 -- by the given function.
 --
 -- TODO: pass enc anyway.
-singlePageSite :: (Some CLI.Action -> LByteString) -> Site () ()
-singlePageSite render =
+singlePageSite :: Text -> (Some CLI.Action -> LByteString) -> Site () ()
+singlePageSite name render =
   Site
-    { siteRender =
+    { siteName = name,
+      siteRender =
         \act _enc () () -> AssetGenerated Html $ render act,
       siteModelPatcher =
         constModal (),
@@ -92,11 +94,13 @@ constModal x _ startModel = do
 (+:) = mergeSite
 
 -- | Merge two sites to produce a single site.
--- TODO: make it work
+-- TODO: Avoid unnecessary updates site1 webpage when only site2 changes (eg:
+-- basic shouldn't refresh when clock changes)
 mergeSite :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
 mergeSite site1 site2 =
-  Site render patch enc
+  Site name render patch enc
   where
+    name = siteName site1 <> "+" <> siteName site2
     render cliAct _ x = \case
       Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
       Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
@@ -125,13 +129,12 @@ mergeSite site1 site2 =
           l2 <- LVar.empty
           LVar.set l2 v2
           f (v1, v2) $ \lvar -> do
-            let keepAlive = do
+            let keepAlive src = do
                   -- TODO: DRY with App.hs
-                  -- TODO: Per-site logging prefix?
-                  logWarnNS "mergeSite:site" "modelPatcher exited; no more model updates."
+                  logWarnNS src "modelPatcher exited; no more model updates."
                   threadDelay maxBound
             race_
-              (race_ (k1 l1 >> keepAlive) (k2 l2 >> keepAlive))
+              (race_ (k1 l1 >> keepAlive (siteName site1)) (k2 l2 >> keepAlive (siteName site2)))
               ( do
                   sub1 <- LVar.addListener l1
                   sub2 <- LVar.addListener l2
@@ -149,7 +152,7 @@ mergeSite site1 site2 =
 -- under the given prefix.
 mountUnder :: forall r a. String -> Site r a -> Site (PrefixedRoute r) a
 mountUnder prefix Site {..} =
-  Site siteRender' siteModelPatcher routeEncoder
+  Site siteName siteRender' siteModelPatcher routeEncoder
   where
     siteRender' cliAct rEnc model (PrefixedRoute _ r) =
       siteRender cliAct (conv rEnc) model r
