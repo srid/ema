@@ -1,13 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Ema.Generate where
+module Ema.Generate (generateSite) where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Data.LVar
-import Data.LVar qualified as LVar
-import Data.Some
+import Data.Some (Some)
 import Ema.Asset (Asset (..))
 import Ema.CLI qualified as CLI
 import Ema.Route (PartialIsoEnumerableWithCtx)
@@ -31,14 +29,12 @@ generateSite ::
   Some CLI.Action ->
   FilePath ->
   Site r a ->
-  LVar a ->
+  a ->
   m [FilePath]
 generateSite cliAction dest site model = do
-  val :: a <- LVar.get model
-  logInfoN "... initial model is now available."
   let enc = siteRouteEncoder site
   withBlockBuffering $
-    generate dest enc val (siteRender site cliAction enc)
+    generate dest enc model (siteRender site cliAction enc)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

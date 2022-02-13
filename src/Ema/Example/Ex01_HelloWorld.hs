@@ -4,10 +4,11 @@
 -- values.
 module Ema.Example.Ex01_HelloWorld where
 
-import Ema (runEmaPure)
+import Ema qualified
 
 main :: IO ()
 main = do
   let speaker :: Text = "Ema"
-  runEmaPure $ \_ ->
-    encodeUtf8 $ "<b>Hello</b>, from " <> speaker
+  void . Ema.runEma $
+    Ema.singlePageSite $ \_ ->
+      encodeUtf8 $ "<b>Hello</b>, from " <> speaker

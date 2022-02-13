@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Site
@@ -7,6 +8,7 @@ module Ema.Site
 
     -- * Creating sites
     singlePageSite,
+    constModal,
 
     -- * Combinators
     mountUnder,
@@ -15,7 +17,7 @@ module Ema.Site
   )
 where
 
-import Control.Monad.Logger (MonadLoggerIO)
+import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some)
@@ -31,6 +33,7 @@ import Ema.Route
 import System.FilePath ((</>))
 import Text.Show (Show (show))
 import UnliftIO (MonadUnliftIO, race, race_)
+import UnliftIO.Concurrent (threadDelay)
 
 -- | A self-contained Ema site.
 data Site r a = Site
@@ -48,26 +51,38 @@ data Site r a = Site
       -- Sets the initial mode, and takes a continuation to patch it.
       --
       -- The continuation will be called only on live server mode.
+      -- TODO: Should we simplify this?
       (a -> (LVar a -> m ()) -> m b) ->
       m b,
     siteRouteEncoder ::
       PartialIsoEnumerableWithCtx a FilePath r
   }
 
--- | Create a site with a single 'index.html' route, who contents is specified
+-- | Create a site with a single 'index.html' route, whose contents is specified
 -- by the given function.
+--
+-- TODO: pass enc anyway.
 singlePageSite :: (Some CLI.Action -> LByteString) -> Site () ()
 singlePageSite render =
   Site
-    { siteRender = \act _enc () () -> AssetGenerated Html $ render act,
-      siteModelPatcher = \_act setModel -> do
-        setModel () (\(_ :: LVar.LVar ()) -> pure ()), -- pure ()),
+    { siteRender =
+        \act _enc () () -> AssetGenerated Html $ render act,
+      siteModelPatcher =
+        constModal (),
       siteRouteEncoder =
         ( \() () -> "index.html",
-          \_ fp -> guard (fp == "index.html"),
-          \_ -> [()]
+          \() fp -> guard (fp == "index.html"),
+          \() -> [()]
         )
     }
+
+constModal ::
+  forall m a b.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+  a ->
+  (Some CLI.Action -> (a -> (LVar a -> m ()) -> m b) -> m b)
+constModal x _ startModel = do
+  startModel x $ \_ -> pure ()
 
 -- TODO: Using (Generic r)
 -- simpleSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
@@ -77,6 +92,7 @@ singlePageSite render =
 (+:) = mergeSite
 
 -- | Merge two sites to produce a single site.
+-- TODO: make it work
 mergeSite :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
 mergeSite site1 site2 =
   Site render patch enc
@@ -109,8 +125,13 @@ mergeSite site1 site2 =
           l2 <- LVar.empty
           LVar.set l2 v2
           f (v1, v2) $ \lvar -> do
+            let keepAlive = do
+                  -- TODO: DRY with App.hs
+                  -- TODO: Per-site logging prefix?
+                  logWarnNS "mergeSite:site" "modelPatcher exited; no more model updates."
+                  threadDelay maxBound
             race_
-              (race_ (k1 l1) (k2 l2))
+              (race_ (k1 l1 >> keepAlive) (k2 l2 >> keepAlive))
               ( do
                   sub1 <- LVar.addListener l1
                   sub2 <- LVar.addListener l2

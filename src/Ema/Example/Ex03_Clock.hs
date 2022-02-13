@@ -7,6 +7,7 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
+import Control.Monad.Logger (logInfoNS)
 import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
@@ -42,7 +43,8 @@ site =
         Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelPatcher = \_ startModel -> do
         t0 <- liftIO getCurrentTime
-        startModel t0 $ \lvar ->
+        startModel t0 $ \lvar -> do
+          logInfoNS "Ex03" "Starting clock..."
           forever $ do
             liftIO $ threadDelay 1000000
             t <- liftIO getCurrentTime

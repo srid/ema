@@ -33,9 +33,7 @@ site :: Site Route Model =
   Site
     { siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelPatcher = \_ set -> do
-        set (Model "Hello World.") $ \_lvar ->
-          pure (),
+      siteModelPatcher = Ema.constModal $ Model "Hello World.",
       siteRouteEncoder = routeEncoder
     }
 
