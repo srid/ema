@@ -7,6 +7,7 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
+import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema (PartialIsoEnumerableWithCtx, Site (..), defaultEnum)
@@ -40,12 +41,13 @@ main = do
         Site
           { siteRender = \_ enc m r ->
               Ema.AssetGenerated Ema.Html $ render enc m r,
-            siteModelPatcher = \_ set -> do
-              patch <- set =<< liftIO getCurrentTime
-              forever $ do
-                t <- liftIO getCurrentTime
-                patch $ \_ -> t
-                liftIO $ threadDelay 1000000,
+            siteModelPatcher = \_ startModel -> do
+              t0 <- liftIO getCurrentTime
+              startModel t0 $ \lvar ->
+                forever $ do
+                  liftIO $ threadDelay 1000000
+                  t <- liftIO getCurrentTime
+                  LVar.set lvar t,
             siteRouteEncoder = routeEncoder
           }
   void $ Ema.runEma site

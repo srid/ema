@@ -36,7 +36,8 @@ main = do
           { siteRender = \_ enc m r ->
               Ema.AssetGenerated Ema.Html $ render enc m r,
             siteModelPatcher = \_ set -> do
-              void $ set $ Model "Hello World.",
+              set (Model "Hello World.") $ \_lvar ->
+                pure (),
             siteRouteEncoder = routeEncoder
           }
   void $ Ema.runEma $ siteUnder @"hello" site

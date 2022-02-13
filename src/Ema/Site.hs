@@ -11,6 +11,8 @@ module Ema.Site
 where
 
 import Control.Monad.Logger (MonadLoggerIO)
+import Data.LVar (LVar)
+import Data.LVar qualified as LVar
 import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset (Asset)
@@ -20,6 +22,8 @@ import System.FilePath
 import Text.Show (Show (show))
 import UnliftIO
   ( MonadUnliftIO,
+    race,
+    race_,
   )
 import Prelude
 
@@ -43,15 +47,54 @@ data Site r a = Site
       Asset LByteString,
     -- | Thread that will patch the model over time.
     siteModelPatcher ::
-      forall m.
+      forall m b.
       (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
       Some CLI.Action ->
-      -- Sets the initial mode, and returns a function to patch it.
-      (a -> m ((a -> a) -> m ())) ->
-      m (),
+      -- Sets the initial mode, and takes a continuation to patch it.
+      --
+      -- The continuation will be called only on live server mode.
+      (a -> (LVar a -> m ()) -> m b) ->
+      m b,
     siteRouteEncoder ::
       PartialIsoEnumerableWithCtx a FilePath r
   }
+
+eitherSites :: forall r1 r2 a1 a2. Site r1 a1 -> Site r2 a2 -> Site (Either r1 r2) (a1, a2)
+eitherSites site1 site2 =
+  Site render patch enc
+  where
+    render cliAct rEnc x = \case
+      Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
+      Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
+    enc = undefined
+    patch ::
+      forall m b.
+      (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+      Some CLI.Action ->
+      ((a1, a2) -> (LVar (a1, a2) -> m ()) -> m b) ->
+      m b
+    patch cliAct f = do
+      siteModelPatcher site1 cliAct $ \v1 k1 -> do
+        l1 <- LVar.empty
+        LVar.set l1 v1
+        siteModelPatcher site2 cliAct $ \v2 k2 -> do
+          l2 <- LVar.empty
+          LVar.set l2 v2
+          f (v1, v2) $ \lvar -> do
+            race_
+              (race_ (k1 l1) (k2 l2))
+              ( do
+                  sub1 <- LVar.addListener l1
+                  sub2 <- LVar.addListener l2
+                  forever $ do
+                    x <-
+                      race
+                        (LVar.listenNext l1 sub1)
+                        (LVar.listenNext l2 sub2)
+                    case x of
+                      Left a -> LVar.modify lvar $ \(_, b) -> (a, b)
+                      Right b -> LVar.modify lvar $ \(a, _) -> (a, b)
+              )
 
 data RoutePrefix (p :: Symbol) r = RoutePrefix {unRoutePrefix :: r}
 

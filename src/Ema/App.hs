@@ -6,14 +6,13 @@ module Ema.App
 where
 
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (race)
-import Control.Monad.Logger (MonadLoggerIO, logInfoN)
+import Control.Concurrent.Async (race_)
+import Control.Monad.Logger (logInfoN)
 import Control.Monad.Logger.Extras
   ( colorize,
     logToStdout,
     runLoggerLoggingT,
   )
-import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (..))
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
@@ -23,8 +22,7 @@ import Ema.Generate (generateSite)
 import Ema.Server qualified as Server
 import Ema.Site
 import System.Directory (getCurrentDirectory)
-import UnliftIO (MonadUnliftIO)
-import Prelude hiding (All)
+import Prelude
 
 -- | Pure version of @runEmaWith@ (i.e with no model).
 --
@@ -33,7 +31,7 @@ import Prelude hiding (All)
 -- expected, whose HTML contents is specified as the only argument to this
 -- function.
 runEmaPure ::
-  -- | How to render a route
+  -- | How to render the only route
   (Some CLI.Action -> LByteString) ->
   IO ()
 runEmaPure render = do
@@ -41,9 +39,9 @@ runEmaPure render = do
         Site
           { siteRender = \act _enc () () -> AssetGenerated Html $ render act,
             siteModelPatcher = \_act setModel -> do
-              void $ setModel ()
-              liftIO $ threadDelay maxBound,
-            siteRouteEncoder = (\_ () -> "index.html", (\_ fp -> guard (fp == "index.html")), (\_ -> [()]))
+              setModel () (\(_ :: LVar.LVar ()) -> pure ()), -- pure ()),
+            siteRouteEncoder =
+              (\() () -> "index.html", (\_ fp -> guard (fp == "index.html")), (\_ -> [()]))
           }
   void $ runEma site
 
@@ -61,7 +59,7 @@ runEma ::
   -- | A long-running IO action that will update the @model@ @LVar@ over time.
   -- This IO action must set the initial model value in the very beginning.
   -- (forall m. (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => Some CLI.Action -> LVar model -> m b) ->
-  IO (Maybe (DSum CLI.Action Identity))
+  IO [FilePath]
 runEma site = do
   cli <- CLI.cliAction
   runEmaWithCli cli site
@@ -75,9 +73,8 @@ runEmaWithCli ::
   Cli ->
   -- | How to render a route, given the model
   Site r a ->
-  -- | A long-running IO action that will update the @model@ @LVar@ over time.
-  -- This IO action must set the initial model value in the very beginning.
-  IO (Maybe (DSum CLI.Action Identity))
+  -- | Returns generated files. On live-server mode, this function never returns.
+  IO [FilePath]
 runEmaWithCli cli site = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout
@@ -86,42 +83,19 @@ runEmaWithCli cli site = do
     logInfoN $ "Launching Ema under: " <> toText cwd
     logInfoN "Waiting for initial model ..."
   model <- LVar.empty
-  let setModel v = LVar.set model v >> pure (LVar.modify model)
-  rightToMaybe
-    <$> race
-      ( flip runLoggerLoggingT logger $ do
-          siteModelPatcher site (CLI.action cli) setModel
-          logInfoN "modelPatcher exited; keeping thread alive ..."
-          liftIO $ threadDelay maxBound
-      )
-      (flip runLoggerLoggingT logger $ runEmaWithCliInCwd (CLI.action cli) site model)
-
--- | Run Ema live dev server
-runEmaWithCliInCwd ::
-  forall r a m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Show r) =>
-  -- | CLI arguments
-  Some CLI.Action ->
-  -- | Your site model type, as a @LVar@ in order to support modifications over
-  -- time (for hot-reload).
-  --
-  -- Use @Data.LVar.new@ to create it, and then -- over time -- @Data.LVar.set@
-  -- or @Data.LVar.modify@ to modify it. Ema will automatically hot-reload your
-  -- site as this model data changes.
-  Site r a ->
-  -- | Your site render function. Takes the current @model@ value, and the page
-  -- @route@ type as arguments. It must return the raw HTML to render to browser
-  -- or generate on disk.
-  LVar.LVar a ->
-  m (DSum CLI.Action Identity)
-runEmaWithCliInCwd cliAction site model = do
-  -- TODO: Have these work with multiple sites (nonempty list)
-  -- Should work in both generate and server
-  case cliAction of
-    Some (CLI.Generate dest) -> do
-      res <- generateSite cliAction dest site model
-      pure $ CLI.Generate dest :=> Identity res
-    Some (CLI.Run (host, port)) -> do
-      -- TODO: Wait for model to be available
-      Server.runServerWithWebSocketHotReload cliAction host port site model
-      pure $ CLI.Run (host, port) :=> Identity ()
+  flip runLoggerLoggingT logger $
+    siteModelPatcher site (CLI.action cli) $ \model0 cont -> do
+      LVar.set model model0
+      case CLI.action cli of
+        Some (CLI.Generate dest) -> do
+          generateSite (CLI.action cli) dest site model
+        Some (CLI.Run (host, port)) -> do
+          liftIO $
+            race_
+              ( flip runLoggerLoggingT logger $ do
+                  cont model
+                  logInfoN "modelPatcher exited; keeping thread alive ..."
+                  liftIO $ threadDelay maxBound
+              )
+              (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload (CLI.action cli) host port site model)
+          pure [] -- FIXME: err, unreachable
