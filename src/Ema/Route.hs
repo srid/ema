@@ -12,6 +12,7 @@ module Ema.Route
     defaultEnum,
 
     -- * Internal
+    mergeRouteEncoder,
     checkRouteEncoderForSingleRoute,
   )
 where
@@ -41,6 +42,25 @@ decodeRoute (_, f, _) = f
 
 allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (_, _, f) = f
+
+-- | Returns a new route encoder that supports either of the input routes.
+mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
+mergeRouteEncoder enc1 enc2 =
+  ( \m ->
+      either
+        (encodeRoute enc1 (fst m))
+        (encodeRoute enc2 (snd m)),
+    \m fp ->
+      asum
+        [ Left <$> decodeRoute enc1 (fst m) fp,
+          Right <$> decodeRoute enc2 (snd m) fp
+        ],
+    \m ->
+      mconcat
+        [ Left <$> allRoutes enc1 (fst m),
+          Right <$> allRoutes enc2 (snd m)
+        ]
+  )
 
 -- TODO: Determine this generically somehow
 -- See https://github.com/srid/ema/issues/76

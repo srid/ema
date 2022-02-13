@@ -29,6 +29,7 @@ import Ema.Route
     allRoutes,
     decodeRoute,
     encodeRoute,
+    mergeRouteEncoder,
   )
 import System.FilePath ((</>))
 import Text.Show (Show (show))
@@ -97,27 +98,17 @@ constModal x _ startModel = do
 (+:) = mergeSite
 
 -- | Merge two sites to produce a single site.
--- TODO: Avoid unnecessary updates site1 webpage when only site2 changes (eg:
+-- TODO: Avoid unnecessary updates on site1 webpage when only site2 changes (eg:
 -- basic shouldn't refresh when clock changes)
 mergeSite :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 mergeSite site1 site2 =
   Site name render patch enc
   where
     name = siteName site1 <> "+" <> siteName site2
+    enc = mergeRouteEncoder (siteRouteEncoder site1) (siteRouteEncoder site2)
     render cliAct _ x = \case
       Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
       Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
-    enc =
-      ( \(a, b) -> \case
-          Left r -> encodeRoute (siteRouteEncoder site1) a r
-          Right r -> encodeRoute (siteRouteEncoder site2) b r,
-        \(a, b) fp ->
-          fmap Left (decodeRoute (siteRouteEncoder site1) a fp)
-            <|> fmap Right (decodeRoute (siteRouteEncoder site2) b fp),
-        \(a, b) ->
-          fmap Left (allRoutes (siteRouteEncoder site1) a)
-            <> fmap Right (allRoutes (siteRouteEncoder site2) b)
-      )
     patch ::
       forall m b.
       (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>

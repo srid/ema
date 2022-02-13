@@ -118,12 +118,12 @@ library
   exposed-modules:
     Ema
     Ema.CLI
+    Ema.Route
 
   other-modules:
     Ema.App
     Ema.Asset
     Ema.Generate
-    Ema.Route
     Ema.Server
     Ema.Site
 
