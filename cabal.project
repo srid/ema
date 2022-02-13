@@ -1,0 +1,2 @@
+packages: ema.cabal
+flags: +with-examples
