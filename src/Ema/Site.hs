@@ -46,19 +46,20 @@ data Site a r = Site
       r ->
       Asset LByteString,
     -- | Thread that will patch the model over time.
-    siteModelPatcher ::
-      forall m b.
-      (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
-      Some CLI.Action ->
-      -- Sets the initial mode, and takes a continuation to patch it.
-      --
-      -- The continuation will be called only on live server mode.
-      -- TODO: Should we simplify this?
-      (a -> (LVar a -> m ()) -> m b) ->
-      m b,
-    siteRouteEncoder ::
-      RouteEncoder r a
+    siteModelRunner :: ModelRunner a,
+    siteRouteEncoder :: RouteEncoder r a
   }
+
+type ModelRunner a =
+  forall m b.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+  Some CLI.Action ->
+  -- Sets the initial mode, and takes a continuation to patch it.
+  --
+  -- The continuation will be called only on live server mode.
+  -- TODO: Should we simplify this?
+  (a -> (LVar a -> m ()) -> m b) ->
+  m b
 
 -- | Create a site with a single 'index.html' route, whose contents is specified
 -- by the given function.
@@ -70,17 +71,13 @@ singlePageSite name render =
     { siteName = name,
       siteRender =
         \act _enc () () -> AssetGenerated Html $ render act,
-      siteModelPatcher =
+      siteModelRunner =
         constModal (),
       siteRouteEncoder =
         singletonRouteEncoder
     }
 
-constModal ::
-  forall m a b.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
-  a ->
-  (Some CLI.Action -> (a -> (LVar a -> m ()) -> m b) -> m b)
+constModal :: a -> ModelRunner a
 constModal x _ startModel = do
   startModel x $ \_ ->
     -- TODO: log it
@@ -99,24 +96,19 @@ constModal x _ startModel = do
 -- basic shouldn't refresh when clock changes)
 mergeSite :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 mergeSite site1 site2 =
-  Site name render patch enc
+  Site name render (runBoth (siteModelRunner site1) (siteModelRunner site2)) enc
   where
     name = siteName site1 <> "+" <> siteName site2
     enc = mergeRouteEncoder (siteRouteEncoder site1) (siteRouteEncoder site2)
     render cliAct _ x = \case
       Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
       Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
-    patch ::
-      forall m b.
-      (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
-      Some CLI.Action ->
-      ((a1, a2) -> (LVar (a1, a2) -> m ()) -> m b) ->
-      m b
-    patch cliAct f = do
-      siteModelPatcher site1 cliAct $ \v1 k1 -> do
+    runBoth :: ModelRunner a1 -> ModelRunner a2 -> ModelRunner (a1, a2)
+    runBoth r1 r2 cliAct f = do
+      r1 cliAct $ \v1 k1 -> do
         l1 <- LVar.empty
         LVar.set l1 v1
-        siteModelPatcher site2 cliAct $ \v2 k2 -> do
+        r2 cliAct $ \v2 k2 -> do
           l2 <- LVar.empty
           LVar.set l2 v2
           f (v1, v2) $ \lvar -> do
@@ -143,7 +135,7 @@ mergeSite site1 site2 =
 -- under the given prefix.
 mountUnder :: forall r a. String -> Site a r -> Site a (PrefixedRoute r)
 mountUnder prefix Site {..} =
-  Site siteName siteRender' siteModelPatcher (toRouteEncoder siteRouteEncoder)
+  Site siteName siteRender' siteModelRunner (toRouteEncoder siteRouteEncoder)
   where
     siteRender' cliAct rEnc model r =
       siteRender cliAct (fromRouteEncoder rEnc) model (_prefixedRouteRoute r)

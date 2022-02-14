@@ -43,7 +43,7 @@ site =
     { siteName = "Ex03",
       siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelPatcher = \_ startModel -> do
+      siteModelRunner = \_ startModel -> do
         t0 <- liftIO getCurrentTime
         startModel t0 $ \lvar -> do
           logInfoNS "Ex03" "Starting clock..."

@@ -35,7 +35,7 @@ site =
     { siteName = "Ex02",
       siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelPatcher = Ema.constModal $ Model "Hello World.",
+      siteModelRunner = Ema.constModal $ Model "Hello World.",
       siteRouteEncoder = routeEncoder
     }
 

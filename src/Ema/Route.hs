@@ -35,6 +35,7 @@ import Network.URI.Slug qualified as Slug
 --
 -- Parse `s` into (optional) `a` which can always be converted to a `s`. The `a`
 -- can be enumerated finitely. `ctx` is used to all functions.
+-- TODO: Is this isomrophic to `Iso (ctx, a) (Maybe a) s (ctx, s)` (plus, `ctx -> [a]`)?
 data PartialIsoEnumerableWithCtx ctx s a
   = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 

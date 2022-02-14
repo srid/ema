@@ -44,6 +44,7 @@ library
     , filepath
     , filepattern
     , http-types
+    , lens
     , lvar
     , monad-logger
     , monad-logger-extras
@@ -54,7 +55,6 @@ library
     , unliftio
     , url-slug
     , wai
-    , lens
     , wai-middleware-static
     , wai-websockets
     , warp
