@@ -3,6 +3,7 @@ module Ema.Example.Ex02_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
+import Ema.Route (unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -16,7 +17,7 @@ newtype Model = Model {unModel :: Text}
 
 routeEncoder :: RouteEncoder Route a
 routeEncoder =
-  RouteEncoder (enc, dec, all_)
+  unsafeMkRouteEncoder enc dec all_
   where
     enc _model =
       \case
@@ -47,14 +48,14 @@ render enc model r =
   tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
-        H.toHtml (unModel model)
+        H.p $ H.em $ H.toHtml (unModel model)
         case r of
           Index -> do
             "You are on the index page. "
             routeElem About "Go to About"
           About -> do
-            "You are on the about page. "
             routeElem Index "Go to Index"
+            ". You are on the about page. "
   where
     routeElem r' w =
       H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w

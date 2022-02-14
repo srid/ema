@@ -7,61 +7,97 @@ module Ema.Route
     UrlStrategy (..),
 
     -- * Route encoder
-    RouteEncoder (RouteEncoder),
+    RouteEncoder,
+    unsafeMkRouteEncoder,
     encodeRoute,
     decodeRoute,
     allRoutes,
     defaultEnum,
+    singletonRouteEncoder,
 
     -- * Internal
     mergeRouteEncoder,
     checkRouteEncoderForSingleRoute,
+    PartialIsoFunctor (pimap),
   )
 where
 
+import Control.Lens (Iso, Iso')
+import Control.Lens qualified as Lens
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
-import Data.Functor.Contravariant
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
 import Network.URI.Slug qualified as Slug
 
 -- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
 -- context value.
-type PartialIsoEnumerableWithCtx s ctx a = (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
+--
+-- Parse `s` into (optional) `a` which can always be converted to a `s`. The `a`
+-- can be enumerated finitely. `ctx` is used to all functions.
+data PartialIsoEnumerableWithCtx ctx s a
+  = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 
-partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx s ctx a -> ctx -> a -> s -> Bool
-partialIsoIsLawfulFor (to, from, _) ctx a s =
+partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Bool
+partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s =
   (s == to ctx a)
     && (Just a == from ctx s)
 
-data RouteEncoder r a = RouteEncoder {unRouteEncoder :: PartialIsoEnumerableWithCtx FilePath a r}
+class PartialIsoFunctor (f :: Type -> Type -> Type -> Type) where
+  pimap :: Iso a (Maybe a) b b -> Iso' c d -> (y -> x) -> f x a c -> f y b d
 
-instance Contravariant (RouteEncoder r) where
-  contramap :: forall a b. (a -> b) -> RouteEncoder r b -> RouteEncoder r a
-  contramap f enc =
-    RouteEncoder
-      ( \m r ->
-          encodeRoute enc (f m) r,
-        \m fp ->
-          decodeRoute enc (f m) fp,
-        \m ->
-          allRoutes enc (f m)
-      )
+instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
+  pimap ::
+    forall a b c d x y.
+    Iso a (Maybe a) b b ->
+    Iso c c d d ->
+    (y -> x) ->
+    PartialIsoEnumerableWithCtx x a c ->
+    PartialIsoEnumerableWithCtx y b d
+  pimap iso1 iso2 h (PartialIsoEnumerableWithCtx (enc, dec, all_)) =
+    PartialIsoEnumerableWithCtx (enc', dec', all_')
+    where
+      enc' :: y -> d -> b
+      enc' m r =
+        let r' :: c = Lens.view (Lens.from iso2) r
+            m' :: x = h m
+         in Lens.withIso iso1 $ \f _ -> f $ enc m' r'
+      dec' :: y -> b -> Maybe d
+      dec' m fp = do
+        fp' <- Lens.withIso iso1 $ \_ f -> f fp
+        r :: c <- dec (h m) fp'
+        pure $ Lens.view iso2 r
+      all_' :: y -> [d]
+      all_' m =
+        Lens.view iso2 <$> all_ (h m)
+
+type RouteEncoder r a = PartialIsoEnumerableWithCtx a FilePath r
+
+unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder a ctx
+unsafeMkRouteEncoder x y z = PartialIsoEnumerableWithCtx (x, y, z)
 
 encodeRoute :: RouteEncoder r model -> model -> r -> FilePath
-encodeRoute (RouteEncoder (f, _, _)) = f
+encodeRoute (PartialIsoEnumerableWithCtx (f, _, _)) = f
 
 decodeRoute :: RouteEncoder r model -> model -> FilePath -> Maybe r
-decodeRoute (RouteEncoder (_, f, _)) = f
+decodeRoute (PartialIsoEnumerableWithCtx (_, f, _)) = f
 
 allRoutes :: RouteEncoder r model -> model -> [r]
-allRoutes (RouteEncoder (_, _, f)) = f
+allRoutes (PartialIsoEnumerableWithCtx (_, _, f)) = f
+
+-- | Route encoder for single route encoding to 'index.html'
+singletonRouteEncoder :: RouteEncoder () ()
+singletonRouteEncoder =
+  PartialIsoEnumerableWithCtx
+    ( \() () -> "index.html",
+      \() fp -> guard (fp == "index.html"),
+      \() -> [()]
+    )
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder r1 a -> RouteEncoder r2 b -> RouteEncoder (Either r1 r2) (a, b)
 mergeRouteEncoder enc1 enc2 =
-  RouteEncoder
+  PartialIsoEnumerableWithCtx
     ( \m ->
         either
           (encodeRoute enc1 (fst m))
@@ -84,7 +120,7 @@ defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
 
 checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder route model -> model -> route -> FilePath -> Bool
-checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor . unRouteEncoder
+checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor
 
 -- | Return the relative URL of the given route
 --

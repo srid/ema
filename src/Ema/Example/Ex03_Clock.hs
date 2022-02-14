@@ -14,6 +14,7 @@ import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
+import Ema.Route (unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -25,7 +26,7 @@ data Route
 
 routeEncoder :: RouteEncoder Route a
 routeEncoder =
-  RouteEncoder (enc, dec, all_)
+  unsafeMkRouteEncoder enc dec all_
   where
     enc _time = \case
       Index -> "index.html"

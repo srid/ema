@@ -17,6 +17,7 @@ module Ema.Site
   )
 where
 
+import Control.Lens (iso)
 import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
@@ -25,8 +26,10 @@ import Data.Text qualified as T
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI qualified as CLI
 import Ema.Route
-  ( RouteEncoder (RouteEncoder),
+  ( RouteEncoder,
     mergeRouteEncoder,
+    pimap,
+    singletonRouteEncoder,
   )
 import System.FilePath ((</>))
 import Text.Show (Show (show))
@@ -70,11 +73,7 @@ singlePageSite name render =
       siteModelPatcher =
         constModal (),
       siteRouteEncoder =
-        RouteEncoder
-          ( \() () -> "index.html",
-            \() fp -> guard (fp == "index.html"),
-            \() -> [()]
-          )
+        singletonRouteEncoder
     }
 
 constModal ::
@@ -144,30 +143,19 @@ mergeSite site1 site2 =
 -- under the given prefix.
 mountUnder :: forall r a. String -> Site a r -> Site a (PrefixedRoute r)
 mountUnder prefix Site {..} =
-  Site siteName siteRender' siteModelPatcher routeEncoder
+  Site siteName siteRender' siteModelPatcher (toRouteEncoder siteRouteEncoder)
   where
-    siteRender' cliAct rEnc model (PrefixedRoute _ r) =
-      siteRender cliAct (conv rEnc) model r
-    conv ::
-      RouteEncoder (PrefixedRoute r) a ->
-      RouteEncoder r a
-    conv (RouteEncoder (to, from, enum)) =
-      RouteEncoder
-        ( \m r -> to m (PrefixedRoute prefix r),
-          \m fp -> _prefixedRouteRoute <$> from m fp,
-          \m -> _prefixedRouteRoute <$> enum m
-        )
-    routeEncoder :: RouteEncoder (PrefixedRoute r) a
-    routeEncoder =
-      -- TODO: BiFunctor? and above?
-      let RouteEncoder (to, from, all_) = siteRouteEncoder
-       in RouteEncoder
-            ( \m r -> prefix </> to m (_prefixedRouteRoute r),
-              \m fp -> do
-                fp' <- fmap toString $ T.stripPrefix (toText $ prefix <> "/") $ toText fp
-                fmap (PrefixedRoute prefix) . from m $ fp',
-              fmap (PrefixedRoute prefix) . all_
-            )
+    siteRender' cliAct rEnc model r =
+      siteRender cliAct (fromRouteEncoder rEnc) model (_prefixedRouteRoute r)
+    toRouteEncoder :: RouteEncoder r a -> RouteEncoder (PrefixedRoute r) a
+    toRouteEncoder =
+      pimap
+        (iso (prefix </>) $ fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText)
+        (iso (PrefixedRoute prefix) _prefixedRouteRoute)
+        id
+    fromRouteEncoder :: RouteEncoder (PrefixedRoute r) a -> RouteEncoder r a
+    fromRouteEncoder =
+      pimap (iso id Just) (iso _prefixedRouteRoute $ PrefixedRoute prefix) id
 
 -- | A route that is prefixed at some URL prefix
 data PrefixedRoute r = PrefixedRoute

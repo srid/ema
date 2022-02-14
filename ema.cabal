@@ -54,6 +54,7 @@ library
     , unliftio
     , url-slug
     , wai
+    , lens
     , wai-middleware-static
     , wai-websockets
     , warp
