@@ -310,9 +310,9 @@ wsClientJS =
             sendObservePath(document.location.pathname);
           };
 
-          function switchRoute(path) {
-             console.log(`ema: → Switching to $${path}`);
-             window.history.pushState({}, "", path);
+          function switchRoute(path, hash = "") {
+             console.log(`ema: → Switching to $${path + hash}`);
+             window.history.pushState({}, "", path + hash);
              sendObservePath(path);
           }
 
@@ -320,7 +320,7 @@ wsClientJS =
               const origin = e.target.closest("a");
               if (origin) {
                 if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
-                  switchRoute(origin.pathname);
+                  switchRoute(origin.pathname, origin.hash);
                   e.preventDefault();
                 };
               }
@@ -370,7 +370,10 @@ wsClientJS =
                 // This is a new route switch; scroll up.
                 window.scrollTo({ top: 0});
                 routeVisible = document.location.pathname;
-              } 
+              }
+              if (window.location.hash) {
+                window.location.hash = window.location.hash;
+              }
               watchCurrentRoute();
             };
           };
