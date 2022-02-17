@@ -359,7 +359,10 @@ wsClientShim =
                 routeVisible = document.location.pathname;
               }
               if (window.location.hash) {
-                window.location.hash = window.location.hash;
+                var el = document.querySelector(window.location.hash);
+                if (el !== null) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                }
               }
               watchCurrentRoute();
             };
