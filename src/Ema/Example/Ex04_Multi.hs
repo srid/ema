@@ -10,14 +10,18 @@ import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
 
+data R
+  = RIndex
+  | RBasicSite Ex02.Route
+  | RClockSite Ex03.Route
+
 main :: IO ()
 main = do
-  let site = Ema.singlePageSite "multi" $ const renderIndex
-  void $
-    Ema.runSite $
-      site
-        +: Ema.mountUnder "basic" Ex02.site
-        +: Ema.mountUnder "clock" Ex03.site
+  Ema.runSite_ $
+    Ema.singlePageSite "index" (const renderIndex)
+      -- TODO: Can we 'decompose' routeencoder, so as to be able to use ADT to compose sites?
+      +: Ema.mountUnder "basic" Ex02.site
+      +: Ema.mountUnder "clock" Ex03.site
 
 renderIndex :: LByteString
 renderIndex =

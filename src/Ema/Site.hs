@@ -117,18 +117,20 @@ mergeSite site1 site2 =
                   logWarnNS src "modelPatcher exited; no more model updates."
                   threadDelay maxBound
             race_
-              (race_ (k1 l1 >> keepAlive (siteName site1)) (k2 l2 >> keepAlive (siteName site2)))
+              ( race_
+                  (k1 l1 >> keepAlive (siteName site1))
+                  (k2 l2 >> keepAlive (siteName site2))
+              )
               ( do
                   sub1 <- LVar.addListener l1
                   sub2 <- LVar.addListener l2
-                  forever $ do
-                    x <-
-                      race
-                        (LVar.listenNext l1 sub1)
-                        (LVar.listenNext l2 sub2)
-                    case x of
-                      Left a -> LVar.modify lvar $ \(_, b) -> (a, b)
-                      Right b -> LVar.modify lvar $ \(a, _) -> (a, b)
+                  forever $
+                    race
+                      (LVar.listenNext l1 sub1)
+                      (LVar.listenNext l2 sub2)
+                      >>= \case
+                        Left a -> LVar.modify lvar $ first (const a)
+                        Right b -> LVar.modify lvar $ second (const b)
               )
 
 -- | Transform the given site such that all of its routes are encoded to be

@@ -1,5 +1,6 @@
 module Ema.App
   ( runSite,
+    runSite_,
     runSiteWithCli,
   )
 where
@@ -28,6 +29,10 @@ runSite :: forall r a. (Show r, Eq r) => Site a r -> IO [FilePath]
 runSite site = do
   cli <- CLI.cliAction
   runSiteWithCli cli site
+
+-- | Like `runSite` but throws away the result.
+runSite_ :: forall r a. (Show r, Eq r) => Site a r -> IO ()
+runSite_ = void . runSite_
 
 -- | Like @runSite@ but takes the CLI action
 --
