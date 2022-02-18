@@ -42,9 +42,9 @@ site =
     { siteName = "Ex03",
       siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelRunner = \_ startModel -> do
+      siteModelRunner = \_cliAct -> do
         t0 <- liftIO getCurrentTime
-        startModel t0 $ \lvar -> do
+        pure . (t0,) $ \lvar -> do
           logInfoNS "Ex03" "Starting clock..."
           forever $ do
             liftIO $ threadDelay 1000000

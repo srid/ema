@@ -58,12 +58,18 @@ type LVarRunner m a r =
     m r
   )
 
+type NonEmptyLVar m a =
+  ( -- Initial value
+    a,
+    -- Generator for subsequent values
+    LVar a -> m ()
+  )
+
 type ModelRunner a =
-  forall m r.
+  forall m.
   (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
   Some CLI.Action ->
-  LVarRunner m a r ->
-  m r
+  m (NonEmptyLVar m a)
 
 -- | Create a site with a single 'index.html' route, whose contents is specified
 -- by the given function.
@@ -82,10 +88,10 @@ singlePageSite name render =
     }
 
 constModal :: a -> ModelRunner a
-constModal x _ startModel = do
-  startModel x $ \_ ->
-    -- TODO: log it
-    pure ()
+constModal x _cliAct = do
+  let f _ = pure ()
+  -- TODO: log it
+  pure (x, f)
 
 -- Create a site that using routes determined statically at compile time.
 -- TODO: Implement this using (Generic r)
@@ -108,14 +114,14 @@ mergeSite site1 site2 =
       Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
       Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
     runBoth :: ModelRunner a1 -> ModelRunner a2 -> ModelRunner (a1, a2)
-    runBoth r1 r2 cliAct f = do
-      r1 cliAct $ \v1 k1 -> do
-        l1 <- LVar.empty
-        LVar.set l1 v1
-        r2 cliAct $ \v2 k2 -> do
-          l2 <- LVar.empty
-          LVar.set l2 v2
-          f (v1, v2) $ \lvar -> do
+    runBoth r1 r2 cliAct = do
+      (v1, k1) <- r1 cliAct
+      (v2, k2) <- r2 cliAct
+      l1 <- LVar.empty
+      l2 <- LVar.empty
+      LVar.set l1 v1
+      LVar.set l2 v2
+      let k' lvar = do
             let keepAlive src = do
                   -- TODO: DRY with App.hs
                   logWarnNS src "modelPatcher exited; no more model updates."
@@ -136,6 +142,7 @@ mergeSite site1 site2 =
                         Left a -> LVar.modify lvar $ first (const a)
                         Right b -> LVar.modify lvar $ second (const b)
               )
+      pure ((v1, v2), k')
 
 -- | Transform the given site such that all of its routes are encoded to be
 -- under the given prefix.

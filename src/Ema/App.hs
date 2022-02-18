@@ -13,6 +13,7 @@ import Control.Monad.Logger.Extras
     logToStdout,
     runLoggerLoggingT,
   )
+import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
 import Ema.CLI (Cli)
@@ -41,25 +42,25 @@ runSiteWithCli :: forall r a. (Show r, Eq r) => Cli -> Site a r -> IO [FilePath]
 runSiteWithCli cli site = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout
-  model <- LVar.empty
+  model :: LVar a <- LVar.empty
   flip runLoggerLoggingT logger $ do
     cwd <- liftIO getCurrentDirectory
     let logSrc = "main"
     logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
     logInfoNS logSrc "Waiting for initial model ..."
-    siteModelRunner site (CLI.action cli) $ \model0 cont -> do
-      logInfoNS logSrc "... initial model is now available."
-      LVar.set model model0
-      case CLI.action cli of
-        Some (CLI.Generate dest) -> do
-          generateSite (CLI.action cli) dest site model0
-        Some (CLI.Run (host, port)) -> do
-          liftIO $
-            race_
-              ( flip runLoggerLoggingT logger $ do
-                  cont model
-                  logWarnNS logSrc "modelPatcher exited; no more model updates."
-                  liftIO $ threadDelay maxBound
-              )
-              (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload (CLI.action cli) host port site model)
-          pure [] -- FIXME: unreachable
+    (model0 :: a, cont) <- siteModelRunner site (CLI.action cli)
+    logInfoNS logSrc "... initial model is now available."
+    case CLI.action cli of
+      Some (CLI.Generate dest) -> do
+        generateSite (CLI.action cli) dest site model0
+      Some (CLI.Run (host, port)) -> do
+        LVar.set model model0
+        liftIO $
+          race_
+            ( flip runLoggerLoggingT logger $ do
+                cont model
+                logWarnNS logSrc "modelPatcher exited; no more model updates."
+                liftIO $ threadDelay maxBound
+            )
+            (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload (CLI.action cli) host port site model)
+        pure [] -- FIXME: unreachable
