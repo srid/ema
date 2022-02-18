@@ -1,6 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Site
@@ -50,16 +49,21 @@ data Site a r = Site
     siteRouteEncoder :: RouteEncoder r a
   }
 
+-- | A process that knows how to initialize and update `LVar a` over time, and return `r` if it terminates.
+type LVarRunner m a r =
+  ( -- Initial value for the LVar
+    a ->
+    -- How to update the LVar over time.
+    (LVar a -> m ()) ->
+    m r
+  )
+
 type ModelRunner a =
-  forall m b.
+  forall m r.
   (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
   Some CLI.Action ->
-  -- Sets the initial mode, and takes a continuation to patch it.
-  --
-  -- The continuation will be called only on live server mode.
-  -- TODO: Should we simplify this?
-  (a -> (LVar a -> m ()) -> m b) ->
-  m b
+  LVarRunner m a r ->
+  m r
 
 -- | Create a site with a single 'index.html' route, whose contents is specified
 -- by the given function.

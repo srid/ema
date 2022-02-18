@@ -32,7 +32,7 @@ runSite site = do
 
 -- | Like `runSite` but throws away the result.
 runSite_ :: forall r a. (Show r, Eq r) => Site a r -> IO ()
-runSite_ = void . runSite_
+runSite_ = void . runSite
 
 -- | Like @runSite@ but takes the CLI action
 --

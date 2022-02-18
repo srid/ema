@@ -12,7 +12,6 @@ import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
-import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route (unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
