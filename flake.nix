@@ -1,16 +1,14 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/1882c6b7368fd284ad01b0a5b5601ef136321292";
+    nixpkgs.url = "github:nixos/nixpkgs/19574af0af3ffaf7c9e359744ed32556f34536bd";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-utils.inputs.nixpkgs.follows = "nixpkgs";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
-
-    url-slug.url = "github:srid/url-slug";
-    url-slug.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -42,7 +40,7 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               # lvar = self.callCabal2nix "lvar" inputs.lvar { };
-              url-slug = inputs.url-slug.defaultPackage.${system};
+              # url-slug = inputs.url-slug.defaultPackage.${system};
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv
