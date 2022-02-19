@@ -7,7 +7,7 @@ import Ema.App as X
 import Ema.Asset as X
 import Ema.Route as X
   ( RouteEncoder,
-    UrlStrategy,
+    UrlStrategy (UrlDirect, UrlPretty),
     defaultEnum,
     routeUrl,
     routeUrlWith,
