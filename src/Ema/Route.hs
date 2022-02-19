@@ -39,6 +39,14 @@ import Network.URI.Slug qualified as Slug
 data PartialIsoEnumerableWithCtx ctx s a
   = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 
+{-
+type T ctx a s = CtxIso ctx a (Maybe a) s s
+
+type CtxIso ctx a b c d = Iso (ctx, a) b c (ctx, d)
+
+type T' ctx a = ctx -> [a]
+-}
+
 partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Bool
 partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s =
   (s == to ctx a)
@@ -72,18 +80,18 @@ instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
       all_' m =
         Lens.view iso2 <$> all_ (h m)
 
-type RouteEncoder r a = PartialIsoEnumerableWithCtx a FilePath r
+type RouteEncoder a r = PartialIsoEnumerableWithCtx a FilePath r
 
-unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder a ctx
+unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y z = PartialIsoEnumerableWithCtx (x, y, z)
 
-encodeRoute :: RouteEncoder r model -> model -> r -> FilePath
+encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (PartialIsoEnumerableWithCtx (f, _, _)) = f
 
-decodeRoute :: RouteEncoder r model -> model -> FilePath -> Maybe r
+decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (PartialIsoEnumerableWithCtx (_, f, _)) = f
 
-allRoutes :: RouteEncoder r model -> model -> [r]
+allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (PartialIsoEnumerableWithCtx (_, _, f)) = f
 
 -- | Route encoder for single route encoding to 'index.html'
@@ -96,7 +104,7 @@ singletonRouteEncoder =
     )
 
 -- | Returns a new route encoder that supports either of the input routes.
-mergeRouteEncoder :: RouteEncoder r1 a -> RouteEncoder r2 b -> RouteEncoder (Either r1 r2) (a, b)
+mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
 mergeRouteEncoder enc1 enc2 =
   PartialIsoEnumerableWithCtx
     ( \m ->
@@ -120,14 +128,14 @@ mergeRouteEncoder enc1 enc2 =
 defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
 
-checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder route model -> model -> route -> FilePath -> Bool
+checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder model route -> model -> route -> FilePath -> Bool
 checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor
 
 -- | Return the relative URL of the given route
 --
 -- As the returned URL is relative, you will have to either make it absolute (by
 -- prepending with `/`) or set the `<base>` URL in your HTML head element.
-routeUrlWith :: UrlStrategy -> RouteEncoder r a -> a -> r -> Text
+routeUrlWith :: UrlStrategy -> RouteEncoder a r -> a -> r -> Text
 routeUrlWith urlStrategy enc model =
   relUrlFromPath . encodeRoute enc model
   where
@@ -153,7 +161,7 @@ routeUrlWith urlStrategy enc model =
           UrlPretty -> ".html"
           UrlDirect -> ""
 
-routeUrl :: RouteEncoder r a -> a -> r -> Text
+routeUrl :: RouteEncoder a r -> a -> r -> Text
 routeUrl =
   routeUrlWith UrlPretty
 

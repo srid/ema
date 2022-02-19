@@ -15,7 +15,7 @@ data Route
 
 newtype Model = Model {unModel :: Text}
 
-routeEncoder :: RouteEncoder Route a
+routeEncoder :: RouteEncoder a Route
 routeEncoder =
   unsafeMkRouteEncoder enc dec all_
   where
@@ -35,7 +35,7 @@ site =
     { siteName = "Ex02",
       siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelRunner = Ema.constModal $ Model "Hello World.",
+      siteModelData = Ema.constModal $ Model "Hello World.",
       siteRouteEncoder = routeEncoder
     }
 
@@ -43,7 +43,7 @@ main :: IO ()
 main = do
   void $ Ema.runSite site
 
-render :: RouteEncoder Route Model -> Model -> Route -> LByteString
+render :: RouteEncoder Model Route -> Model -> Route -> LByteString
 render enc model r =
   tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do

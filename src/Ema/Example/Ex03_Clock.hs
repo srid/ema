@@ -23,7 +23,7 @@ data Route
   | OnlyTime
   deriving stock (Show, Eq, Enum, Bounded)
 
-routeEncoder :: RouteEncoder Route a
+routeEncoder :: RouteEncoder a Route
 routeEncoder =
   unsafeMkRouteEncoder enc dec all_
   where
@@ -42,7 +42,7 @@ site =
     { siteName = "Ex03",
       siteRender = \_ enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelRunner = \_cliAct -> do
+      siteModelData = \_cliAct -> do
         t0 <- liftIO getCurrentTime
         pure . (t0,) $ \lvar -> do
           logInfoNS "Ex03" "Starting clock..."
@@ -57,7 +57,7 @@ main :: IO ()
 main = do
   void $ Ema.runSite site
 
-render :: RouteEncoder Route UTCTime -> UTCTime -> Route -> LByteString
+render :: RouteEncoder UTCTime Route -> UTCTime -> Route -> LByteString
 render enc now r =
   tailwindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do

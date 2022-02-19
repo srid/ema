@@ -40,23 +40,14 @@ data Site a r = Site
   { siteName :: Text,
     siteRender ::
       Some CLI.Action ->
-      RouteEncoder r a ->
+      RouteEncoder a r ->
       a ->
       r ->
       Asset LByteString,
     -- | Thread that will patch the model over time.
-    siteModelRunner :: ModelRunner a,
-    siteRouteEncoder :: RouteEncoder r a
+    siteModelData :: ModelRunner a,
+    siteRouteEncoder :: RouteEncoder a r
   }
-
--- | A process that knows how to initialize and update `LVar a` over time, and return `r` if it terminates.
-type LVarRunner m a r =
-  ( -- Initial value for the LVar
-    a ->
-    -- How to update the LVar over time.
-    (LVar a -> m ()) ->
-    m r
-  )
 
 type NonEmptyLVar m a =
   ( -- Initial value
@@ -81,7 +72,7 @@ singlePageSite name render =
     { siteName = name,
       siteRender =
         \act _enc () () -> AssetGenerated Html $ render act,
-      siteModelRunner =
+      siteModelData =
         constModal (),
       siteRouteEncoder =
         singletonRouteEncoder
@@ -93,26 +84,26 @@ constModal x _cliAct = do
   -- TODO: log it
   pure (x, f)
 
--- Create a site that using routes determined statically at compile time.
--- TODO: Implement this using (Generic r)
--- staticRouteSite :: forall r enc. (enc -> r -> LByteString) -> Site r ()
--- staticRouteSite render = undefined
-
 (+:) :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 (+:) = mergeSite
+
+class Mergeable (f :: Type -> Type -> Type) where
+  merge :: f a b -> f c d -> f (a, c) (Either b d)
 
 -- | Merge two sites to produce a single site.
 -- TODO: Avoid unnecessary updates on site1 webpage when only site2 changes (eg:
 -- basic shouldn't refresh when clock changes)
 mergeSite :: forall r1 r2 a1 a2. Site a1 r1 -> Site a2 r2 -> Site (a1, a2) (Either r1 r2)
 mergeSite site1 site2 =
-  Site name render (runBoth (siteModelRunner site1) (siteModelRunner site2)) enc
+  Site name render (runBoth (siteModelData site1) (siteModelData site2)) enc
   where
     name = siteName site1 <> "+" <> siteName site2
-    enc = mergeRouteEncoder (siteRouteEncoder site1) (siteRouteEncoder site2)
+    enc = mergeRouteEncoder enc1 enc2
+    enc1 = siteRouteEncoder site1
+    enc2 = siteRouteEncoder site2
     render cliAct _ x = \case
-      Left r -> siteRender site1 cliAct (siteRouteEncoder site1) (fst x) r
-      Right r -> siteRender site2 cliAct (siteRouteEncoder site2) (snd x) r
+      Left r -> siteRender site1 cliAct enc1 (fst x) r
+      Right r -> siteRender site2 cliAct enc2 (snd x) r
     runBoth :: ModelRunner a1 -> ModelRunner a2 -> ModelRunner (a1, a2)
     runBoth r1 r2 cliAct = do
       (v1, k1) <- r1 cliAct
@@ -148,17 +139,17 @@ mergeSite site1 site2 =
 -- under the given prefix.
 mountUnder :: forall r a. String -> Site a r -> Site a (PrefixedRoute r)
 mountUnder prefix Site {..} =
-  Site siteName siteRender' siteModelRunner (toRouteEncoder siteRouteEncoder)
+  Site siteName siteRender' siteModelData (toRouteEncoder siteRouteEncoder)
   where
     siteRender' cliAct rEnc model r =
       siteRender cliAct (fromRouteEncoder rEnc) model (_prefixedRouteRoute r)
-    toRouteEncoder :: RouteEncoder r a -> RouteEncoder (PrefixedRoute r) a
+    toRouteEncoder :: RouteEncoder a r -> RouteEncoder a (PrefixedRoute r)
     toRouteEncoder =
       pimap
         (iso (prefix </>) $ fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText)
         (iso (PrefixedRoute prefix) _prefixedRouteRoute)
         id
-    fromRouteEncoder :: RouteEncoder (PrefixedRoute r) a -> RouteEncoder r a
+    fromRouteEncoder :: RouteEncoder a (PrefixedRoute r) -> RouteEncoder a r
     fromRouteEncoder =
       pimap (iso id Just) (iso _prefixedRouteRoute $ PrefixedRoute prefix) id
 
