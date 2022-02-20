@@ -31,7 +31,7 @@ generateSite ::
 generateSite dest site model = do
   let enc = siteRouteEncoder site
   withBlockBuffering $
-    generate dest enc model (siteRender site enc)
+    generate dest enc model (runSiteRender (siteRender site) enc)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

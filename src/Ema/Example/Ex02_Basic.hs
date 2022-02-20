@@ -36,9 +36,9 @@ site :: Site (Model Route) Route
 site =
   Site
     { siteName = "Ex02",
-      siteRender = \enc m r ->
+      siteRender = SiteRender $ \enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelData = \_act enc ->
+      siteModelData = ModelRunner $ \_act enc ->
         pure (Model enc, \_ -> pure ()),
       siteRouteEncoder = routeEncoder
     }

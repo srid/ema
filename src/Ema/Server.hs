@@ -162,7 +162,7 @@ runServerWithWebSocketHotReload host port site model = do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (siteRender site (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
+      unsafeCatch (runSiteRender (siteRender site) (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err

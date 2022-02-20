@@ -15,8 +15,10 @@ module Ema.Route
     defaultEnum,
     singletonRouteEncoder,
     HasRouteEncoder (..),
+    mapRouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
+    Mergeable (merge),
 
     -- * Internal
     mergeRouteEncoder,
@@ -88,10 +90,19 @@ instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
       all_' m =
         mapMaybe (\x -> Lens.withIso iso2 $ \f _ -> f x) (all_ $ h m)
 
-type RouteEncoder a r = PartialIsoEnumerableWithCtx a FilePath r
+newtype RouteEncoder a r = RouteEncoder (PartialIsoEnumerableWithCtx a FilePath r)
+
+mapRouteEncoder ::
+  Iso FilePath (Maybe FilePath) FilePath FilePath ->
+  Iso r1 r1 (Maybe r2) r2 ->
+  (b -> a) ->
+  RouteEncoder a r1 ->
+  RouteEncoder b r2
+mapRouteEncoder fpIso rIso mf (RouteEncoder enc) =
+  RouteEncoder $ pimap fpIso rIso mf enc
 
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder ctx a
-unsafeMkRouteEncoder x y z = PartialIsoEnumerableWithCtx (x, y, z)
+unsafeMkRouteEncoder x y z = RouteEncoder $ PartialIsoEnumerableWithCtx (x, y, z)
 
 class HasRouteEncoder x a r where
   getRouteEncoder :: x -> RouteEncoder a r
@@ -100,37 +111,45 @@ instance HasRouteEncoder (RouteEncoder a r) a r where
   getRouteEncoder = id
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (PartialIsoEnumerableWithCtx (f, _, _)) = f
+encodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (f, _, _))) = f
 
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (PartialIsoEnumerableWithCtx (_, f, _)) = f
+decodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (_, f, _))) = f
 
 allRoutes :: RouteEncoder model r -> model -> [r]
-allRoutes (PartialIsoEnumerableWithCtx (_, _, f)) = f
+allRoutes (RouteEncoder (PartialIsoEnumerableWithCtx (_, _, f))) = f
 
 -- | Route encoder for single route encoding to 'index.html'
 singletonRouteEncoder :: RouteEncoder () ()
 singletonRouteEncoder =
-  PartialIsoEnumerableWithCtx
-    ( \() () -> "index.html",
-      \() fp -> guard (fp == "index.html"),
-      \() -> [()]
-    )
+  unsafeMkRouteEncoder
+    (\() () -> "index.html")
+    (\() fp -> guard (fp == "index.html"))
+    (\() -> [()])
+
+-- | Class of product-cum-sum indexed types that can be merged.
+class Mergeable (f :: Type -> Type -> Type) where
+  -- | Merge by treating the first index as product, and second as sum.
+  merge :: f a b -> f c d -> f (a, c) (Either b d)
+
+instance Mergeable RouteEncoder where merge = mergeRouteEncoder
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
 mergeRouteEncoder enc1 enc2 =
-  PartialIsoEnumerableWithCtx
+  unsafeMkRouteEncoder
     ( \m ->
         either
           (encodeRoute enc1 (fst m))
-          (encodeRoute enc2 (snd m)),
-      \m fp ->
+          (encodeRoute enc2 (snd m))
+    )
+    ( \m fp ->
         asum
           [ Left <$> decodeRoute enc1 (fst m) fp,
             Right <$> decodeRoute enc2 (snd m) fp
-          ],
-      \m ->
+          ]
+    )
+    ( \m ->
         mconcat
           [ Left <$> allRoutes enc1 (fst m),
             Right <$> allRoutes enc2 (snd m)
@@ -139,14 +158,14 @@ mergeRouteEncoder enc1 enc2 =
 
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
-  pimap
+  mapRouteEncoder
     (Lens.iso id Just)
     (Lens.iso leftToMaybe Left)
     (,undefined)
 
 rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
 rightRouteEncoder =
-  pimap
+  mapRouteEncoder
     (Lens.iso id Just)
     (Lens.iso rightToMaybe Right)
     (undefined,)
@@ -157,7 +176,7 @@ defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
 
 checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder model route -> model -> route -> FilePath -> Bool
-checkRouteEncoderForSingleRoute = partialIsoIsLawfulFor
+checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso
 
 -- | Return the relative URL of the given route
 --

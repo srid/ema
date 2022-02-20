@@ -6,7 +6,8 @@ where
 import Ema.App as X
 import Ema.Asset as X
 import Ema.Route as X
-  ( RouteEncoder,
+  ( Mergeable (merge),
+    RouteEncoder,
     UrlStrategy (UrlDirect, UrlPretty),
     defaultEnum,
     routeUrl,
