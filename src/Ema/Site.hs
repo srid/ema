@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -8,10 +9,11 @@ module Ema.Site
     -- * Creating sites
     singlePageSite,
     constModel,
-    runModel,
-    ModelRunner (ModelRunner),
+    runModelManager,
+    ModelManager (ModelManager),
     SiteRender (SiteRender),
     runSiteRender,
+    MonadSite (askRouteEncoder, askCLIAction),
 
     -- * Combinators
     mountUnder,
@@ -31,7 +33,6 @@ import Ema.Route
     RouteEncoder,
     leftRouteEncoder,
     mapRouteEncoder,
-    mergeRouteEncoder,
     rightRouteEncoder,
     singletonRouteEncoder,
   )
@@ -50,10 +51,45 @@ instance Semigroup SiteName where
 data Site a r = Site
   { siteName :: SiteName,
     siteRender :: SiteRender a r,
-    -- | Thread that will patch the model over time.
-    siteModelData :: ModelRunner a r,
+    siteModelManager :: ModelManager a r,
     siteRouteEncoder :: RouteEncoder a r
   }
+
+class Monad m => MonadSite m a r | m -> a, m -> r where
+  askCLIAction :: m (Some CLI.Action)
+  askRouteEncoder :: m (RouteEncoder a r)
+
+-- Just a monad to give access to cli action and route encoder.
+newtype SiteM a r m x = SiteM (ReaderT (Some CLI.Action, RouteEncoder a r) m x)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadTrans,
+      -- MonadReader (Some CLI.Action, RouteEncoder a r),
+      MonadIO,
+      MonadLogger,
+      MonadLoggerIO,
+      MonadUnliftIO
+    )
+
+runSiteM :: Some CLI.Action -> RouteEncoder a r -> SiteM a r m x -> m x
+runSiteM cliAct enc (SiteM m) =
+  runReaderT m (cliAct, enc)
+
+instance Monad m => MonadSite (SiteM a r m) a r where
+  askCLIAction = SiteM $ asks fst
+  askRouteEncoder = SiteM $ asks snd
+
+newtype ModelManager a r
+  = ModelManager
+      ( forall m.
+        ( MonadIO m,
+          MonadUnliftIO m,
+          MonadLoggerIO m
+        ) =>
+        SiteM a r m (NonEmptyLVar m a)
+      )
 
 type NonEmptyLVar m a =
   ( -- Initial value
@@ -62,28 +98,20 @@ type NonEmptyLVar m a =
     LVar a -> m ()
   )
 
-newtype ModelRunner a r
-  = ModelRunner
-      ( forall m.
-        (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
-        Some CLI.Action ->
-        RouteEncoder a r ->
-        m (NonEmptyLVar m a)
-      )
-
-runModel :: (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => ModelRunner a r -> Some CLI.Action -> RouteEncoder a r -> m (NonEmptyLVar m a)
-runModel (ModelRunner f) = f
+runModelManager :: (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => ModelManager a r -> Some CLI.Action -> RouteEncoder a r -> m (NonEmptyLVar m a)
+runModelManager (ModelManager f) cliAct enc = runSiteM cliAct enc f
 
 newtype SiteRender a r
   = SiteRender
-      ( RouteEncoder a r ->
+      ( forall m.
+        MonadSite m a r =>
         a ->
         r ->
-        Asset LByteString
+        m (Asset LByteString)
       )
 
-runSiteRender :: SiteRender a r -> RouteEncoder a r -> a -> r -> Asset LByteString
-runSiteRender (SiteRender f) = f
+runSiteRender :: SiteRender a r -> Some CLI.Action -> RouteEncoder a r -> a -> r -> Asset LByteString
+runSiteRender (SiteRender f) cliAct enc x r = runIdentity $ runSiteM cliAct enc $ f x r
 
 -- | Create a site with a single 'index.html' route, whose contents is specified
 -- by the given function.
@@ -92,15 +120,15 @@ singlePageSite name render =
   Site
     { siteName = name,
       siteRender =
-        SiteRender $ \_enc () () -> AssetGenerated Html render,
-      siteModelData =
+        SiteRender $ \() () -> pure $ AssetGenerated Html render,
+      siteModelManager =
         constModel (),
       siteRouteEncoder =
         singletonRouteEncoder
     }
 
-constModel :: a -> ModelRunner a r
-constModel x = ModelRunner $ \_cliAct _site -> do
+constModel :: a -> ModelManager a r
+constModel x = ModelManager $ do
   let f _ = pure ()
   -- TODO: log it
   pure (x, f)
@@ -108,25 +136,31 @@ constModel x = ModelRunner $ \_cliAct _site -> do
 instance Mergeable Site where
   merge site1 site2 =
     Site
-      (siteName site1 <> siteName site2)
+      ((<>) (siteName site1) (siteName site2))
       (merge (siteRender site1) (siteRender site2))
-      (merge (siteModelData site1) (siteModelData site2))
-      (mergeRouteEncoder (siteRouteEncoder site1) (siteRouteEncoder site2))
+      (merge (siteModelManager site1) (siteModelManager site2))
+      (merge (siteRouteEncoder site1) (siteRouteEncoder site2))
 
 instance Mergeable SiteRender where
-  merge (SiteRender r1) (SiteRender r2) = SiteRender $ \enc x -> \case
-    Left r -> r1 (leftRouteEncoder enc) (fst x) r
-    Right r -> r2 (rightRouteEncoder enc) (snd x) r
+  merge r1 r2 = SiteRender $ \x r' -> do
+    enc <- askRouteEncoder
+    cliAct <- askCLIAction
+    pure $ case r' of
+      Left r -> runSiteRender r1 cliAct (leftRouteEncoder enc) (fst x) r
+      Right r -> runSiteRender r2 cliAct (rightRouteEncoder enc) (snd x) r
 
-instance Mergeable ModelRunner where
-  merge (ModelRunner r1) (ModelRunner r2) = ModelRunner $ \cliAct enc -> do
-    (v1, k1) <- r1 cliAct $ leftRouteEncoder enc
-    (v2, k2) <- r2 cliAct $ rightRouteEncoder enc
+instance Mergeable ModelManager where
+  merge r1 r2 = ModelManager $ do
+    cliAct <- askCLIAction
+    enc <- askRouteEncoder
+    (v1, k1) <- runModelManager r1 cliAct $ leftRouteEncoder enc
+    (v2, k2) <- runModelManager r2 cliAct $ rightRouteEncoder enc
     l1 <- LVar.empty
     l2 <- LVar.empty
     LVar.set l1 v1
     LVar.set l2 v2
-    let k' lvar = do
+    let v = (v1, v2)
+        k lvar = runSiteM cliAct enc $ do
           let keepAlive src = do
                 -- TODO: DRY with App.hs
                 logWarnNS src "modelPatcher exited; no more model updates."
@@ -147,19 +181,23 @@ instance Mergeable ModelRunner where
                       Left a -> LVar.modify lvar $ first (const a)
                       Right b -> LVar.modify lvar $ second (const b)
             )
-    pure ((v1, v2), k')
+    pure (v, k)
 
 -- | Transform the given site such that all of its routes are encoded to be
 -- under the given prefix.
 mountUnder :: forall r a. String -> Site a r -> Site a (PrefixedRoute r)
 mountUnder prefix Site {..} =
-  Site siteName siteRender' siteModelData' (toRouteEncoder siteRouteEncoder)
+  Site siteName siteRender' siteModelManager' (toRouteEncoder siteRouteEncoder)
   where
-    siteModelData' :: ModelRunner a (PrefixedRoute r)
-    siteModelData' = ModelRunner $ \cliAct enc ->
-      runModel siteModelData cliAct (fromRouteEncoder enc)
-    siteRender' = SiteRender $ \rEnc model r ->
-      runSiteRender siteRender (fromRouteEncoder rEnc) model (_prefixedRouteRoute r)
+    siteModelManager' :: ModelManager a (PrefixedRoute r)
+    siteModelManager' = ModelManager $ do
+      enc :: RouteEncoder a (PrefixedRoute r) <- askRouteEncoder
+      cliAct <- askCLIAction
+      lift $ runModelManager siteModelManager cliAct (fromRouteEncoder enc)
+    siteRender' = SiteRender $ \model r -> do
+      rEnc <- askRouteEncoder
+      cliAct <- askCLIAction
+      pure $ runSiteRender siteRender cliAct (fromRouteEncoder rEnc) model (_prefixedRouteRoute r)
     toRouteEncoder :: RouteEncoder a r -> RouteEncoder a (PrefixedRoute r)
     toRouteEncoder =
       mapRouteEncoder

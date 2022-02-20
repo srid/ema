@@ -5,7 +5,9 @@ module Ema.Generate (generateSite) where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
+import Data.Some
 import Ema.Asset (Asset (..))
+import Ema.CLI qualified as CLI
 import Ema.Route (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
 import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
@@ -30,8 +32,9 @@ generateSite ::
   m [FilePath]
 generateSite dest site model = do
   let enc = siteRouteEncoder site
+      cliAct = Some $ CLI.Generate dest
   withBlockBuffering $
-    generate dest enc model (runSiteRender (siteRender site) enc)
+    generate dest enc model (runSiteRender (siteRender site) cliAct enc)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

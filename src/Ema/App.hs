@@ -20,7 +20,7 @@ import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Generate (generateSite)
 import Ema.Server qualified as Server
-import Ema.Site (Site (siteModelData, siteRouteEncoder), runModel)
+import Ema.Site (Site (siteModelManager, siteRouteEncoder), runModelManager)
 import System.Directory (getCurrentDirectory)
 
 -- | Run the given Ema site, and return the generated files.
@@ -48,7 +48,7 @@ runSiteWithCli cli site = do
     let logSrc = "main"
     logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
     logInfoNS logSrc "Waiting for initial model ..."
-    (model0 :: a, cont) <- runModel (siteModelData site) (CLI.action cli) (siteRouteEncoder site)
+    (model0 :: a, cont) <- runModelManager (siteModelManager site) (CLI.action cli) (siteRouteEncoder site)
     logInfoNS logSrc "... initial model is now available."
     case CLI.action cli of
       Some (CLI.Generate dest) -> do

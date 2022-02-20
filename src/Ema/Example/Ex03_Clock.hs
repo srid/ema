@@ -42,9 +42,10 @@ site :: Site UTCTime Route
 site =
   Site
     { siteName = "Ex03",
-      siteRender = SiteRender $ \enc m r ->
-        Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelData = ModelRunner $ \_cliAct _enc -> do
+      siteRender = SiteRender $ \m r -> do
+        enc <- askRouteEncoder
+        pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
+      siteModelManager = ModelManager $ do
         t0 <- liftIO getCurrentTime
         pure . (t0,) $ \lvar -> do
           logInfoNS "Ex03" "Starting clock..."

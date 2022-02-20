@@ -14,7 +14,6 @@ module Ema.Route
     allRoutes,
     defaultEnum,
     singletonRouteEncoder,
-    HasRouteEncoder (..),
     mapRouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
@@ -41,7 +40,8 @@ import Network.URI.Slug qualified as Slug
 -- Parse `s` into (optional) `a` which can always be converted to a `s`. The `a`
 -- can be enumerated finitely. `ctx` is used to all functions.
 -- TODO: Is this isomrophic to `Iso (ctx, a) (Maybe a) s (ctx, s)` (plus, `ctx -> [a]`)?
-data PartialIsoEnumerableWithCtx ctx s a
+-- TODO: replace `ctx` arg with Reader monad?
+newtype PartialIsoEnumerableWithCtx ctx s a
   = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
 
 {-
@@ -103,12 +103,6 @@ mapRouteEncoder fpIso rIso mf (RouteEncoder enc) =
 
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y z = RouteEncoder $ PartialIsoEnumerableWithCtx (x, y, z)
-
-class HasRouteEncoder x a r where
-  getRouteEncoder :: x -> RouteEncoder a r
-
-instance HasRouteEncoder (RouteEncoder a r) a r where
-  getRouteEncoder = id
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (f, _, _))) = f

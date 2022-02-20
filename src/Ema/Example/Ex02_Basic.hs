@@ -3,7 +3,7 @@ module Ema.Example.Ex02_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route (HasRouteEncoder (getRouteEncoder), unsafeMkRouteEncoder)
+import Ema.Route (unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -14,9 +14,6 @@ data Route
   deriving stock (Show, Eq, Enum, Bounded)
 
 newtype Model r = Model (RouteEncoder (Model r) r)
-
-instance HasRouteEncoder (Model r) (Model r) r where
-  getRouteEncoder (Model enc) = enc
 
 routeEncoder :: RouteEncoder a Route
 routeEncoder =
@@ -36,9 +33,12 @@ site :: Site (Model Route) Route
 site =
   Site
     { siteName = "Ex02",
-      siteRender = SiteRender $ \enc m r ->
-        Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelData = ModelRunner $ \_act enc ->
+      -- TODO: Can this be a reader too?
+      siteRender = SiteRender $ \m r -> do
+        enc <- askRouteEncoder
+        pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
+      siteModelManager = ModelManager $ do
+        enc <- Ema.askRouteEncoder
         pure (Model enc, \_ -> pure ()),
       siteRouteEncoder = routeEncoder
     }
