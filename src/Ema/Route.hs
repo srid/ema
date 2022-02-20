@@ -14,6 +14,9 @@ module Ema.Route
     allRoutes,
     defaultEnum,
     singletonRouteEncoder,
+    HasRouteEncoder (..),
+    leftRouteEncoder,
+    rightRouteEncoder,
 
     -- * Internal
     mergeRouteEncoder,
@@ -22,7 +25,7 @@ module Ema.Route
   )
 where
 
-import Control.Lens (Iso, Iso')
+import Control.Lens (Iso)
 import Control.Lens qualified as Lens
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
@@ -53,13 +56,18 @@ partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s =
     && (Just a == from ctx s)
 
 class PartialIsoFunctor (f :: Type -> Type -> Type -> Type) where
-  pimap :: Iso a (Maybe a) b b -> Iso' c d -> (y -> x) -> f x a c -> f y b d
+  pimap ::
+    Iso a (Maybe a) b b ->
+    Iso c c (Maybe d) d ->
+    (y -> x) ->
+    f x a c ->
+    f y b d
 
 instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
   pimap ::
     forall a b c d x y.
     Iso a (Maybe a) b b ->
-    Iso c c d d ->
+    Iso c c (Maybe d) d ->
     (y -> x) ->
     PartialIsoEnumerableWithCtx x a c ->
     PartialIsoEnumerableWithCtx y b d
@@ -68,22 +76,28 @@ instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
     where
       enc' :: y -> d -> b
       enc' m r =
-        let r' :: c = Lens.view (Lens.from iso2) r
+        let r' :: c = Lens.withIso iso2 $ \_ f -> f r
             m' :: x = h m
          in Lens.withIso iso1 $ \f _ -> f $ enc m' r'
       dec' :: y -> b -> Maybe d
       dec' m fp = do
         fp' <- Lens.withIso iso1 $ \_ f -> f fp
         r :: c <- dec (h m) fp'
-        pure $ Lens.view iso2 r
+        Lens.withIso iso2 $ \f _ -> f r
       all_' :: y -> [d]
       all_' m =
-        Lens.view iso2 <$> all_ (h m)
+        mapMaybe (\x -> Lens.withIso iso2 $ \f _ -> f x) (all_ $ h m)
 
 type RouteEncoder a r = PartialIsoEnumerableWithCtx a FilePath r
 
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y z = PartialIsoEnumerableWithCtx (x, y, z)
+
+class HasRouteEncoder x a r where
+  getRouteEncoder :: x -> RouteEncoder a r
+
+instance HasRouteEncoder (RouteEncoder a r) a r where
+  getRouteEncoder = id
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (PartialIsoEnumerableWithCtx (f, _, _)) = f
@@ -122,6 +136,20 @@ mergeRouteEncoder enc1 enc2 =
             Right <$> allRoutes enc2 (snd m)
           ]
     )
+
+leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
+leftRouteEncoder =
+  pimap
+    (Lens.iso id Just)
+    (Lens.iso leftToMaybe Left)
+    (,undefined)
+
+rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
+rightRouteEncoder =
+  pimap
+    (Lens.iso id Just)
+    (Lens.iso rightToMaybe Right)
+    (undefined,)
 
 -- TODO: Determine this generically somehow
 -- See https://github.com/srid/ema/issues/76

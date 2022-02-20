@@ -18,6 +18,8 @@ import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
 
+type Model = UTCTime
+
 data Route
   = Index
   | OnlyTime
@@ -40,9 +42,9 @@ site :: Site UTCTime Route
 site =
   Site
     { siteName = "Ex03",
-      siteRender = \_ enc m r ->
+      siteRender = \enc m r ->
         Ema.AssetGenerated Ema.Html $ render enc m r,
-      siteModelData = \_cliAct -> do
+      siteModelData = \_cliAct _enc -> do
         t0 <- liftIO getCurrentTime
         pure . (t0,) $ \lvar -> do
           logInfoNS "Ex03" "Starting clock..."

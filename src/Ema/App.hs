@@ -20,7 +20,7 @@ import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Generate (generateSite)
 import Ema.Server qualified as Server
-import Ema.Site (Site (siteModelData))
+import Ema.Site (Site (siteModelData, siteRouteEncoder))
 import System.Directory (getCurrentDirectory)
 
 -- | Run the given Ema site, and return the generated files.
@@ -48,11 +48,11 @@ runSiteWithCli cli site = do
     let logSrc = "main"
     logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
     logInfoNS logSrc "Waiting for initial model ..."
-    (model0 :: a, cont) <- siteModelData site (CLI.action cli)
+    (model0 :: a, cont) <- siteModelData site (CLI.action cli) (siteRouteEncoder site)
     logInfoNS logSrc "... initial model is now available."
     case CLI.action cli of
       Some (CLI.Generate dest) -> do
-        generateSite (CLI.action cli) dest site model0
+        generateSite dest site model0
       Some (CLI.Run (host, port)) -> do
         LVar.set model model0
         liftIO $
@@ -62,5 +62,5 @@ runSiteWithCli cli site = do
                 logWarnNS logSrc "modelPatcher exited; no more model updates."
                 liftIO $ threadDelay maxBound
             )
-            (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload (CLI.action cli) host port site model)
+            (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload host port site model)
         pure [] -- FIXME: unreachable

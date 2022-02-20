@@ -7,11 +7,9 @@ import Control.Exception (catch, try)
 import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
-import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
-import Ema.CLI qualified as CLI
 import Ema.Route
   ( checkRouteEncoderForSingleRoute,
     decodeRoute,
@@ -39,14 +37,13 @@ runServerWithWebSocketHotReload ::
     MonadLoggerIO m,
     Eq r
   ) =>
-  Some CLI.Action ->
   Host ->
   Port ->
   Site a r ->
   LVar a ->
   m ()
 -- TODO: remove host/port (already in cliA)
-runServerWithWebSocketHotReload cliA host port site model = do
+runServerWithWebSocketHotReload host port site model = do
   let settings =
         Warp.defaultSettings
           & Warp.setPort (unPort port)
@@ -165,7 +162,7 @@ runServerWithWebSocketHotReload cliA host port site model = do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (siteRender site cliA (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteRender site (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err

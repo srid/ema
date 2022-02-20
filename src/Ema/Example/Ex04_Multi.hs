@@ -1,11 +1,12 @@
 -- | Demonstration of merging multiple sites
 module Ema.Example.Ex04_Multi where
 
-import Ema ((+:))
+import Ema (RouteEncoder, (+:))
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
 import Ema.Example.Ex03_Clock qualified as Ex03
+import Ema.Route (allRoutes, decodeRoute, encodeRoute, unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -15,10 +16,30 @@ data R
   | RBasicSite Ex02.Route
   | RClockSite Ex03.Route
 
+rEncoder :: RouteEncoder (Ex02.Model Ex03.Route, Ex03.Model) R
+rEncoder =
+  unsafeMkRouteEncoder enc dec all_
+  where
+    enc (m2, m3) = \case
+      RIndex -> "index.html"
+      RBasicSite r ->
+        encodeRoute Ex02.routeEncoder m2 r
+      RClockSite r ->
+        encodeRoute Ex03.routeEncoder m3 r
+    dec (m2, m3) = \case
+      "index.html" -> Just RIndex
+      fp ->
+        fmap RBasicSite (decodeRoute Ex02.routeEncoder m2 fp)
+          <|> fmap RClockSite (decodeRoute Ex03.routeEncoder m3 fp)
+    all_ (m2, m3) =
+      [RIndex]
+        <> fmap RBasicSite (allRoutes Ex02.routeEncoder m2)
+        <> fmap RClockSite (allRoutes Ex03.routeEncoder m3)
+
 main :: IO ()
 main = do
   Ema.runSite_ $
-    Ema.singlePageSite "index" (const renderIndex)
+    Ema.singlePageSite "index" renderIndex
       -- TODO: Can we 'decompose' routeencoder, so as to be able to use ADT to compose sites?
       +: Ema.mountUnder "basic" Ex02.site
       +: Ema.mountUnder "clock" Ex03.site
