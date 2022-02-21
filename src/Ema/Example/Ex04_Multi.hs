@@ -16,7 +16,7 @@ data R
   | RBasicSite Ex02.Route
   | RClockSite Ex03.Route
 
-rEncoder :: RouteEncoder (Ex02.Model Ex03.Route, Ex03.Model) R
+rEncoder :: RouteEncoder (Ex02.Model, Ex03.Model) R
 rEncoder =
   unsafeMkRouteEncoder enc dec all_
   where

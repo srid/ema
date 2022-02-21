@@ -20,9 +20,8 @@ module Ema.Route
     Mergeable (merge),
 
     -- * Internal
-    mergeRouteEncoder,
     checkRouteEncoderForSingleRoute,
-    PartialIsoFunctor (pimap),
+    -- PartialIsoFunctor (pimap),
   )
 where
 
@@ -43,6 +42,51 @@ import Network.URI.Slug qualified as Slug
 -- TODO: replace `ctx` arg with Reader monad?
 newtype PartialIsoEnumerableWithCtx ctx s a
   = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
+
+-- | A partial Iso between `s` and `a`, with finite `a` values - and with access
+-- to some context `x`.
+newtype PIso x s a
+  = PIso
+      ( -- Encoder
+        a -> Reader x s,
+        -- Decoder
+        s -> ReaderT x Maybe a,
+        -- Universe
+        Reader x [a]
+      )
+
+piencode :: PIso r s a -> r -> a -> s
+piencode (PIso (f, _, _)) x =
+  flip runReader x . f
+
+pidecode :: PIso r s a -> r -> s -> Maybe a
+pidecode (PIso (_, f, _)) x =
+  flip runReaderT x . f
+
+piuniverse :: PIso r s a -> r -> [a]
+piuniverse (PIso (_, _, f)) = runReader f
+
+pimap' ::
+  Iso s1 (Maybe s1) s2 s2 ->
+  Iso a1 a1 (Maybe a2) a2 ->
+  (r2 -> r1) ->
+  PIso r1 s1 a1 ->
+  PIso r2 s2 a2
+pimap' sIso aIso rf (PIso (enc, dec, univ)) =
+  PIso (enc', dec', univ')
+  where
+    enc' a = withReader rf $ do
+      let a' = isoLeft aIso a
+      s' <- enc a'
+      pure $ isoRight sIso s'
+    dec' s = withReaderT rf $ do
+      s' <- lift $ isoLeft sIso s
+      a <- dec s'
+      lift $ isoRight aIso a
+    univ' = withReader rf $ do
+      mapMaybe (isoRight aIso) <$> univ
+    isoRight iso x = Lens.withIso iso $ \f _ -> f x
+    isoLeft iso x = Lens.withIso iso $ \_ f -> f x
 
 {-
 type T ctx a s = CtxIso ctx a (Maybe a) s s

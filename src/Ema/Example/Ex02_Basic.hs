@@ -1,6 +1,9 @@
 -- | A very simple site with two routes, and HTML rendered using Blaze DSL
 module Ema.Example.Ex02_Basic where
 
+import Control.Concurrent (threadDelay)
+import Control.Monad.Logger (logInfoNS)
+import Data.LVar qualified as LVar
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route (unsafeMkRouteEncoder)
@@ -13,7 +16,7 @@ data Route
   | About
   deriving stock (Show, Eq, Enum, Bounded)
 
-newtype Model r = Model (RouteEncoder (Model r) r)
+newtype Model = Model {modelMsg :: Text}
 
 routeEncoder :: RouteEncoder a Route
 routeEncoder =
@@ -29,7 +32,7 @@ routeEncoder =
       _ -> Nothing
     all_ _ = defaultEnum @Route
 
-site :: Site (Model Route) Route
+site :: Site Model Route
 site =
   Site
     { siteName = "Ex02",
@@ -38,8 +41,14 @@ site =
         enc <- askRouteEncoder
         pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelManager = ModelManager $ do
-        enc <- Ema.askRouteEncoder
-        pure (Model enc, \_ -> pure ()),
+        pure
+          ( Model "Hello!",
+            \lvar -> do
+              logInfoNS "Ex02" "Setting 2nd time"
+              LVar.modify lvar $ \_ -> Model "Hello, again."
+              -- Normally you would update the model over time.
+              liftIO $ threadDelay maxBound
+          ),
       siteRouteEncoder = routeEncoder
     }
 
@@ -47,12 +56,12 @@ main :: IO ()
 main = do
   void $ Ema.runSite site
 
-render :: RouteEncoder (Model Route) Route -> Model Route -> Route -> LByteString
-render _enc model@(Model enc) r =
+render :: RouteEncoder Model Route -> Model -> Route -> LByteString
+render enc model@(Model msg) r =
   tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
-        H.p $ H.em "Hello"
+        H.p $ H.em $ H.toHtml msg
         case r of
           Index -> do
             "You are on the index page. "

@@ -59,7 +59,7 @@ runSiteWithCli cli site = do
           race_
             ( flip runLoggerLoggingT logger $ do
                 cont model
-                logWarnNS logSrc "modelPatcher exited; no more model updates."
+                logWarnNS logSrc "modelPatcher exited; no more model updates!"
                 liftIO $ threadDelay maxBound
             )
             (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload host port site model)

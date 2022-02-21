@@ -155,31 +155,35 @@ instance Mergeable ModelManager where
     enc <- askRouteEncoder
     (v1, k1) <- runModelManager r1 cliAct $ leftRouteEncoder enc
     (v2, k2) <- runModelManager r2 cliAct $ rightRouteEncoder enc
-    l1 <- LVar.empty
-    l2 <- LVar.empty
-    LVar.set l1 v1
-    LVar.set l2 v2
+    l1 <- LVar.new v1
+    l2 <- LVar.new v2
     let v = (v1, v2)
         k lvar = runSiteM cliAct enc $ do
           let keepAlive src = do
                 -- TODO: DRY with App.hs
                 logWarnNS src "modelPatcher exited; no more model updates."
+                -- TODO: No need to do this just keep top-level thread alive.
                 threadDelay maxBound
+          sub1 <- LVar.addListener l1
+          sub2 <- LVar.addListener l2
           race_
             ( race_
                 (k1 l1 >> keepAlive "siteLeftTODO")
                 (k2 l2 >> keepAlive "siteRightTODO")
             )
             ( do
-                sub1 <- LVar.addListener l1
-                sub2 <- LVar.addListener l2
                 forever $
                   race
                     (LVar.listenNext l1 sub1)
                     (LVar.listenNext l2 sub2)
                     >>= \case
-                      Left a -> LVar.modify lvar $ first (const a)
-                      Right b -> LVar.modify lvar $ second (const b)
+                      Left a -> do
+                        -- FIXME: something wrong with initial update propagating here
+                        logDebugNS "merge-model" "left update"
+                        LVar.modify lvar $ first (const a)
+                      Right b -> do
+                        logDebugNS "merge-model" "right update"
+                        LVar.modify lvar $ second (const b)
             )
     pure (v, k)
 
