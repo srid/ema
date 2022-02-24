@@ -21,6 +21,7 @@ module Ema.Route
 
     -- * Internal
     checkRouteEncoderForSingleRoute,
+    urlToFilePath,
     -- PartialIsoFunctor (pimap),
   )
 where
@@ -226,17 +227,16 @@ routeUrlWith urlStrategy enc model =
   where
     relUrlFromPath :: FilePath -> Text
     relUrlFromPath fp =
-      case T.stripSuffix (urlStrategySuffix urlStrategy) (toText fp) of
+      case toString <$> T.stripSuffix (urlStrategySuffix urlStrategy) (toText fp) of
         Just htmlFp ->
-          case nonEmpty (urlSlugFromText <$> T.splitOn "/" htmlFp) of
+          case nonEmpty (filepathToUrl htmlFp) of
             Nothing ->
               ""
             Just (removeLastIf "index" -> partsSansIndex) ->
               T.intercalate "/" partsSansIndex
         Nothing ->
-          T.intercalate "/" $ urlSlugFromText <$> T.splitOn "/" (toText fp)
+          T.intercalate "/" $ filepathToUrl fp
       where
-        urlSlugFromText = Slug.encodeSlug . fromString @Slug.Slug . toString
         removeLastIf :: Eq a => a -> NonEmpty a -> [a]
         removeLastIf x xs =
           if NE.last xs == x
@@ -245,6 +245,14 @@ routeUrlWith urlStrategy enc model =
         urlStrategySuffix = \case
           UrlPretty -> ".html"
           UrlDirect -> ""
+
+filepathToUrl :: FilePath -> [Text]
+filepathToUrl =
+  fmap (Slug.encodeSlug . fromString @Slug.Slug . toString) . T.splitOn "/" . toText
+
+urlToFilePath :: Text -> FilePath
+urlToFilePath =
+  toString . T.intercalate "/" . fmap (Slug.unSlug . Slug.decodeSlug) . T.splitOn "/"
 
 routeUrl :: RouteEncoder a r -> a -> r -> Text
 routeUrl =
