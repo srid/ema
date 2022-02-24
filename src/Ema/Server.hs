@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Ema.Server where
 
@@ -181,7 +182,7 @@ runServerWithWebSocketHotReload host port site model = do
     --
     -- This function is used only in live server. If the route is not
     -- isomoprhic, this returns a Left, with the mismatched encoding.
-    decodeUrlRoute :: a -> Text -> Either (FilePath, r) (Maybe r)
+    decodeUrlRoute :: a -> Text -> Either (BadRouteEncoding r) (Maybe r)
     decodeUrlRoute m (toString -> s) =
       let candidates = [s, s <> ".html", s </> "index.html"]
        in case asum (decodeRoute enc m <$> candidates) of
@@ -189,7 +190,7 @@ runServerWithWebSocketHotReload host port site model = do
             Just r ->
               if any (checkRouteEncoderForSingleRoute enc m r) candidates
                 then pure $ Just r
-                else Left (encodeRoute enc m r, r)
+                else Left $ BadRouteEncoding s r (encodeRoute enc m r)
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
@@ -213,9 +214,22 @@ pathInfoFromWsMsg =
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
-badRouteEncodingMsg :: Show r => (FilePath, r) -> Text
-badRouteEncodingMsg (rs, r) =
-  toText $ "Ema: route '" <> show r <> "' encodes to '" <> rs <> "' but it is not isomporphic (the reverse conversion is not true). You should fix your `RouteEncoder`."
+data BadRouteEncoding r = BadRouteEncoding
+  { _bre_original :: FilePath,
+    _bre_decodedRoute :: r,
+    _bre_routeEncoded :: FilePath
+  }
+  deriving stock (Show)
+
+badRouteEncodingMsg :: Show r => BadRouteEncoding r -> Text
+badRouteEncodingMsg BadRouteEncoding {..} =
+  toText $
+    "Ema: route '" <> show _bre_decodedRoute
+      <> "' encodes to '"
+      <> _bre_routeEncoded
+      <> "' but it is not isomporphic (the reverse conversion from "
+      <> _bre_original
+      <> " is not true). You should fix your `RouteEncoder`."
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString
