@@ -19,7 +19,10 @@ module Ema.Site
     -- * ...
     X (X),
     Y (Y),
+    P (P),
+    Patch (apply),
     yx,
+    py,
   )
 where
 
@@ -95,6 +98,29 @@ newtype Y m a
         -- editor
         ((a -> a) -> m ()) -> m ()
       )
+
+newtype P m p a
+  = P
+      ( a,
+        -- editor
+        (p -> m ()) -> m ()
+      )
+
+class Patch p a where
+  apply :: forall m. (MonadIO m, MonadLogger m) => p -> m (a -> a)
+
+py :: (Patch p a, MonadIO m, MonadLogger m) => P (StateT a m) p a -> X m a
+py (P (x0, xf)) =
+  X
+    ( x0,
+      \send -> do
+        void . flip runStateT x0 $
+          xf $ \patch -> do
+            edit <- apply patch
+            modify edit
+            x <- get
+            lift $ send x
+    )
 
 yx :: (Monad m) => Y (StateT a m) a -> X m a
 yx (Y (y0, yf)) = do
