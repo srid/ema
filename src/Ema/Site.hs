@@ -1,7 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Site
   ( Site (..),
@@ -17,13 +15,16 @@ module Ema.Site
 
     -- * Combinators
     mountUnder,
+
+    -- * ...
+    X (X),
+    Y (Y),
+    yx,
   )
 where
 
 import Control.Lens (iso)
 import Control.Monad.Logger
-import Data.LVar (LVar)
-import Data.LVar qualified as LVar
 import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
@@ -38,7 +39,7 @@ import Ema.Route
   )
 import System.FilePath ((</>))
 import Text.Show (Show (show))
-import UnliftIO (MonadUnliftIO, race, race_)
+import UnliftIO (MonadUnliftIO, race_)
 import UnliftIO.Concurrent (threadDelay)
 
 newtype SiteName = SiteName Text
@@ -81,6 +82,82 @@ instance Monad m => MonadSite (SiteM a r m) a r where
   askCLIAction = SiteM $ asks fst
   askRouteEncoder = SiteM $ asks snd
 
+newtype X m a
+  = X
+      ( a,
+        -- setter
+        (a -> m ()) -> m ()
+      )
+
+newtype Y m a
+  = Y
+      ( a,
+        -- editor
+        ((a -> a) -> m ()) -> m ()
+      )
+
+yx :: (Monad m) => Y (StateT a m) a -> X m a
+yx (Y (y0, yf)) = do
+  X
+    ( y0,
+      \send ->
+        void . flip runStateT y0 $ do
+          yf $ \edit -> do
+            modify edit
+            x <- get
+            lift $ send x
+    )
+
+instance Functor (X m) where
+  fmap f (X (x0, xf)) =
+    X
+      ( f x0,
+        \send -> xf $ send . f
+      )
+
+instance (MonadUnliftIO m, MonadLogger m) => Applicative (X m) where
+  pure x = X (x, \_ -> pure ())
+  liftA2 f (X (x0, xf)) (X (y0, yf)) =
+    X
+      ( f x0 y0,
+        \send -> do
+          var <- newTVarIO (x0, y0)
+          sendLock :: TMVar () <- newEmptyTMVarIO
+          -- TODO: Use site name in logging?
+          race_
+            ( do
+                xf $ \x -> do
+                  atomically $ putTMVar sendLock ()
+                  logDebugNS "X:App" "left update"
+                  send <=< atomically $ do
+                    modifyTVar' var $ first (const x)
+                    f x . snd <$> readTVar var
+                  atomically $ takeTMVar sendLock
+                logDebugNS "X:App" "updater exited; keeping thread alive"
+                threadDelay maxBound
+            )
+            ( do
+                yf $ \y -> do
+                  atomically $ putTMVar sendLock ()
+                  logDebugNS "X:App" "right update"
+                  send <=< atomically $ do
+                    modifyTVar' var $ second (const y)
+                    (`f` y) . fst <$> readTVar var
+                  atomically $ takeTMVar sendLock
+                logDebugNS "X:App" "updater exited; keeping thread alive"
+                threadDelay maxBound
+            )
+      )
+
+mkX :: X IO Int
+mkX =
+  X
+    ( 0,
+      \send -> do
+        send 1
+        send 2
+    )
+
 newtype ModelManager a r
   = ModelManager
       ( forall m.
@@ -88,17 +165,10 @@ newtype ModelManager a r
           MonadUnliftIO m,
           MonadLoggerIO m
         ) =>
-        SiteM a r m (NonEmptyLVar m a)
+        SiteM a r m (X m a)
       )
 
-type NonEmptyLVar m a =
-  ( -- Initial value
-    a,
-    -- Generator for subsequent values
-    LVar a -> m ()
-  )
-
-runModelManager :: (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => ModelManager a r -> Some CLI.Action -> RouteEncoder a r -> m (NonEmptyLVar m a)
+runModelManager :: (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) => ModelManager a r -> Some CLI.Action -> RouteEncoder a r -> m (X m a)
 runModelManager (ModelManager f) cliAct enc = runSiteM cliAct enc f
 
 newtype SiteRender a r
@@ -131,7 +201,7 @@ constModel :: a -> ModelManager a r
 constModel x = ModelManager $ do
   let f _ = pure ()
   -- TODO: log it
-  pure (x, f)
+  pure $ X (x, f)
 
 instance Mergeable Site where
   merge site1 site2 =
@@ -153,39 +223,9 @@ instance Mergeable ModelManager where
   merge r1 r2 = ModelManager $ do
     cliAct <- askCLIAction
     enc <- askRouteEncoder
-    (v1, k1) <- runModelManager r1 cliAct $ leftRouteEncoder enc
-    (v2, k2) <- runModelManager r2 cliAct $ rightRouteEncoder enc
-    l1 <- LVar.new v1
-    l2 <- LVar.new v2
-    let v = (v1, v2)
-        k lvar = runSiteM cliAct enc $ do
-          let keepAlive src = do
-                -- TODO: DRY with App.hs
-                logWarnNS src "modelPatcher exited; no more model updates."
-                -- TODO: No need to do this just keep top-level thread alive.
-                threadDelay maxBound
-          sub1 <- LVar.addListener l1
-          sub2 <- LVar.addListener l2
-          race_
-            ( race_
-                (k1 l1 >> keepAlive "siteLeftTODO")
-                (k2 l2 >> keepAlive "siteRightTODO")
-            )
-            ( do
-                forever $
-                  race
-                    (LVar.listenNext l1 sub1)
-                    (LVar.listenNext l2 sub2)
-                    >>= \case
-                      Left a -> do
-                        -- FIXME: something wrong with initial update propagating here
-                        logDebugNS "merge-model" "left update"
-                        LVar.modify lvar $ first (const a)
-                      Right b -> do
-                        logDebugNS "merge-model" "right update"
-                        LVar.modify lvar $ second (const b)
-            )
-    pure (v, k)
+    x1 <- lift $ runModelManager r1 cliAct $ leftRouteEncoder enc
+    x2 <- lift $ runModelManager r2 cliAct $ rightRouteEncoder enc
+    pure $ (,) <$> x1 <*> x2
 
 -- | Transform the given site such that all of its routes are encoded to be
 -- under the given prefix.

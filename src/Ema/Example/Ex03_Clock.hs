@@ -47,12 +47,12 @@ site =
         pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelManager = ModelManager $ do
         t0 <- liftIO getCurrentTime
-        pure . (t0,) $ \lvar -> do
+        pure . X . (t0,) $ \send -> do
           logInfoNS "Ex03" "Starting clock..."
           forever $ do
             liftIO $ threadDelay 1000000
             t <- liftIO getCurrentTime
-            LVar.set lvar t,
+            send t,
       siteRouteEncoder = routeEncoder
     }
 
