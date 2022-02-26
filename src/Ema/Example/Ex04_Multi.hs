@@ -41,8 +41,8 @@ main = do
   Ema.runSite_ $
     Ema.singlePageSite "index" renderIndex
       -- TODO: Can we 'decompose' routeencoder, so as to be able to use ADT to compose sites?
-      `Ema.merge` Ema.mountUnder "basic" Ex02.site
-      `Ema.merge` Ema.mountUnder "clock" Ex03.site
+      `Ema.merge` Ema.mountUnder @"basic" Ex02.site
+      `Ema.merge` Ema.mountUnder @"clock" Ex03.site
 
 renderIndex :: LByteString
 renderIndex =

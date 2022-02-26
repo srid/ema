@@ -15,6 +15,9 @@ module Ema.Site
 
     -- * Combinators
     mountUnder,
+    PrefixedRoute (..),
+    toPrefixedRouteEncoder,
+    fromPrefixedRouteEncoder,
 
     -- * ...
     X (X),
@@ -35,6 +38,7 @@ import Ema.Route
     rightRouteEncoder,
     singletonRouteEncoder,
   )
+import GHC.TypeLits
 import System.FilePath ((</>))
 import Text.Show (Show (show))
 import UnliftIO (MonadUnliftIO, race_)
@@ -200,36 +204,36 @@ instance Mergeable ModelManager where
 
 -- | Transform the given site such that all of its routes are encoded to be
 -- under the given prefix.
-mountUnder :: forall r a. String -> Site a r -> Site a (PrefixedRoute r)
-mountUnder prefix Site {..} =
-  Site siteName siteRender' siteModelManager' (toRouteEncoder siteRouteEncoder)
+mountUnder :: forall prefix r a. KnownSymbol prefix => Site a r -> Site a (PrefixedRoute prefix r)
+mountUnder Site {..} =
+  Site siteName siteRender' siteModelManager' (toPrefixedRouteEncoder siteRouteEncoder)
   where
-    siteModelManager' :: ModelManager a (PrefixedRoute r)
+    siteModelManager' :: ModelManager a (PrefixedRoute prefix r)
     siteModelManager' = ModelManager $ do
-      enc :: RouteEncoder a (PrefixedRoute r) <- askRouteEncoder
+      enc :: RouteEncoder a (PrefixedRoute prefix r) <- askRouteEncoder
       cliAct <- askCLIAction
-      lift $ runModelManager siteModelManager cliAct (fromRouteEncoder enc)
+      lift $ runModelManager siteModelManager cliAct (fromPrefixedRouteEncoder enc)
     siteRender' = SiteRender $ \model r -> do
       rEnc <- askRouteEncoder
       cliAct <- askCLIAction
-      pure $ runSiteRender siteRender cliAct (fromRouteEncoder rEnc) model (_prefixedRouteRoute r)
-    toRouteEncoder :: RouteEncoder a r -> RouteEncoder a (PrefixedRoute r)
-    toRouteEncoder =
-      mapRouteEncoder
+      pure $ runSiteRender siteRender cliAct (fromPrefixedRouteEncoder rEnc) model (unPrefixedRoute r)
+
+toPrefixedRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (PrefixedRoute prefix r)
+toPrefixedRouteEncoder =
+  let prefix = symbolVal (Proxy @prefix)
+   in mapRouteEncoder
         (iso (prefix </>) $ fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText)
-        (iso (Just . PrefixedRoute prefix) _prefixedRouteRoute)
+        (iso (Just . PrefixedRoute) unPrefixedRoute)
         id
-    -- This coerces the r, but without losing the encoding.
-    fromRouteEncoder :: RouteEncoder a (PrefixedRoute r) -> RouteEncoder a r
-    fromRouteEncoder =
-      mapRouteEncoder (iso id Just) (iso (Just . _prefixedRouteRoute) $ PrefixedRoute prefix) id
+
+-- This coerces the r, but without losing the encoding.
+fromPrefixedRouteEncoder :: RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
+fromPrefixedRouteEncoder =
+  mapRouteEncoder (iso id Just) (iso (Just . unPrefixedRoute) PrefixedRoute) id
 
 -- | A route that is prefixed at some URL prefix
-data PrefixedRoute r = PrefixedRoute
-  { _prefixedRoutePrefix :: String,
-    _prefixedRouteRoute :: r
-  }
-  deriving stock (Eq, Ord)
+newtype PrefixedRoute (prefix :: Symbol) r = PrefixedRoute {unPrefixedRoute :: r}
+  deriving newtype (Eq, Ord)
 
-instance (Show r) => Show (PrefixedRoute r) where
-  show (PrefixedRoute p r) = p <> ":" <> Text.Show.show r
+instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
+  show (PrefixedRoute r) = symbolVal (Proxy @prefix) <> ":" <> Text.Show.show r
