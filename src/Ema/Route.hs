@@ -28,6 +28,7 @@ where
 
 import Control.Lens (Iso)
 import Control.Lens qualified as Lens
+import Control.Monad.Writer
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.List.NonEmpty qualified as NE
@@ -97,10 +98,18 @@ type CtxIso ctx a b c d = Iso (ctx, a) b c (ctx, d)
 type T' ctx a = ctx -> [a]
 -}
 
-partialIsoIsLawfulFor :: (Eq a, Eq s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Bool
-partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s =
-  (s == to ctx a)
-    && (Just a == from ctx s)
+partialIsoIsLawfulFor :: (Eq a, Eq s, Show a, ToText s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Writer [Text] Bool
+partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s = do
+  tell . one $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
+  let s' = to ctx a
+  tell . one $ "Route's actual encoding: " <> toText s'
+  let ma' = from ctx s'
+  tell . one $ "Decoding of that encoding: " <> show ma'
+  unless (s == s') $
+    tell . one $ "ERR: " <> toText s <> " /= " <> toText s'
+  unless (Just a == ma') $
+    tell . one $ "ERR: " <> show (Just a) <> " /= " <> show ma'
+  pure $ traceShowId (s == s') && traceShowId (Just a == ma')
 
 class PartialIsoFunctor (f :: Type -> Type -> Type -> Type) where
   pimap ::
@@ -214,7 +223,7 @@ rightRouteEncoder =
 defaultEnum :: (Bounded r, Enum r) => [r]
 defaultEnum = [minBound .. maxBound]
 
-checkRouteEncoderForSingleRoute :: Eq route => RouteEncoder model route -> model -> route -> FilePath -> Bool
+checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
 checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso
 
 -- | Return the relative URL of the given route

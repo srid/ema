@@ -6,6 +6,7 @@ module Ema.Server where
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
 import Control.Monad.Logger
+import Control.Monad.Writer (runWriter)
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some
@@ -190,9 +191,12 @@ runServerWithWebSocketHotReload host port site model = do
        in case asum (decodeRoute enc m <$> candidates) of
             Nothing -> pure Nothing
             Just r ->
-              if any (checkRouteEncoderForSingleRoute enc m r) candidates
-                then pure $ Just r
-                else Left $ BadRouteEncoding s r (encodeRoute enc m r)
+              let checks = flip fmap candidates $ \c ->
+                    let (res, log) = runWriter $ checkRouteEncoderForSingleRoute enc m r c
+                     in (res, (c, log))
+               in if or (fst <$> checks)
+                    then pure $ Just r
+                    else Left $ BadRouteEncoding (snd <$> checks) r (encodeRoute enc m r)
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
@@ -217,7 +221,7 @@ decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
 data BadRouteEncoding r = BadRouteEncoding
-  { _bre_original :: FilePath,
+  { _bre_candidates :: [(FilePath, [Text])],
     _bre_decodedRoute :: r,
     _bre_routeEncoded :: FilePath
   }
@@ -229,9 +233,9 @@ badRouteEncodingMsg BadRouteEncoding {..} =
     "Ema: route '" <> show _bre_decodedRoute
       <> "' encodes to '"
       <> _bre_routeEncoded
-      <> "' but it is not isomporphic (the reverse conversion from "
-      <> _bre_original
-      <> " is not true). You should fix your `RouteEncoder`."
+      <> "' but it is not isomporphic. \n"
+      <> show _bre_candidates
+      <> " \nYou should fix your `RouteEncoder`."
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString
