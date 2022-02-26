@@ -42,16 +42,15 @@ site =
         pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelManager = ModelManager $ do
         pure $
-          yx $
-            Y
-              ( Model "Hello!",
-                \edit -> do
-                  logInfoNS "Ex02" "Setting 2nd time"
-                  -- LVar.modify lvar $ \_ -> Model "Hello, again."
-                  edit $ \_ -> Model "Hello, again"
-                  -- Normally you would update the model over time.
-                  liftIO $ threadDelay maxBound
-              ),
+          X
+            ( Model "Hello!",
+              \set -> do
+                logInfoNS "Ex02" "Setting 2nd time"
+                -- LVar.modify lvar $ \_ -> Model "Hello, again."
+                set $ Model "Hello, again"
+                -- Normally you would update the model over time.
+                liftIO $ threadDelay maxBound
+            ),
       siteRouteEncoder = routeEncoder
     }
 

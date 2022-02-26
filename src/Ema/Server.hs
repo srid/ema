@@ -24,7 +24,6 @@ import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
-import Network.URI.Slug qualified as Slug
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Handler.WebSockets qualified as WaiWs
