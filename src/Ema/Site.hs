@@ -227,7 +227,7 @@ toPrefixedRouteEncoder =
         id
 
 -- This coerces the r, but without losing the encoding.
-fromPrefixedRouteEncoder :: RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
+fromPrefixedRouteEncoder :: forall prefix r a. RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
 fromPrefixedRouteEncoder =
   mapRouteEncoder (iso id Just) (iso (Just . unPrefixedRoute) PrefixedRoute) id
 

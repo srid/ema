@@ -14,6 +14,7 @@ module Ema.Route
     allRoutes,
     defaultEnum,
     singletonRouteEncoder,
+    singletonRouteEncoderFrom,
     mapRouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
@@ -168,12 +169,9 @@ allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (RouteEncoder (PartialIsoEnumerableWithCtx (_, _, f))) = f
 
 -- | Route encoder for single route encoding to 'index.html'
-singletonRouteEncoder :: RouteEncoder () ()
+singletonRouteEncoder :: RouteEncoder a ()
 singletonRouteEncoder =
-  unsafeMkRouteEncoder
-    (\() () -> "index.html")
-    (\() fp -> guard (fp == "index.html"))
-    (\() -> [()])
+  singletonRouteEncoderFrom "index.html"
 
 -- | Class of product-cum-sum indexed types that can be merged.
 class Mergeable (f :: Type -> Type -> Type) where
@@ -217,6 +215,14 @@ rightRouteEncoder =
     (Lens.iso id Just)
     (Lens.iso rightToMaybe Right)
     (undefined,)
+
+singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
+singletonRouteEncoderFrom fp =
+  unsafeMkRouteEncoder (const enc) (const dec) (const all_)
+  where
+    enc () = fp
+    dec fp' = guard (fp' == fp)
+    all_ = [()]
 
 -- TODO: Determine this generically somehow
 -- See https://github.com/srid/ema/issues/76
