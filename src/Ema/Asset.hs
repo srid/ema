@@ -9,7 +9,7 @@ data Asset a
     AssetStatic FilePath
   | -- | A file whose contents are generated at runtime by user code.
     AssetGenerated Format a
-  deriving stock (Eq, Show, Ord, Generic)
+  deriving stock (Eq, Show, Ord, Functor, Generic)
 
 data Format = Html | Other
   deriving stock (Eq, Show, Ord, Generic)
