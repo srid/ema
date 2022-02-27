@@ -110,7 +110,7 @@ partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s = do
     tell . one $ "ERR: " <> toText s <> " /= " <> toText s'
   unless (Just a == ma') $
     tell . one $ "ERR: " <> show (Just a) <> " /= " <> show ma'
-  pure $ traceShowId (s == s') && traceShowId (Just a == ma')
+  pure $ (s == s') && (Just a == ma')
 
 class PartialIsoFunctor (f :: Type -> Type -> Type -> Type) where
   pimap ::
