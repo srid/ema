@@ -126,6 +126,7 @@ library
   other-modules:
     Ema.App
     Ema.Asset
+    Ema.Dynamic
     Ema.Generate
     Ema.Server
     Ema.Site

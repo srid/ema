@@ -19,9 +19,10 @@ import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
+import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
 import Ema.Server qualified as Server
-import Ema.Site (Dynamic (Dynamic), Site (siteModelManager, siteRouteEncoder), runModelManager)
+import Ema.Site (Site (siteModelManager, siteRouteEncoder), runModelManager)
 import System.Directory (getCurrentDirectory)
 
 -- | Run the given Ema site, and return the generated files.

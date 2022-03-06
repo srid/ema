@@ -18,9 +18,6 @@ module Ema.Site
     PrefixedRoute (..),
     toPrefixedRouteEncoder,
     fromPrefixedRouteEncoder,
-
-    -- * ...
-    Dynamic (Dynamic),
   )
 where
 
@@ -30,6 +27,7 @@ import Data.Some (Some)
 import Data.Text qualified as T
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI qualified as CLI
+import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Route
   ( Mergeable (merge),
     RouteEncoder,
@@ -41,8 +39,7 @@ import Ema.Route
 import GHC.TypeLits
 import System.FilePath ((</>))
 import Text.Show (Show (show))
-import UnliftIO (MonadUnliftIO, race_)
-import UnliftIO.Concurrent (threadDelay)
+import UnliftIO (MonadUnliftIO)
 
 newtype SiteName = SiteName Text
   deriving newtype (Eq, Show, Ord, IsString, ToString)
@@ -83,61 +80,6 @@ runSiteM cliAct enc (SiteM m) =
 instance Monad m => MonadSite (SiteM a r m) a r where
   askCLIAction = SiteM $ asks fst
   askRouteEncoder = SiteM $ asks snd
-
--- | A time-varying value
---
---  To create a Dynamic, supply the initial value along with a function that knows
---  how to update it using the given update function.
---
--- Dynamic's can be composed using Applicative.
-newtype Dynamic m a
-  = Dynamic
-      ( -- Initial value
-        a,
-        -- Set a new value
-        (a -> m ()) -> m ()
-      )
-
-instance Functor (Dynamic m) where
-  fmap f (Dynamic (x0, xf)) =
-    Dynamic
-      ( f x0,
-        \send -> xf $ send . f
-      )
-
-instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
-  pure x = Dynamic (x, \_ -> pure ())
-  liftA2 f (Dynamic (x0, xf)) (Dynamic (y0, yf)) =
-    Dynamic
-      ( f x0 y0,
-        \send -> do
-          var <- newTVarIO (x0, y0)
-          sendLock :: TMVar () <- newEmptyTMVarIO
-          -- TODO: Use site name in logging?
-          race_
-            ( do
-                xf $ \x -> do
-                  atomically $ putTMVar sendLock ()
-                  logDebugNS "Dynamic:App" "left update"
-                  send <=< atomically $ do
-                    modifyTVar' var $ first (const x)
-                    f x . snd <$> readTVar var
-                  atomically $ takeTMVar sendLock
-                logDebugNS "Dynamic:App" "updater exited; keeping thread alive"
-                threadDelay maxBound
-            )
-            ( do
-                yf $ \y -> do
-                  atomically $ putTMVar sendLock ()
-                  logDebugNS "Dynamic:App" "right update"
-                  send <=< atomically $ do
-                    modifyTVar' var $ second (const y)
-                    (`f` y) . fst <$> readTVar var
-                  atomically $ takeTMVar sendLock
-                logDebugNS "Dynamic:App" "updater exited; keeping thread alive"
-                threadDelay maxBound
-            )
-      )
 
 newtype ModelManager a r
   = ModelManager
