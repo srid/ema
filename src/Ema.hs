@@ -8,7 +8,8 @@ import Ema.Asset as X
 import Ema.Dynamic as X
 import Ema.Mount as X
 import Ema.Route as X
-  ( Mergeable (merge),
+  ( IsRoute (RouteModel, mkRouteEncoder),
+    Mergeable (merge),
     RouteEncoder,
     UrlStrategy (UrlDirect, UrlPretty),
     defaultEnum,

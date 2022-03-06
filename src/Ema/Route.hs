@@ -8,6 +8,7 @@ module Ema.Route
 
     -- * Route encoder
     RouteEncoder,
+    IsRoute (RouteModel, mkRouteEncoder),
     unsafeMkRouteEncoder,
     encodeRoute,
     decodeRoute,
@@ -231,6 +232,10 @@ defaultEnum = [minBound .. maxBound]
 
 checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
 checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso
+
+class IsRoute r where
+  type RouteModel r :: Type
+  mkRouteEncoder :: RouteEncoder (RouteModel r) r
 
 -- | Return the relative URL of the given route
 --

@@ -11,7 +11,8 @@ where
 import Control.Lens (iso)
 import Data.Text qualified as T
 import Ema.Route
-  ( RouteEncoder,
+  ( IsRoute (RouteModel, mkRouteEncoder),
+    RouteEncoder,
     mapRouteEncoder,
   )
 import Ema.Site
@@ -61,3 +62,7 @@ newtype PrefixedRoute (prefix :: Symbol) r = PrefixedRoute {unPrefixedRoute :: r
 
 instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
   show (PrefixedRoute r) = symbolVal (Proxy @prefix) <> ":" <> Text.Show.show r
+
+instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) where
+  type RouteModel (PrefixedRoute prefix r) = RouteModel r
+  mkRouteEncoder = toPrefixedRouteEncoder @prefix @r @(RouteModel r) $ mkRouteEncoder @r
