@@ -3,7 +3,7 @@ module Ema.Dynamic
   )
 where
 
-import Control.Monad.Logger
+import Control.Monad.Logger (MonadLogger, logDebugNS)
 import UnliftIO (MonadUnliftIO, race_)
 import UnliftIO.Concurrent (threadDelay)
 
