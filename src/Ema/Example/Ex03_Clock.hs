@@ -47,7 +47,7 @@ site =
         pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelManager = ModelManager $ do
         t0 <- liftIO getCurrentTime
-        pure . X . (t0,) $ \send -> do
+        pure . Dynamic . (t0,) $ \send -> do
           logInfoNS "Ex03" "Starting clock..."
           forever $ do
             liftIO $ threadDelay 1000000

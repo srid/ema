@@ -36,7 +36,6 @@ library
     , base                    >=4.13.0.0 && <=4.17.0.0
     , constraints-extras
     , containers
-    , mtl
     , contravariant
     , data-default
     , dependent-sum
@@ -49,6 +48,7 @@ library
     , lvar
     , monad-logger
     , monad-logger-extras
+    , mtl
     , neat-interpolation
     , optparse-applicative
     , relude                  >=0.7      && <1.0

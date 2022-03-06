@@ -42,7 +42,7 @@ site =
         pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelManager = ModelManager $ do
         pure $
-          X
+          Dynamic
             ( Model "Hello!",
               \set -> do
                 logInfoNS "Ex02" "Setting 2nd time"
