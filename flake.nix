@@ -1,7 +1,7 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/22dc22f8cedc58fcb11afe1acb08e9999e78be9c";
+    nixpkgs.url = "github:nixos/nixpkgs/1fc7212a2c3992eedc6eedf498955c321ad81cc2";
     flake-utils.url = "github:numtide/flake-utils";
     flake-utils.inputs.nixpkgs.follows = "nixpkgs";
     flake-compat = {
@@ -18,21 +18,6 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        # https://github.com/NixOS/nixpkgs/issues/140774#issuecomment-976899227
-        m1MacHsBuildTools =
-          pkgs.haskellPackages.override {
-            overrides = self: super:
-              let
-                workaround140774 = hpkg: with pkgs.haskell.lib;
-                  overrideCabal hpkg (drv: {
-                    enableSeparateBinOutput = false;
-                  });
-              in
-              {
-                ghcid = workaround140774 super.ghcid;
-                ormolu = workaround140774 super.ormolu;
-              };
-          };
         emaProject = returnShellEnv:
           pkgs.haskellPackages.developPackage {
             inherit name returnShellEnv;
@@ -44,9 +29,7 @@
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv
-                (with (if system == "aarch64-darwin"
-                then m1MacHsBuildTools
-                else pkgs.haskellPackages); [
+                (with pkgs.haskellPackages; [
                   # Specify your build/dev dependencies here. 
                   cabal-fmt
                   cabal-install
