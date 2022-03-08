@@ -2,7 +2,7 @@
 
 module Ema.Mount
   ( mountUnder,
-    PrefixedRoute,
+    PrefixedRoute (PrefixedRoute, unPrefixedRoute),
     toPrefixedRouteEncoder,
     fromPrefixedRouteEncoder,
   )
