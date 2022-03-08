@@ -11,6 +11,8 @@ module Ema.Route.Encoder
     defaultEnum,
     singletonRouteEncoder,
     singletonRouteEncoderFrom,
+    isoRouteEncoder,
+    showReadRouteEncoder,
     mapRouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
@@ -22,7 +24,7 @@ module Ema.Route.Encoder
   )
 where
 
-import Control.Lens (Iso)
+import Control.Lens (Iso, Iso')
 import Control.Lens qualified as Lens
 import Control.Monad.Writer
 import Data.Aeson (FromJSON (parseJSON), Value)
@@ -163,11 +165,6 @@ decodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (_, f, _))) = f
 allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (RouteEncoder (PartialIsoEnumerableWithCtx (_, _, f))) = f
 
--- | Route encoder for single route encoding to 'index.html'
-singletonRouteEncoder :: RouteEncoder a ()
-singletonRouteEncoder =
-  singletonRouteEncoderFrom "index.html"
-
 instance IsRoute () where
   type RouteModel () = ()
   mkRouteEncoder = singletonRouteEncoder
@@ -225,6 +222,27 @@ singletonRouteEncoderFrom fp =
     enc () = fp
     dec fp' = guard (fp' == fp)
     all_ = [()]
+
+isoRouteEncoder :: Iso r (Maybe r) FilePath FilePath -> RouteEncoder () r
+isoRouteEncoder iso =
+  unsafeMkRouteEncoder
+    (const $ \r -> Lens.withIso iso $ \f _ -> f r)
+    (const $ \fp -> Lens.withIso iso $ \_ g -> g fp)
+    (const [])
+
+showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
+showReadRouteEncoder =
+  unsafeMkRouteEncoder (const enc) (const dec) (const [])
+  where
+    enc r = show r <> ".html"
+    dec fp = do
+      x' <- fmap toString $ T.stripSuffix ".html" $ toText fp
+      readMaybe x'
+
+-- | Route encoder for single route encoding to 'index.html'
+singletonRouteEncoder :: RouteEncoder a ()
+singletonRouteEncoder =
+  singletonRouteEncoderFrom "index.html"
 
 -- TODO: Determine this generically somehow
 -- See https://github.com/srid/ema/issues/76

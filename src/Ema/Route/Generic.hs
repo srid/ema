@@ -20,6 +20,7 @@ import System.FilePath
   )
 import Prelude hiding (All, Generic)
 
+-- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::
   forall r.
   (Generic r, All2 IsRouteUnit (Code r), All IsRouteProd (Code r), HasDatatypeInfo r) =>
