@@ -1,9 +1,11 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Ema.Route.Generic
   ( gMkRouteEncoder,
+    IsRoute (RouteModel, mkRouteEncoder),
   )
 where
 
@@ -19,6 +21,19 @@ import System.FilePath
     (</>),
   )
 import Prelude hiding (All, Generic)
+
+class IsRoute r where
+  type RouteModel r :: Type
+  type RouteModel r = ()
+  mkRouteEncoder :: RouteEncoder (RouteModel r) r
+  default mkRouteEncoder ::
+    (Generic r, All2 IsRouteUnit (Code r), All IsRouteProd (Code r), HasDatatypeInfo r, RouteModel r ~ ()) =>
+    RouteEncoder (RouteModel r) r
+  mkRouteEncoder = gMkRouteEncoder
+
+instance IsRoute () where
+  type RouteModel () = ()
+  mkRouteEncoder = singletonRouteEncoder
 
 -- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::

@@ -11,10 +11,10 @@ where
 import Control.Lens (iso)
 import Data.Text qualified as T
 import Ema.Route.Encoder
-  ( IsRoute (RouteModel, mkRouteEncoder),
-    RouteEncoder,
+  ( RouteEncoder,
     mapRouteEncoder,
   )
+import Ema.Route.Generic (IsRoute (..))
 import Ema.Site
   ( ModelManager (..),
     MonadSite (askCLIAction, askRouteEncoder),

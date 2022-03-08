@@ -3,7 +3,6 @@
 module Ema.Route.Encoder
   ( -- * Route encoder
     RouteEncoder,
-    IsRoute (RouteModel, mkRouteEncoder),
     unsafeMkRouteEncoder,
     encodeRoute,
     decodeRoute,
@@ -24,14 +23,10 @@ module Ema.Route.Encoder
   )
 where
 
-import Control.Lens (Iso, Iso')
+import Control.Lens (Iso)
 import Control.Lens qualified as Lens
 import Control.Monad.Writer
-import Data.Aeson (FromJSON (parseJSON), Value)
-import Data.Aeson.Types (Parser)
-import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
-import Network.URI.Slug qualified as Slug
 
 -- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
 -- context value.
@@ -165,10 +160,6 @@ decodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (_, f, _))) = f
 allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (RouteEncoder (PartialIsoEnumerableWithCtx (_, _, f))) = f
 
-instance IsRoute () where
-  type RouteModel () = ()
-  mkRouteEncoder = singletonRouteEncoder
-
 -- | Class of product-cum-sum indexed types that can be merged.
 class Mergeable (f :: Type -> Type -> Type) where
   -- | Merge by treating the first index as product, and second as sum.
@@ -251,7 +242,3 @@ defaultEnum = [minBound .. maxBound]
 
 checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
 checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso
-
-class IsRoute r where
-  type RouteModel r :: Type
-  mkRouteEncoder :: RouteEncoder (RouteModel r) r
