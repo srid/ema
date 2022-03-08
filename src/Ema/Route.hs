@@ -174,6 +174,10 @@ singletonRouteEncoder :: RouteEncoder a ()
 singletonRouteEncoder =
   singletonRouteEncoderFrom "index.html"
 
+instance IsRoute () where
+  type RouteModel () = ()
+  mkRouteEncoder = singletonRouteEncoder
+
 -- | Class of product-cum-sum indexed types that can be merged.
 class Mergeable (f :: Type -> Type -> Type) where
   -- | Merge by treating the first index as product, and second as sum.
@@ -203,6 +207,9 @@ mergeRouteEncoder enc1 enc2 =
           ]
     )
 
+-- | TODO: Can do this using generics, on any `f` (not just Either)
+--
+-- But we as well need model lens for each inner route. Unless we use heterogenous list?
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
   mapRouteEncoder

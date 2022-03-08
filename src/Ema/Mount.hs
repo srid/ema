@@ -2,7 +2,7 @@
 
 module Ema.Mount
   ( mountUnder,
-    PrefixedRoute (..),
+    PrefixedRoute,
     toPrefixedRouteEncoder,
     fromPrefixedRouteEncoder,
   )
@@ -51,7 +51,7 @@ toPrefixedRouteEncoder =
         (iso (Just . PrefixedRoute) unPrefixedRoute)
         id
 
--- This coerces the r, but without losing the encoding.
+-- This coerces the r, but without losing the prefix encoding.
 fromPrefixedRouteEncoder :: forall prefix r a. RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
 fromPrefixedRouteEncoder =
   mapRouteEncoder (iso id Just) (iso (Just . unPrefixedRoute) PrefixedRoute) id
@@ -61,7 +61,7 @@ newtype PrefixedRoute (prefix :: Symbol) r = PrefixedRoute {unPrefixedRoute :: r
   deriving newtype (Eq, Ord)
 
 instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
-  show (PrefixedRoute r) = symbolVal (Proxy @prefix) <> ":" <> Text.Show.show r
+  show (PrefixedRoute r) = symbolVal (Proxy @prefix) <> "/:" <> Text.Show.show r
 
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) where
   type RouteModel (PrefixedRoute prefix r) = RouteModel r
