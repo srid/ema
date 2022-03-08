@@ -19,7 +19,7 @@ import Data.Some (Some)
 import Ema.Asset (Asset (AssetGenerated), Format (Html))
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
-import Ema.Route
+import Ema.Route.Encoder
   ( Mergeable (merge),
     RouteEncoder,
     leftRouteEncoder,

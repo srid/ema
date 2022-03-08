@@ -8,12 +8,11 @@ module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.Logger (logInfoNS)
-import Data.LVar qualified as LVar
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route (unsafeMkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder, defaultEnum, unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -36,7 +35,7 @@ routeEncoder =
       "index.html" -> Just Index
       "time.html" -> Just OnlyTime
       _ -> Nothing
-    all_ _ = Ema.defaultEnum @Route
+    all_ _ = defaultEnum @Route
 
 site :: Site UTCTime Route
 site =

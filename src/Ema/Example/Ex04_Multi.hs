@@ -1,12 +1,11 @@
 -- | Demonstration of merging multiple sites
 module Ema.Example.Ex04_Multi where
 
-import Ema (RouteEncoder, merge)
 import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
 import Ema.Example.Ex03_Clock qualified as Ex03
-import Ema.Route (allRoutes, decodeRoute, encodeRoute, unsafeMkRouteEncoder)
+import Ema.Route.Encoder (Mergeable (merge), RouteEncoder, allRoutes, decodeRoute, encodeRoute, unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -41,8 +40,8 @@ main = do
   Ema.runSite_ $
     Ema.singlePageSite "index" renderIndex
       -- TODO: Can we 'decompose' routeencoder, so as to be able to use ADT to compose sites?
-      `Ema.merge` Ema.mountUnder @"basic" Ex02.site
-      `Ema.merge` Ema.mountUnder @"clock" Ex03.site
+      `merge` Ema.mountUnder @"basic" Ex02.site
+      `merge` Ema.mountUnder @"clock" Ex03.site
 
 renderIndex :: LByteString
 renderIndex =

@@ -10,7 +10,7 @@ import Data.Some
 import Data.Text qualified as T
 import Ema.Asset (Asset (..))
 import Ema.CLI qualified as CLI
-import Ema.Route (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
+import Ema.Route.Encoder (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
 import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))

@@ -6,7 +6,7 @@ import Control.Monad.Logger (logInfoNS)
 import Data.LVar qualified as LVar
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route (unsafeMkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder, defaultEnum, unsafeMkRouteEncoder)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A

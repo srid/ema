@@ -10,7 +10,7 @@ where
 
 import Control.Lens (iso)
 import Data.Text qualified as T
-import Ema.Route
+import Ema.Route.Encoder
   ( IsRoute (RouteModel, mkRouteEncoder),
     RouteEncoder,
     mapRouteEncoder,

@@ -43,6 +43,7 @@ library
     , directory
     , filepath
     , filepattern
+    , generics-sop
     , http-types
     , lens
     , lvar
@@ -52,6 +53,7 @@ library
     , neat-interpolation
     , optparse-applicative
     , relude                  >=0.7      && <1.0
+    , sop-core
     , text
     , unliftio
     , url-slug
@@ -122,6 +124,8 @@ library
     Ema
     Ema.CLI
     Ema.Route
+    Ema.Route.Encoder
+    Ema.Route.Generic
 
   other-modules:
     Ema.App

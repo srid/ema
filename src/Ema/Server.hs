@@ -14,11 +14,11 @@ import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
 import Ema.CLI qualified as CLI
-import Ema.Route
+import Ema.Route (urlToFilePath)
+import Ema.Route.Encoder
   ( checkRouteEncoderForSingleRoute,
     decodeRoute,
     encodeRoute,
-    urlToFilePath,
   )
 import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
