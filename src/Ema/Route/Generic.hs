@@ -24,10 +24,16 @@ import Prelude hiding (All, Generic)
 
 class IsRoute r where
   type RouteModel r :: Type
-  type RouteModel r = ()
+  type RouteModel r = NP I (GRouteModel (Code r))
   mkRouteEncoder :: RouteEncoder (RouteModel r) r
   default mkRouteEncoder ::
-    (Generic r, All2 IsRouteUnit (Code r), All IsRouteProd (Code r), HasDatatypeInfo r, RouteModel r ~ ()) =>
+    ( Generic r,
+      ms ~ GRouteModel (Code r),
+      All2 IsRoute (Code r),
+      All (IsRouteProd ms) (Code r),
+      HasDatatypeInfo r,
+      RouteModel r ~ NP I ms
+    ) =>
     RouteEncoder (RouteModel r) r
   mkRouteEncoder = gMkRouteEncoder
 
@@ -35,37 +41,67 @@ instance IsRoute () where
   type RouteModel () = ()
   mkRouteEncoder = singletonRouteEncoder
 
+type family GRouteModel (xss :: [[Type]]) :: [Type] where
+  GRouteModel '[] = '[]
+  GRouteModel ('[] ': xss) = GRouteModel xss
+  GRouteModel ('[x] ': xss) = x ': GRouteModel xss
+-- TODO: reuse from below
+  GRouteModel (_ ': _) = TypeError ('Text "More than 1 route product")
+
+class HasModel (xs :: [Type]) (x :: Type) where
+  getModel :: NP I xs -> x
+
+instance (TypeError ('Text "No such model")) => HasModel '[] x where
+  getModel Nil = undefined
+
+instance HasModel (x ': xs) x where
+  getModel (I x :* _) = x
+
+instance HasModel xs x => HasModel (x' ': xs) x where
+  getModel (_ :* xs) = getModel xs
+
 -- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::
-  forall r.
-  (Generic r, All2 IsRouteUnit (Code r), All IsRouteProd (Code r), HasDatatypeInfo r) =>
-  RouteEncoder () r
+  forall r ms.
+  ( Generic r,
+    ms ~ GRouteModel (Code r),
+    All2 IsRoute (Code r),
+    All (IsRouteProd ms) (Code r),
+    HasDatatypeInfo r
+  ) =>
+  RouteEncoder (NP I ms) r
 gMkRouteEncoder =
-  unsafeMkRouteEncoder (const gEncodeRoute) (const gDecodeRoute) (const all_)
+  unsafeMkRouteEncoder gEncodeRoute gDecodeRoute (const all_)
   where
     all_ :: [r]
     all_ = [] -- TODO
 
 gEncodeRoute ::
-  forall r.
-  (Generic r, All2 IsRouteUnit (Code r), All IsRouteProd (Code r), HasDatatypeInfo r) =>
+  forall r ms.
+  ( Generic r,
+    ms ~ GRouteModel (Code r),
+    All2 IsRoute (Code r),
+    All (IsRouteProd ms) (Code r),
+    HasDatatypeInfo r
+  ) =>
+  NP I (GRouteModel (Code r)) ->
   r ->
   FilePath
-gEncodeRoute x' =
+gEncodeRoute m x' =
   let x = unSOP $ from @r x'
       ctorNames :: [ConstructorName] =
         hcollapse $ hmap (K . constructorName) $ datatypeCtors @r
       ctorSuffix = ctorStripPrefix @r (ctorNames !! hindex x)
-   in case hcollapse $ hcmap (Proxy @IsRouteProd) encProd x of
+   in case hcollapse $ hcmap (Proxy @(IsRouteProd ms)) encProd x of
         Nothing -> ctorSuffix <> ".html"
         Just p -> ctorSuffix </> p
   where
-    encProd :: forall xs. (IsRouteProd xs) => NP I xs -> K (Maybe FilePath) xs
+    encProd :: forall xs. (IsRouteProd ms xs) => NP I xs -> K (Maybe FilePath) xs
     encProd =
-      K . hcollapseMaybe . hcmap (Proxy @IsRouteUnit) encTerm
-    encTerm :: forall b. IsRouteUnit b => I b -> K FilePath b
+      K . hcollapseMaybe . hcmap (Proxy @(IsRouteIn ms)) encTerm
+    encTerm :: forall b. (IsRouteIn ms b) => I b -> K FilePath b
     encTerm =
-      K . encodeRoute (mkRouteEncoder @b) () . unI
+      K . encodeRoute (mkRouteEncoder @b) (getModel @_ @(RouteModel b) m) . unI
 
 -- | Like `HCollapse`, but limited to 0 or 1 products in a n-ary structure.
 class HCollapseMaybe h xs where
@@ -80,13 +116,13 @@ instance HCollapseMaybe NP '[p] where
 instance (ps ~ TypeError ('Text "Expected at most 1 product")) => HCollapseMaybe NP (p ': p1 ': ps) where
   hcollapseMaybe _ = Nothing -- Unreachable, due to TypeError
 
-class (IsRoute a, RouteModel a ~ ()) => IsRouteUnit a
+class (IsRoute r, HasModel ms (RouteModel r)) => IsRouteIn ms r
 
-instance (IsRoute a, RouteModel a ~ ()) => IsRouteUnit a
+instance (IsRoute r, HasModel ms (RouteModel r)) => IsRouteIn ms r
 
-class (All IsRouteUnit xs, HCollapseMaybe NP xs) => IsRouteProd xs
+class (All (IsRouteIn ms) xs, HCollapseMaybe NP xs, All (HasModel ms) xs) => IsRouteProd ms xs
 
-instance (All IsRouteUnit xs, HCollapseMaybe NP xs) => IsRouteProd xs
+instance (All (IsRouteIn ms) xs, HCollapseMaybe NP xs, All (HasModel ms) xs) => IsRouteProd ms xs
 
 datatypeCtors :: forall a. HasDatatypeInfo a => NP ConstructorInfo (Code a)
 datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
@@ -97,17 +133,27 @@ ctorStripPrefix ctorName =
    in maybe (error "ctor: bad naming") (T.unpack . T.toLower) $
         T.stripPrefix (T.pack $ name <> "_") (T.pack ctorName)
 
-gDecodeRoute :: forall r. (Generic r, All IsRouteProd (Code r), All2 IsRouteUnit (Code r), HasDatatypeInfo r) => FilePath -> Maybe r
-gDecodeRoute fp = do
+gDecodeRoute ::
+  forall r ms.
+  ( Generic r,
+    ms ~ GRouteModel (Code r),
+    All2 IsRoute (Code r),
+    All (IsRouteProd ms) (Code r),
+    HasDatatypeInfo r
+  ) =>
+  NP I (GRouteModel (Code r)) ->
+  FilePath ->
+  Maybe r
+gDecodeRoute m fp = do
   basePath : restPath <- pure $ splitDirectories fp
   -- Build the sum using an anamorphism
   to . SOP
-    <$> mcana_NS @IsRouteProd @_ @_ @(NP I)
+    <$> mcana_NS @(IsRouteProd ms) @_ @_ @(NP I)
       Proxy
       (anamorphismSum basePath restPath)
       (datatypeCtors @r)
   where
-    anamorphismSum :: forall xs xss. IsRouteProd xs => FilePath -> [FilePath] -> NP ConstructorInfo (xs ': xss) -> Either (Maybe (NP I xs)) (NP ConstructorInfo xss)
+    anamorphismSum :: forall xs xss. IsRouteProd ms xs => FilePath -> [FilePath] -> NP ConstructorInfo (xs ': xss) -> Either (Maybe (NP I xs)) (NP ConstructorInfo xss)
     anamorphismSum base rest (p :* ps) =
       fromMaybe (Right ps) $ do
         let ctorSuffix = ctorStripPrefix @r (constructorName p)
@@ -121,16 +167,16 @@ gDecodeRoute fp = do
             guard $ ctorSuffix == base
             pure $
               mcana_NP @_ @_ @_ @I
-                (Proxy @IsRouteUnit)
+                (Proxy @(IsRouteIn ms))
                 anamorphismProduct
                 Proxy
       where
-        anamorphismProduct :: forall y1 ys1. (IsRouteUnit y1, SListI ys1) => Proxy (y1 ': ys1) -> Maybe (I y1, Proxy ys1)
+        anamorphismProduct :: forall y1 ys1. (IsRouteIn ms y1, SListI ys1) => Proxy (y1 ': ys1) -> Maybe (I y1, Proxy ys1)
         anamorphismProduct Proxy = case sList @ys1 of
           SNil -> do
             -- Recurse into the only product argument
             guard $ not $ null rest
-            r' <- decodeRoute (mkRouteEncoder @y1) () $ joinPath rest
+            r' <- decodeRoute (mkRouteEncoder @y1) (getModel @_ @(RouteModel y1) m) $ joinPath rest
             pure (I r', Proxy)
           SCons ->
             -- Not reachable, due to HCollapseMaybe constraint
