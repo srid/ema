@@ -12,7 +12,7 @@ module Ema.Route.Generic
   )
 where
 
-import Control.Lens.Combinators (Iso, Iso', Profunctor (lmap), iso)
+import Control.Lens.Combinators (Iso, iso)
 import Data.List ((!!))
 import Data.SOP.Constraint (SListIN)
 import Data.Text qualified as T
@@ -62,14 +62,26 @@ instance IsRoute () where
 type family GRouteModel (xss :: [[Type]]) :: [Type] where
   GRouteModel '[] = '[]
   GRouteModel ('[] ': xss) = GRouteModel xss
-  GRouteModel ('[x] ': xss) = RouteModel x ': GRouteModel xss
+  GRouteModel ('[x] ': xss) = RouteModel x `UnitCons` GRouteModel xss
 -- TODO: reuse from below
   GRouteModel (_ ': _) = TypeError ('Text "More than 1 route product")
+
+type family UnitCons x xs where
+  UnitCons () xs = xs
+  UnitCons x xs = x ': xs
 
 -- | TODO: This is like lens, but partial?
 class HasModel (xs :: [Type]) (x :: Type) where
   getModel :: NP I xs -> x
   putModel :: x -> NP I xs
+
+instance {-# OVERLAPPING #-} HasModel '[] () where
+  getModel _ = ()
+  putModel () = Nil
+
+instance {-# OVERLAPPING #-} HasModel xs () => HasModel (x ': xs) () where
+  getModel _ = ()
+  putModel () = I undefined :* putModel ()
 
 instance (TypeError ('Text "No such model" ':$$: 'ShowType x)) => HasModel '[] x where
   getModel Nil = undefined
@@ -83,6 +95,7 @@ instance {-# OVERLAPPABLE #-} HasModel xs x => HasModel (x' ': xs) x where
   getModel (_ :* xs) = getModel xs
   putModel x = I undefined :* putModel x
 
+-- TODO: avoid Iso using https://hackage.haskell.org/package/generic-lens
 pullOutRouteEncoder :: forall m o i (ms :: [Type]). HasModel ms m => Iso o o (Maybe i) i -> RouteEncoder (NP I ms) o -> RouteEncoder m i
 pullOutRouteEncoder rIso =
   mapRouteEncoder (iso id Just) rIso putModel
