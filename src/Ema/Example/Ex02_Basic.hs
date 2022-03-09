@@ -1,36 +1,31 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | A very simple site with two routes, and HTML rendered using Blaze DSL
 module Ema.Example.Ex02_Basic where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.Logger (logInfoNS)
-import Data.LVar qualified as LVar
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Encoder (RouteEncoder, defaultEnum, unsafeMkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder)
+import Ema.Route.Generic
+import GHC.Generics qualified as GHC
+import Generics.SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
+import Prelude hiding (Generic)
 
 data Route
-  = Index
-  | About
+  = Route_Index
+  | Route_About
   deriving stock (Show, Eq, Enum, Bounded)
+  deriving stock (GHC.Generic)
+  deriving anyclass (Generic, HasDatatypeInfo)
+  deriving (IsRoute) via (ConstModelRoute Model Route)
 
 newtype Model = Model {modelMsg :: Text}
-
-routeEncoder :: RouteEncoder a Route
-routeEncoder =
-  unsafeMkRouteEncoder enc dec all_
-  where
-    enc _model =
-      \case
-        Index -> "index.html"
-        About -> "about.html"
-    dec _model = \case
-      "index.html" -> Just Index
-      "about.html" -> Just About
-      _ -> Nothing
-    all_ _ = defaultEnum @Route
 
 site :: Site Model Route
 site =
@@ -51,7 +46,7 @@ site =
                 -- Normally you would update the model over time.
                 liftIO $ threadDelay maxBound
             ),
-      siteRouteEncoder = routeEncoder
+      siteRouteEncoder = mkRouteEncoder
     }
 
 main :: IO ()
@@ -65,11 +60,11 @@ render enc model@(Model msg) r =
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         H.p $ H.em $ H.toHtml msg
         case r of
-          Index -> do
+          Route_Index -> do
             "You are on the index page. "
-            routeElem About "Go to About"
-          About -> do
-            routeElem Index "Go to Index"
+            routeElem Route_About "Go to About"
+          Route_About -> do
+            routeElem Route_Index "Go to Index"
             ". You are on the about page. "
   where
     routeElem r' w =

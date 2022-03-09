@@ -6,14 +6,18 @@
 module Ema.Route.Generic
   ( gMkRouteEncoder,
     IsRoute (RouteModel, mkRouteEncoder),
+    ConstModelRoute (..),
+    pullOutRouteEncoder,
+    getModel,
   )
 where
 
+import Control.Lens.Combinators (Iso, Iso', Profunctor (lmap), iso)
 import Data.List ((!!))
 import Data.SOP.Constraint (SListIN)
 import Data.Text qualified as T
 import Ema.Route.Encoder
-import GHC.TypeLits (ErrorMessage (Text), TypeError)
+import GHC.TypeLits
 import Generics.SOP
 import System.FilePath
   ( joinPath,
@@ -37,6 +41,20 @@ class IsRoute r where
     RouteEncoder (RouteModel r) r
   mkRouteEncoder = gMkRouteEncoder
 
+newtype ConstModelRoute (m :: Type) r = ConstModelRoute {unConstModelRoute :: r}
+
+instance
+  ( GRouteModel (Code r) ~ '[],
+    HasDatatypeInfo r,
+    All2 IsRoute (Code r),
+    All (IsRouteProd '[]) (Code r)
+  ) =>
+  IsRoute (ConstModelRoute m r)
+  where
+  type RouteModel (ConstModelRoute m r) = m
+  mkRouteEncoder =
+    gMkRouteEncoder @r & mapRouteEncoder (iso id Just) (iso (Just . ConstModelRoute) unConstModelRoute) (const Nil)
+
 instance IsRoute () where
   type RouteModel () = ()
   mkRouteEncoder = singletonRouteEncoder
@@ -44,21 +62,30 @@ instance IsRoute () where
 type family GRouteModel (xss :: [[Type]]) :: [Type] where
   GRouteModel '[] = '[]
   GRouteModel ('[] ': xss) = GRouteModel xss
-  GRouteModel ('[x] ': xss) = x ': GRouteModel xss
+  GRouteModel ('[x] ': xss) = RouteModel x ': GRouteModel xss
 -- TODO: reuse from below
   GRouteModel (_ ': _) = TypeError ('Text "More than 1 route product")
 
+-- | TODO: This is like lens, but partial?
 class HasModel (xs :: [Type]) (x :: Type) where
   getModel :: NP I xs -> x
+  putModel :: x -> NP I xs
 
-instance (TypeError ('Text "No such model")) => HasModel '[] x where
+instance (TypeError ('Text "No such model" ':$$: 'ShowType x)) => HasModel '[] x where
   getModel Nil = undefined
+  putModel _ = undefined
 
-instance HasModel (x ': xs) x where
+instance {-# OVERLAPPING #-} HasModel (x ': xs) x where
   getModel (I x :* _) = x
+  putModel x = I x :* undefined
 
-instance HasModel xs x => HasModel (x' ': xs) x where
+instance {-# OVERLAPPABLE #-} HasModel xs x => HasModel (x' ': xs) x where
   getModel (_ :* xs) = getModel xs
+  putModel x = I undefined :* putModel x
+
+pullOutRouteEncoder :: forall m o i (ms :: [Type]). HasModel ms m => Iso o o (Maybe i) i -> RouteEncoder (NP I ms) o -> RouteEncoder m i
+pullOutRouteEncoder rIso =
+  mapRouteEncoder (iso id Just) rIso putModel
 
 -- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::
@@ -120,9 +147,9 @@ class (IsRoute r, HasModel ms (RouteModel r)) => IsRouteIn ms r
 
 instance (IsRoute r, HasModel ms (RouteModel r)) => IsRouteIn ms r
 
-class (All (IsRouteIn ms) xs, HCollapseMaybe NP xs, All (HasModel ms) xs) => IsRouteProd ms xs
+class (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
 
-instance (All (IsRouteIn ms) xs, HCollapseMaybe NP xs, All (HasModel ms) xs) => IsRouteProd ms xs
+instance (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
 
 datatypeCtors :: forall a. HasDatatypeInfo a => NP ConstructorInfo (Code a)
 datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
@@ -130,7 +157,7 @@ datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
 ctorStripPrefix :: forall a. HasDatatypeInfo a => ConstructorName -> String
 ctorStripPrefix ctorName =
   let name = datatypeName $ datatypeInfo (Proxy @a)
-   in maybe (error "ctor: bad naming") (T.unpack . T.toLower) $
+   in maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (T.unpack . T.toLower) $
         T.stripPrefix (T.pack $ name <> "_") (T.pack ctorName)
 
 gDecodeRoute ::

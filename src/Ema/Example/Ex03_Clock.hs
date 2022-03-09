@@ -1,3 +1,9 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use camelCase" #-}
+
 -- | A very simple site with routes, but based on dynamically changing values
 --
 -- The current time is computed in the server every second, and the resultant
@@ -12,30 +18,24 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Encoder (RouteEncoder, defaultEnum, unsafeMkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder)
+import Ema.Route.Generic
+import GHC.Generics qualified as GHC
+import Generics.SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
+import Prelude hiding (Generic)
 
 type Model = UTCTime
 
 data Route
-  = Index
-  | OnlyTime
+  = Route_Index
+  | Route_OnlyTime
   deriving stock (Show, Eq, Enum, Bounded)
-
-routeEncoder :: RouteEncoder a Route
-routeEncoder =
-  unsafeMkRouteEncoder enc dec all_
-  where
-    enc _time = \case
-      Index -> "index.html"
-      OnlyTime -> "time.html"
-    dec _time = \case
-      "index.html" -> Just Index
-      "time.html" -> Just OnlyTime
-      _ -> Nothing
-    all_ _ = defaultEnum @Route
+  deriving stock (GHC.Generic)
+  deriving anyclass (Generic, HasDatatypeInfo)
+  deriving (IsRoute) via (ConstModelRoute Model Route)
 
 site :: Site UTCTime Route
 site =
@@ -52,7 +52,7 @@ site =
             liftIO $ threadDelay 1000000
             t <- liftIO getCurrentTime
             send t,
-      siteRouteEncoder = routeEncoder
+      siteRouteEncoder = mkRouteEncoder
     }
 
 main :: IO ()
@@ -65,22 +65,22 @@ render enc now r =
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of
-          Index ->
+          Route_Index ->
             "The current date & time is: "
-          OnlyTime ->
+          Route_OnlyTime ->
             "The current time is: "
         H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
           H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do
             let fmt = case r of
-                  Index -> "%Y/%m/%d %H:%M:%S"
-                  OnlyTime -> "%H:%M:%S"
+                  Route_Index -> "%Y/%m/%d %H:%M:%S"
+                  Route_OnlyTime -> "%H:%M:%S"
             H.toMarkup $ formatTime defaultTimeLocale fmt now
       H.div ! A.class_ "mt-4 text-center" $ do
         case r of
-          Index -> do
-            routeElem OnlyTime "Hide day?"
-          OnlyTime -> do
-            routeElem Index "Show day?"
+          Route_Index -> do
+            routeElem Route_OnlyTime "Hide day?"
+          Route_OnlyTime -> do
+            routeElem Route_Index "Show day?"
   where
     routeElem r' w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
