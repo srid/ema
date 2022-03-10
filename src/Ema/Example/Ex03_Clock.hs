@@ -21,7 +21,7 @@ import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder (RouteEncoder)
 import Ema.Route.Generic
 import GHC.Generics qualified as GHC
-import Generics.SOP
+import Generics.SOP (Generic, HasDatatypeInfo)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -32,13 +32,11 @@ type Model = UTCTime
 data Route
   = Route_Index
   | Route_OnlyTime
-  deriving stock (Show, Eq, Enum, Bounded)
-  deriving stock (GHC.Generic)
+  deriving stock (Show, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo)
   deriving (IsRoute) via (ConstModelRoute Model Route)
 
 instance HasModel Route where
-  type ModelInput Route = ()
   runModel _ _ () = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \send -> do

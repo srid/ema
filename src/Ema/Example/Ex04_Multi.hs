@@ -23,33 +23,31 @@ data R
   = R_Index
   | R_Basic Ex02.Route
   | R_Clock Ex03.Route
-  deriving stock (Show, Eq)
-  deriving stock (GHC.Generic)
+  deriving stock (Show, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo, IsRoute)
 
-type M = NP I '[Ex02.Model, Ex03.Model]
+type M = NP I '[Ex03.Model]
 
 main :: IO ()
 main = do
   void $ Ema.runSite @R ()
 
 instance HasModel R where
-  type ModelInput R = ()
   runModel cliAct enc () = do
-    x1 <- runModel cliAct (pullOutRouteEncoder (iso getBasic R_Basic) enc) ()
+    -- x1 <- runModel cliAct (pullOutRouteEncoder (iso getBasic R_Basic) enc) ()
     x2 <- runModel cliAct (pullOutRouteEncoder (iso getClock R_Clock) enc) ()
-    pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
+    pure $ x2 <&> \x -> I x :* Nil
 
 instance RenderAsset R where
-  renderAsset enc m r' =
-    Ema.AssetGenerated Ema.Html $ case r' of
-      R_Index -> renderIndex m
-      R_Basic r ->
-        let enc' = pullOutRouteEncoder (iso getBasic R_Basic) enc
-         in Ex02.render enc' (getModel m) r
-      R_Clock r ->
-        let enc' = pullOutRouteEncoder (iso getClock R_Clock) enc
-         in Ex03.render enc' (getModel m) r
+  renderAsset enc m = \case
+    R_Index ->
+      Ema.AssetGenerated Ema.Html $ renderIndex m
+    R_Basic r ->
+      let enc' = pullOutRouteEncoder (iso getBasic R_Basic) enc
+       in renderAsset enc' (getModel m) r
+    R_Clock r ->
+      let enc' = pullOutRouteEncoder (iso getClock R_Clock) enc
+       in renderAsset enc' (getModel m) r
 
 getBasic :: R -> Maybe Ex02.Route
 getBasic = \case
@@ -62,14 +60,12 @@ getClock = \case
   _ -> Nothing
 
 renderIndex :: M -> LByteString
-renderIndex (I (Ex02.Model msg) :* I clockTime :* Nil) =
+renderIndex (I clockTime :* Nil) =
   tailwindLayout (H.title "MultiSite" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are two sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
-        H.li $ do
-          routeElem "basic" "Ex02_Basic"
-          " (" <> H.toHtml msg <> ")"
+        H.li $ routeElem "basic" "Ex02_Basic"
         H.li $ routeElem "clock" "Ex03_Clock"
       H.p $ do
         "The current time is: "

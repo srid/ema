@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Ema.Mount
   ( PrefixedRoute (PrefixedRoute, unPrefixedRoute),
     toPrefixedRouteEncoder,

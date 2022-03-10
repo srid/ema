@@ -2,14 +2,13 @@
 
 module Ema.App
   ( runSite,
-    -- runSite_,
     runSiteWithCli,
   )
 where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
-import Control.Monad.Logger
+import Control.Monad.Logger (logInfoNS, logWarnNS)
 import Control.Monad.Logger.Extras
   ( colorize,
     logToStdout,
@@ -23,10 +22,12 @@ import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
-import Ema.Route.Generic
+import Ema.Route.Generic (IsRoute (mkRouteEncoder))
 import Ema.Server qualified as Server
 import Ema.Site (HasModel (ModelInput, runModel), RenderAsset)
 import System.Directory (getCurrentDirectory)
+
+-- TODO: Rename to `run` and `runWithCli`
 
 -- | Run the given Ema site, and return the generated files.
 --
@@ -39,12 +40,6 @@ runSite ::
 runSite input = do
   cli <- CLI.cliAction
   runSiteWithCli @r cli input
-
-{- TODO: resurrect
--- | Like `runSite` but throws away the result.
-runSite_ :: forall r. (Show r, Eq r, IsRoute r, RenderAsset r) => Site (RouteModel r) r -> IO ()
-runSite_ = void . runSite
--}
 
 -- | Like @runSite@ but takes the CLI action
 --

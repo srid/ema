@@ -10,11 +10,9 @@ import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
-import Data.Some
 import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
-import Ema.CLI qualified as CLI
 import Ema.Route (urlToFilePath)
 import Ema.Route.Encoder
   ( checkRouteEncoderForSingleRoute,
@@ -170,14 +168,13 @@ runServerWithWebSocketHotReload host port model = do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      let cliAct = Some $ CLI.Run (host, port)
-       in unsafeCatch (renderAsset enc m r) $ \(err :: SomeException) ->
-            unsafePerformIO $ do
-              -- Log the error first.
-              flip runLoggingT logger $ logErrorNS "App" $ show @Text err
-              pure $
-                AssetGenerated Html . mkHtmlErrorMsg $
-                  show @Text err
+      unsafeCatch (renderAsset enc m r) $ \(err :: SomeException) ->
+        unsafePerformIO $ do
+          -- Log the error first.
+          flip runLoggingT logger $ logErrorNS "App" $ show @Text err
+          pure $
+            AssetGenerated Html . mkHtmlErrorMsg $
+              show @Text err
     routeFromPathInfo m =
       decodeUrlRoute m . T.intercalate "/"
     -- TODO: It would be good have this also get us the stack trace.
