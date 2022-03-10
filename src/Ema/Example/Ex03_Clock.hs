@@ -41,9 +41,6 @@ site :: Site UTCTime Route
 site =
   Site
     { siteName = "Ex03",
-      siteRender = SiteRender $ \m r -> do
-        enc <- askRouteEncoder
-        pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
       siteModelManager = ModelManager $ do
         t0 <- liftIO getCurrentTime
         pure . Dynamic . (t0,) $ \send -> do
@@ -53,6 +50,10 @@ site =
             t <- liftIO getCurrentTime
             send t
     }
+
+instance RenderAsset Route where
+  renderAsset enc m r =
+    Ema.AssetGenerated Ema.Html $ render enc m r
 
 main :: IO ()
 main = do

@@ -41,7 +41,7 @@ instance Semigroup SiteName where
 -- | A self-contained Ema site.
 data Site a r = Site
   { siteName :: SiteName,
-    siteRender :: SiteRender a r,
+    -- siteRender :: SiteRender a r,
     siteModelManager :: ModelManager a r
     -- siteRouteEncoder :: RouteEncoder a r
   }
@@ -103,8 +103,8 @@ singlePageSite :: SiteName -> LByteString -> Site () ()
 singlePageSite name render =
   Site
     { siteName = name,
-      siteRender =
-        SiteRender $ \() () -> pure $ AssetGenerated Html render,
+      --siteRender =
+      --  SiteRender $ \() () -> pure $ AssetGenerated Html render,
       siteModelManager =
         constModel ()
     }
@@ -119,7 +119,7 @@ instance Mergeable Site where
   merge site1 site2 =
     Site
       ((<>) (siteName site1) (siteName site2))
-      (merge (siteRender site1) (siteRender site2))
+      -- (merge (siteRender site1) (siteRender site2))
       (merge (siteModelManager site1) (siteModelManager site2))
 
 class IsRoute r => RenderAsset r where

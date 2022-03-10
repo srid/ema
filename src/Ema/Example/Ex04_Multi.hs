@@ -48,16 +48,6 @@ site :: Site M R
 site =
   Site
     { siteName = "Ex04",
-      siteRender = SiteRender $ \m r' -> do
-        enc <- askRouteEncoder
-        pure . Ema.AssetGenerated Ema.Html $ case r' of
-          R_Index -> renderIndex m
-          R_Basic r ->
-            let enc' = pullOutRouteEncoder (iso getBasic R_Basic) enc
-             in Ex02.render enc' (getModel m) r
-          R_Clock r ->
-            let enc' = pullOutRouteEncoder (iso getClock R_Clock) enc
-             in Ex03.render enc' (getModel m) r,
       siteModelManager = ModelManager $ do
         cliAct <- askCLIAction
         enc <- askRouteEncoder
@@ -66,6 +56,17 @@ site =
           x2 <- runModelManager (siteModelManager Ex03.site) cliAct $ pullOutRouteEncoder (iso getClock R_Clock) enc
           pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
     }
+
+instance RenderAsset R where
+  renderAsset enc m r' =
+    Ema.AssetGenerated Ema.Html $ case r' of
+      R_Index -> renderIndex m
+      R_Basic r ->
+        let enc' = pullOutRouteEncoder (iso getBasic R_Basic) enc
+         in Ex02.render enc' (getModel m) r
+      R_Clock r ->
+        let enc' = pullOutRouteEncoder (iso getClock R_Clock) enc
+         in Ex03.render enc' (getModel m) r
 
 renderIndex :: M -> LByteString
 renderIndex (I (Ex02.Model msg) :* I clockTime :* Nil) =

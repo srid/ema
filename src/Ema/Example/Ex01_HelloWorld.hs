@@ -9,6 +9,10 @@ import Ema qualified
 main :: IO ()
 main = do
   let speaker :: Text = "Ema"
-  void . Ema.runSite $
-    Ema.singlePageSite "Ex01" $
-      encodeUtf8 $ "<b>Hello</b>, from " <> speaker
+  pure ()
+
+{- How do we do this with RenderAsset ?
+void . Ema.runSite $
+  Ema.singlePageSite "Ex01" $
+    encodeUtf8 $ "<b>Hello</b>, from " <> speaker
+    -}

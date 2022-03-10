@@ -28,16 +28,16 @@ log = logWithoutLoc "Generate"
 
 generateSite ::
   forall m r a.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, a ~ RouteModel r) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, RenderAsset r, a ~ RouteModel r) =>
   FilePath ->
   Site a r ->
   a ->
   m [FilePath]
 generateSite dest site model = do
   let enc = mkRouteEncoder @r
-      cliAct = Some $ CLI.Generate dest
+  -- cliAct = Some $ CLI.Generate dest
   withBlockBuffering $
-    generate dest enc model (runSiteRender (siteRender site) cliAct enc)
+    generate dest enc model (renderAsset enc)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

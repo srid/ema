@@ -23,25 +23,25 @@ import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
 import Ema.Route.Generic
 import Ema.Server qualified as Server
-import Ema.Site (Site (siteModelManager), runModelManager)
+import Ema.Site (RenderAsset, Site (siteModelManager), runModelManager)
 import System.Directory (getCurrentDirectory)
 
 -- | Run the given Ema site, and return the generated files.
 --
 -- On live-server mode, this function will never return.
-runSite :: forall r. (Show r, Eq r, IsRoute r) => Site (RouteModel r) r -> IO (DSum CLI.Action Identity)
+runSite :: forall r. (Show r, Eq r, IsRoute r, RenderAsset r) => Site (RouteModel r) r -> IO (DSum CLI.Action Identity)
 runSite site = do
   cli <- CLI.cliAction
   runSiteWithCli cli site
 
 -- | Like `runSite` but throws away the result.
-runSite_ :: forall r. (Show r, Eq r, IsRoute r) => Site (RouteModel r) r -> IO ()
+runSite_ :: forall r. (Show r, Eq r, IsRoute r, RenderAsset r) => Site (RouteModel r) r -> IO ()
 runSite_ = void . runSite
 
 -- | Like @runSite@ but takes the CLI action
 --
 -- Useful if you are handling CLI arguments yourself.
-runSiteWithCli :: forall r a. (Show r, Eq r, IsRoute r, RouteModel r ~ a) => Cli -> Site a r -> IO (DSum CLI.Action Identity)
+runSiteWithCli :: forall r a. (Show r, Eq r, IsRoute r, RenderAsset r, RouteModel r ~ a) => Cli -> Site a r -> IO (DSum CLI.Action Identity)
 runSiteWithCli cli site = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout

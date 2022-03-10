@@ -34,10 +34,6 @@ site :: Site Model Route
 site =
   Site
     { siteName = "Ex02",
-      -- TODO: Can this be a reader too?
-      siteRender = SiteRender $ \m r -> do
-        enc <- askRouteEncoder
-        pure $ renderAsset enc m r,
       siteModelManager = ModelManager $ do
         pure $
           Dynamic

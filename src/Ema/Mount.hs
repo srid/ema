@@ -18,6 +18,7 @@ import Ema.Route.Generic (IsRoute (..))
 import Ema.Site
   ( ModelManager (..),
     MonadSite (askCLIAction, askRouteEncoder),
+    RenderAsset (renderAsset),
     Site (..),
     SiteRender (SiteRender),
     runModelManager,
@@ -31,17 +32,17 @@ import Text.Show (Show (show))
 -- under the given prefix.
 mountUnder :: forall prefix r a. KnownSymbol prefix => Site a r -> Site a (PrefixedRoute prefix r)
 mountUnder Site {..} =
-  Site siteName siteRender' siteModelManager'
+  Site siteName siteModelManager'
   where
     siteModelManager' :: ModelManager a (PrefixedRoute prefix r)
     siteModelManager' = ModelManager $ do
       enc :: RouteEncoder a (PrefixedRoute prefix r) <- askRouteEncoder
       cliAct <- askCLIAction
       lift $ runModelManager siteModelManager cliAct (fromPrefixedRouteEncoder enc)
-    siteRender' = SiteRender $ \model r -> do
-      rEnc <- askRouteEncoder
-      cliAct <- askCLIAction
-      pure $ runSiteRender siteRender cliAct (fromPrefixedRouteEncoder rEnc) model (unPrefixedRoute r)
+
+instance (RenderAsset r, KnownSymbol prefix) => RenderAsset (PrefixedRoute prefix r) where
+  renderAsset enc m r =
+    renderAsset @r (fromPrefixedRouteEncoder enc) m (unPrefixedRoute r)
 
 toPrefixedRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (PrefixedRoute prefix r)
 toPrefixedRouteEncoder =
