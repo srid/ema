@@ -34,7 +34,7 @@ site :: Site Model Route
 site =
   Site
     { siteName = "Ex02",
-      siteModelManager = ModelManager $ do
+      siteModelManager = ModelManager $ \_ _ ->
         pure $
           Dynamic
             ( Model "Hello!",

@@ -41,7 +41,7 @@ site :: Site UTCTime Route
 site =
   Site
     { siteName = "Ex03",
-      siteModelManager = ModelManager $ do
+      siteModelManager = ModelManager $ \_ _ -> do
         t0 <- liftIO getCurrentTime
         pure . Dynamic . (t0,) $ \send -> do
           logInfoNS "Ex03" "Starting clock..."

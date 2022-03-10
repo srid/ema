@@ -17,12 +17,9 @@ import Ema.Route.Encoder
 import Ema.Route.Generic (IsRoute (..))
 import Ema.Site
   ( ModelManager (..),
-    MonadSite (askCLIAction, askRouteEncoder),
     RenderAsset (renderAsset),
     Site (..),
-    SiteRender (SiteRender),
     runModelManager,
-    runSiteRender,
   )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import System.FilePath ((</>))
@@ -35,10 +32,8 @@ mountUnder Site {..} =
   Site siteName siteModelManager'
   where
     siteModelManager' :: ModelManager a (PrefixedRoute prefix r)
-    siteModelManager' = ModelManager $ do
-      enc :: RouteEncoder a (PrefixedRoute prefix r) <- askRouteEncoder
-      cliAct <- askCLIAction
-      lift $ runModelManager siteModelManager cliAct (fromPrefixedRouteEncoder enc)
+    siteModelManager' = ModelManager $ \cliAct enc ->
+      runModelManager siteModelManager cliAct (fromPrefixedRouteEncoder enc)
 
 instance (RenderAsset r, KnownSymbol prefix) => RenderAsset (PrefixedRoute prefix r) where
   renderAsset enc m r =

@@ -27,16 +27,6 @@ data R
   deriving stock (GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo, IsRoute)
 
-getBasic :: R -> Maybe Ex02.Route
-getBasic = \case
-  R_Basic r -> Just r
-  _ -> Nothing
-
-getClock :: R -> Maybe Ex03.Route
-getClock = \case
-  R_Clock r -> Just r
-  _ -> Nothing
-
 type M = NP I '[Ex02.Model, Ex03.Model]
 
 main :: IO ()
@@ -48,13 +38,10 @@ site :: Site M R
 site =
   Site
     { siteName = "Ex04",
-      siteModelManager = ModelManager $ do
-        cliAct <- askCLIAction
-        enc <- askRouteEncoder
-        lift $ do
-          x1 <- runModelManager (siteModelManager Ex02.site) cliAct $ pullOutRouteEncoder (iso getBasic R_Basic) enc
-          x2 <- runModelManager (siteModelManager Ex03.site) cliAct $ pullOutRouteEncoder (iso getClock R_Clock) enc
-          pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
+      siteModelManager = ModelManager $ \cliAct enc -> do
+        x1 <- runModelManager (siteModelManager Ex02.site) cliAct $ pullOutRouteEncoder (iso getBasic R_Basic) enc
+        x2 <- runModelManager (siteModelManager Ex03.site) cliAct $ pullOutRouteEncoder (iso getClock R_Clock) enc
+        pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
     }
 
 instance RenderAsset R where
@@ -67,6 +54,16 @@ instance RenderAsset R where
       R_Clock r ->
         let enc' = pullOutRouteEncoder (iso getClock R_Clock) enc
          in Ex03.render enc' (getModel m) r
+
+getBasic :: R -> Maybe Ex02.Route
+getBasic = \case
+  R_Basic r -> Just r
+  _ -> Nothing
+
+getClock :: R -> Maybe Ex03.Route
+getClock = \case
+  R_Clock r -> Just r
+  _ -> Nothing
 
 renderIndex :: M -> LByteString
 renderIndex (I (Ex02.Model msg) :* I clockTime :* Nil) =
