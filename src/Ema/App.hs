@@ -1,6 +1,8 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Ema.App
   ( runSite,
-    runSite_,
+    -- runSite_,
     runSiteWithCli,
   )
 where
@@ -23,26 +25,37 @@ import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
 import Ema.Route.Generic
 import Ema.Server qualified as Server
-import Ema.Site (RenderAsset, Site (siteModelManager), runModelManager)
+import Ema.Site (HasModel (ModelInput, runModel), RenderAsset)
 import System.Directory (getCurrentDirectory)
 
 -- | Run the given Ema site, and return the generated files.
 --
 -- On live-server mode, this function will never return.
-runSite :: forall r. (Show r, Eq r, IsRoute r, RenderAsset r) => Site (RouteModel r) r -> IO (DSum CLI.Action Identity)
-runSite site = do
+runSite ::
+  forall r.
+  (Show r, Eq r, IsRoute r, RenderAsset r, HasModel r) =>
+  ModelInput r ->
+  IO (DSum CLI.Action Identity)
+runSite input = do
   cli <- CLI.cliAction
-  runSiteWithCli cli site
+  runSiteWithCli @r cli input
 
+{- TODO: resurrect
 -- | Like `runSite` but throws away the result.
 runSite_ :: forall r. (Show r, Eq r, IsRoute r, RenderAsset r) => Site (RouteModel r) r -> IO ()
 runSite_ = void . runSite
+-}
 
 -- | Like @runSite@ but takes the CLI action
 --
 -- Useful if you are handling CLI arguments yourself.
-runSiteWithCli :: forall r a. (Show r, Eq r, IsRoute r, RenderAsset r, RouteModel r ~ a) => Cli -> Site a r -> IO (DSum CLI.Action Identity)
-runSiteWithCli cli site = do
+runSiteWithCli ::
+  forall r.
+  (Show r, Eq r, IsRoute r, RenderAsset r, HasModel r) =>
+  Cli ->
+  ModelInput r ->
+  IO (DSum CLI.Action Identity)
+runSiteWithCli cli input = do
   -- TODO: Allow library users to control logging levels, or colors.
   let logger = colorize logToStdout
   model :: LVar a <- LVar.empty
@@ -52,11 +65,11 @@ runSiteWithCli cli site = do
     logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
     logInfoNS logSrc "Waiting for initial model ..."
     let enc = mkRouteEncoder @r
-    Dynamic (model0 :: a, cont) <- runModelManager (siteModelManager site) (CLI.action cli) enc
+    Dynamic (model0 :: a, cont) <- runModel @r (CLI.action cli) enc input
     logInfoNS logSrc "... initial model is now available."
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
-        fs <- generateSite dest site model0
+        fs <- generateSite @r dest model0
         pure $ act :=> Identity fs
       Some act@(CLI.Run (host, port)) -> do
         LVar.set model model0
@@ -67,5 +80,5 @@ runSiteWithCli cli site = do
                 logWarnNS logSrc "modelPatcher exited; no more model updates!"
                 liftIO $ threadDelay maxBound
             )
-            (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload host port site model)
+            (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload @r host port model)
         pure $ act :=> Identity ()

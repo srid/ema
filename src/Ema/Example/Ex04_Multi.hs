@@ -31,18 +31,14 @@ type M = NP I '[Ex02.Model, Ex03.Model]
 
 main :: IO ()
 main = do
-  Ema.runSite_ site
+  void $ Ema.runSite @R ()
 
--- TODO: make all of the below composable.
-site :: Site M R
-site =
-  Site
-    { siteName = "Ex04",
-      siteModelManager = ModelManager $ \cliAct enc -> do
-        x1 <- runModelManager (siteModelManager Ex02.site) cliAct $ pullOutRouteEncoder (iso getBasic R_Basic) enc
-        x2 <- runModelManager (siteModelManager Ex03.site) cliAct $ pullOutRouteEncoder (iso getClock R_Clock) enc
-        pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
-    }
+instance HasModel R where
+  type ModelInput R = ()
+  runModel cliAct enc () = do
+    x1 <- runModel cliAct (pullOutRouteEncoder (iso getBasic R_Basic) enc) ()
+    x2 <- runModel cliAct (pullOutRouteEncoder (iso getClock R_Clock) enc) ()
+    pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
 
 instance RenderAsset R where
   renderAsset enc m r' =

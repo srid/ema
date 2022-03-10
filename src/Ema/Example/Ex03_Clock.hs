@@ -37,19 +37,16 @@ data Route
   deriving anyclass (Generic, HasDatatypeInfo)
   deriving (IsRoute) via (ConstModelRoute Model Route)
 
-site :: Site UTCTime Route
-site =
-  Site
-    { siteName = "Ex03",
-      siteModelManager = ModelManager $ \_ _ -> do
-        t0 <- liftIO getCurrentTime
-        pure . Dynamic . (t0,) $ \send -> do
-          logInfoNS "Ex03" "Starting clock..."
-          forever $ do
-            liftIO $ threadDelay 1000000
-            t <- liftIO getCurrentTime
-            send t
-    }
+instance HasModel Route where
+  type ModelInput Route = ()
+  runModel _ _ () = do
+    t0 <- liftIO getCurrentTime
+    pure . Dynamic . (t0,) $ \send -> do
+      logInfoNS "Ex03" "Starting clock..."
+      forever $ do
+        liftIO $ threadDelay 1000000
+        t <- liftIO getCurrentTime
+        send t
 
 instance RenderAsset Route where
   renderAsset enc m r =
@@ -57,7 +54,7 @@ instance RenderAsset Route where
 
 main :: IO ()
 main = do
-  void $ Ema.runSite site
+  void $ Ema.runSite @Route ()
 
 render :: RouteEncoder UTCTime Route -> UTCTime -> Route -> LByteString
 render enc now r =

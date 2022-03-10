@@ -16,10 +16,9 @@ import Ema.Route.Encoder
   )
 import Ema.Route.Generic (IsRoute (..))
 import Ema.Site
-  ( ModelManager (..),
+  ( HasModel (ModelInput, runModel),
     RenderAsset (renderAsset),
     Site (..),
-    runModelManager,
   )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import System.FilePath ((</>))
@@ -29,11 +28,12 @@ import Text.Show (Show (show))
 -- under the given prefix.
 mountUnder :: forall prefix r a. KnownSymbol prefix => Site a r -> Site a (PrefixedRoute prefix r)
 mountUnder Site {..} =
-  Site siteName siteModelManager'
-  where
-    siteModelManager' :: ModelManager a (PrefixedRoute prefix r)
-    siteModelManager' = ModelManager $ \cliAct enc ->
-      runModelManager siteModelManager cliAct (fromPrefixedRouteEncoder enc)
+  Site siteName
+
+instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) where
+  type ModelInput (PrefixedRoute prefix r) = ModelInput r
+  runModel cliAct enc input =
+    runModel @r cliAct (fromPrefixedRouteEncoder enc) input
 
 instance (RenderAsset r, KnownSymbol prefix) => RenderAsset (PrefixedRoute prefix r) where
   renderAsset enc m r =

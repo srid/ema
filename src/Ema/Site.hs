@@ -11,6 +11,7 @@ module Ema.Site
 
     -- * Remove site?
     RenderAsset (..),
+    HasModel (..),
   )
 where
 
@@ -36,9 +37,21 @@ instance Semigroup SiteName where
 
 -- | A self-contained Ema site.
 data Site a r = Site
-  { siteName :: SiteName,
-    siteModelManager :: ModelManager a r
+  { siteName :: SiteName
   }
+
+class IsRoute r => HasModel r where
+  type ModelInput r :: Type
+  runModel ::
+    forall m.
+    ( MonadIO m,
+      MonadUnliftIO m,
+      MonadLoggerIO m
+    ) =>
+    Some CLI.Action ->
+    RouteEncoder (RouteModel r) r ->
+    ModelInput r ->
+    m (Dynamic m (RouteModel r))
 
 -- TODO: Have this take a `i` for input to manager?
 newtype ModelManager a r
@@ -61,11 +74,11 @@ runModelManager (ModelManager f) = f
 singlePageSite :: SiteName -> LByteString -> Site () ()
 singlePageSite name render =
   Site
-    { siteName = name,
-      --siteRender =
-      --  SiteRender $ \() () -> pure $ AssetGenerated Html render,
-      siteModelManager =
-        constModel ()
+    { siteName = name
+    --siteRender =
+    --  SiteRender $ \() () -> pure $ AssetGenerated Html render,
+    -- siteModelManager =
+    --  constModel ()
     }
 
 constModel :: a -> ModelManager a r
@@ -78,7 +91,6 @@ instance Mergeable Site where
   merge site1 site2 =
     Site
       ((<>) (siteName site1) (siteName site2))
-      (merge (siteModelManager site1) (siteModelManager site2))
 
 class IsRoute r => RenderAsset r where
   renderAsset ::

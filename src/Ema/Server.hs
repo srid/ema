@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -43,16 +44,14 @@ runServerWithWebSocketHotReload ::
     MonadLoggerIO m,
     Eq r,
     IsRoute r,
-    RenderAsset r,
-    RouteModel r ~ a
+    RenderAsset r
   ) =>
   Host ->
   Port ->
-  Site a r ->
-  LVar a ->
+  LVar (RouteModel r) ->
   m ()
 -- TODO: remove host/port (already in cliA)
-runServerWithWebSocketHotReload host port site model = do
+runServerWithWebSocketHotReload host port model = do
   let settings =
         Warp.defaultSettings
           & Warp.setPort (unPort port)
@@ -188,7 +187,7 @@ runServerWithWebSocketHotReload host port site model = do
     --
     -- This function is used only in live server. If the route is not
     -- isomoprhic, this returns a Left, with the mismatched encoding.
-    decodeUrlRoute :: a -> Text -> Either (BadRouteEncoding r) (Maybe r)
+    decodeUrlRoute :: RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
     decodeUrlRoute m (urlToFilePath -> s) =
       let candidates = [s, s <> ".html", s </> "index.html"]
        in case asum (decodeRoute enc m <$> candidates) of

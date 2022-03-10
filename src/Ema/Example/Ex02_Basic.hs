@@ -30,26 +30,23 @@ data Route
 
 newtype Model = Model {modelMsg :: Text}
 
-site :: Site Model Route
-site =
-  Site
-    { siteName = "Ex02",
-      siteModelManager = ModelManager $ \_ _ ->
-        pure $
-          Dynamic
-            ( Model "Hello!",
-              \set -> do
-                logInfoNS "Ex02" "Setting 2nd time"
-                -- LVar.modify lvar $ \_ -> Model "Hello, again."
-                set $ Model "Hello, again"
-                -- Normally you would update the model over time.
-                liftIO $ threadDelay maxBound
-            )
-    }
-
 main :: IO ()
 main = do
-  void $ Ema.runSite site
+  void $ Ema.runSite @Route ()
+
+instance HasModel Route where
+  type ModelInput Route = ()
+  runModel _ _ () = do
+    pure $
+      Dynamic
+        ( Model "Hello!",
+          \set -> do
+            logInfoNS "Ex02" "Setting 2nd time"
+            -- LVar.modify lvar $ \_ -> Model "Hello, again."
+            set $ Model "Hello, again"
+            -- Normally you would update the model over time.
+            liftIO $ threadDelay maxBound
+        )
 
 instance RenderAsset Route where
   renderAsset enc m r =

@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
@@ -6,10 +7,8 @@ module Ema.Generate (generateSite) where
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
-import Data.Some
 import Data.Text qualified as T
 import Ema.Asset (Asset (..))
-import Ema.CLI qualified as CLI
 import Ema.Route.Encoder (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
 import Ema.Route.Generic (IsRoute (RouteModel, mkRouteEncoder))
 import Ema.Site
@@ -27,13 +26,12 @@ log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
 
 generateSite ::
-  forall m r a.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, RenderAsset r, a ~ RouteModel r) =>
+  forall r m.
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, RenderAsset r) =>
   FilePath ->
-  Site a r ->
-  a ->
+  RouteModel r ->
   m [FilePath]
-generateSite dest site model = do
+generateSite dest model = do
   let enc = mkRouteEncoder @r
   -- cliAct = Some $ CLI.Generate dest
   withBlockBuffering $
