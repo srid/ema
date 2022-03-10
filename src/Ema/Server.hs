@@ -37,7 +37,7 @@ import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
-  forall r a m.
+  forall r m.
   ( Show r,
     MonadIO m,
     MonadUnliftIO m,

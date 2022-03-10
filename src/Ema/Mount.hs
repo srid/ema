@@ -1,8 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Ema.Mount
-  ( mountUnder,
-    PrefixedRoute (PrefixedRoute, unPrefixedRoute),
+  ( PrefixedRoute (PrefixedRoute, unPrefixedRoute),
     toPrefixedRouteEncoder,
     fromPrefixedRouteEncoder,
   )
@@ -18,17 +17,10 @@ import Ema.Route.Generic (IsRoute (..))
 import Ema.Site
   ( HasModel (ModelInput, runModel),
     RenderAsset (renderAsset),
-    Site (..),
   )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import System.FilePath ((</>))
 import Text.Show (Show (show))
-
--- | Transform the given site such that all of its routes are encoded to be
--- under the given prefix.
-mountUnder :: forall prefix r a. KnownSymbol prefix => Site a r -> Site a (PrefixedRoute prefix r)
-mountUnder Site {..} =
-  Site siteName
 
 instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) where
   type ModelInput (PrefixedRoute prefix r) = ModelInput r
