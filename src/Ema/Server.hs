@@ -20,6 +20,7 @@ import Ema.Route.Encoder
     decodeRoute,
     encodeRoute,
   )
+import Ema.Route.Generic
 import Ema.Site
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -40,7 +41,9 @@ runServerWithWebSocketHotReload ::
     MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
-    Eq r
+    Eq r,
+    IsRoute r,
+    RouteModel r ~ a
   ) =>
   Host ->
   Port ->
@@ -66,7 +69,7 @@ runServerWithWebSocketHotReload host port site model = do
           (flip runLoggingT logger . wsApp)
           (httpApp logger)
   where
-    enc = siteRouteEncoder site
+    enc = mkRouteEncoder @r
     wsApp pendingConn = do
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO
@@ -168,7 +171,7 @@ runServerWithWebSocketHotReload host port site model = do
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       let cliAct = Some $ CLI.Run (host, port)
-       in unsafeCatch (runSiteRender (siteRender site) cliAct (siteRouteEncoder site) m r) $ \(err :: SomeException) ->
+       in unsafeCatch (runSiteRender (siteRender site) cliAct enc m r) $ \(err :: SomeException) ->
             unsafePerformIO $ do
               -- Log the error first.
               flip runLoggingT logger $ logErrorNS "App" $ show @Text err

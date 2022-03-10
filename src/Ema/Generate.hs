@@ -11,6 +11,7 @@ import Data.Text qualified as T
 import Ema.Asset (Asset (..))
 import Ema.CLI qualified as CLI
 import Ema.Route.Encoder (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
+import Ema.Route.Generic (IsRoute (RouteModel, mkRouteEncoder))
 import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -27,13 +28,13 @@ log = logWithoutLoc "Generate"
 
 generateSite ::
   forall m r a.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, a ~ RouteModel r) =>
   FilePath ->
   Site a r ->
   a ->
   m [FilePath]
 generateSite dest site model = do
-  let enc = siteRouteEncoder site
+  let enc = mkRouteEncoder @r
       cliAct = Some $ CLI.Generate dest
   withBlockBuffering $
     generate dest enc model (runSiteRender (siteRender site) cliAct enc)

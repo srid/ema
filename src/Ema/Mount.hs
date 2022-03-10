@@ -31,7 +31,7 @@ import Text.Show (Show (show))
 -- under the given prefix.
 mountUnder :: forall prefix r a. KnownSymbol prefix => Site a r -> Site a (PrefixedRoute prefix r)
 mountUnder Site {..} =
-  Site siteName siteRender' siteModelManager' (toPrefixedRouteEncoder siteRouteEncoder)
+  Site siteName siteRender' siteModelManager'
   where
     siteModelManager' :: ModelManager a (PrefixedRoute prefix r)
     siteModelManager' = ModelManager $ do

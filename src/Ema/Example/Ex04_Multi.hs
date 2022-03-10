@@ -10,11 +10,10 @@ import Ema qualified
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
 import Ema.Example.Ex03_Clock qualified as Ex03
-import Ema.Route.Encoder (Mergeable (merge))
 import Ema.Route.Generic
 import Ema.Site
 import GHC.Generics qualified as GHC
-import Generics.SOP
+import Generics.SOP (Generic, HasDatatypeInfo, I (..), NP (..))
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -40,6 +39,10 @@ getClock = \case
 
 type M = NP I '[Ex02.Model, Ex03.Model]
 
+main :: IO ()
+main = do
+  Ema.runSite_ site
+
 -- TODO: make all of the below composable.
 site :: Site M R
 site =
@@ -48,7 +51,7 @@ site =
       siteRender = SiteRender $ \m r' -> do
         enc <- askRouteEncoder
         pure . Ema.AssetGenerated Ema.Html $ case r' of
-          R_Index -> renderIndex
+          R_Index -> renderIndex m
           R_Basic r ->
             let enc' = pullOutRouteEncoder (iso getBasic R_Basic) enc
              in Ex02.render enc' (getModel m) r
@@ -61,28 +64,22 @@ site =
         lift $ do
           x1 <- runModelManager (siteModelManager Ex02.site) cliAct $ pullOutRouteEncoder (iso getBasic R_Basic) enc
           x2 <- runModelManager (siteModelManager Ex03.site) cliAct $ pullOutRouteEncoder (iso getClock R_Clock) enc
-          pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2,
-      siteRouteEncoder = mkRouteEncoder @R
+          pure $ liftA2 (\a b -> I a :* I b :* Nil) x1 x2
     }
 
-main :: IO ()
-main = do
-  Ema.runSite_ site
-
-oldSite =
-  Ema.singlePageSite "index" renderIndex
-    -- TODO: Can we 'decompose' routeencoder, so as to be able to use ADT to compose sites?
-    `merge` Ema.mountUnder @"basic" Ex02.site
-    `merge` Ema.mountUnder @"clock" Ex03.site
-
-renderIndex :: LByteString
-renderIndex =
+renderIndex :: M -> LByteString
+renderIndex (I (Ex02.Model msg) :* I clockTime :* Nil) =
   tailwindLayout (H.title "MultiSite" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are two sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
-        H.li $ routeElem "basic" "Ex02_Basic"
+        H.li $ do
+          routeElem "basic" "Ex02_Basic"
+          " (" <> H.toHtml msg <> ")"
         H.li $ routeElem "clock" "Ex03_Clock"
+      H.p $ do
+        "The current time is: "
+        H.small $ show clockTime
   where
     routeElem url w =
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! A.href url $ w

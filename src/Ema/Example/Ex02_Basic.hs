@@ -37,7 +37,7 @@ site =
       -- TODO: Can this be a reader too?
       siteRender = SiteRender $ \m r -> do
         enc <- askRouteEncoder
-        pure $ Ema.AssetGenerated Ema.Html $ render enc m r,
+        pure $ renderAsset enc m r,
       siteModelManager = ModelManager $ do
         pure $
           Dynamic
@@ -48,13 +48,16 @@ site =
                 set $ Model "Hello, again"
                 -- Normally you would update the model over time.
                 liftIO $ threadDelay maxBound
-            ),
-      siteRouteEncoder = mkRouteEncoder
+            )
     }
 
 main :: IO ()
 main = do
   void $ Ema.runSite site
+
+instance RenderAsset Route where
+  renderAsset enc m r =
+    Ema.AssetGenerated Ema.Html $ render enc m r
 
 render :: RouteEncoder Model Route -> Model -> Route -> LByteString
 render enc model@(Model msg) r =

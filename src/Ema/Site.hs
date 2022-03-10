@@ -1,4 +1,5 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Site
   ( Site (..),
@@ -11,6 +12,9 @@ module Ema.Site
     SiteRender (SiteRender),
     runSiteRender,
     MonadSite (askRouteEncoder, askCLIAction),
+
+    -- * Remove site?
+    RenderAsset (..),
   )
 where
 
@@ -24,8 +28,8 @@ import Ema.Route.Encoder
     RouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
-    singletonRouteEncoder,
   )
+import Ema.Route.Generic (IsRoute (RouteModel))
 import UnliftIO (MonadUnliftIO)
 
 newtype SiteName = SiteName Text
@@ -38,8 +42,8 @@ instance Semigroup SiteName where
 data Site a r = Site
   { siteName :: SiteName,
     siteRender :: SiteRender a r,
-    siteModelManager :: ModelManager a r,
-    siteRouteEncoder :: RouteEncoder a r
+    siteModelManager :: ModelManager a r
+    -- siteRouteEncoder :: RouteEncoder a r
   }
 
 class Monad m => MonadSite m a r | m -> a, m -> r where
@@ -102,9 +106,7 @@ singlePageSite name render =
       siteRender =
         SiteRender $ \() () -> pure $ AssetGenerated Html render,
       siteModelManager =
-        constModel (),
-      siteRouteEncoder =
-        singletonRouteEncoder
+        constModel ()
     }
 
 constModel :: a -> ModelManager a r
@@ -119,7 +121,18 @@ instance Mergeable Site where
       ((<>) (siteName site1) (siteName site2))
       (merge (siteRender site1) (siteRender site2))
       (merge (siteModelManager site1) (siteModelManager site2))
-      (merge (siteRouteEncoder site1) (siteRouteEncoder site2))
+
+class IsRoute r => RenderAsset r where
+  renderAsset ::
+    RouteEncoder (RouteModel r) r ->
+    RouteModel r ->
+    r ->
+    Asset LByteString
+
+instance (RenderAsset r1, RenderAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) => RenderAsset (Either r1 r2) where
+  renderAsset enc m = \case
+    Left r -> renderAsset @r1 (leftRouteEncoder enc) (fst m) r
+    Right r -> renderAsset @r2 (rightRouteEncoder enc) (snd m) r
 
 instance Mergeable SiteRender where
   merge r1 r2 = SiteRender $ \x r' -> do

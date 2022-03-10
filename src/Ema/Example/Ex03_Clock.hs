@@ -51,8 +51,7 @@ site =
           forever $ do
             liftIO $ threadDelay 1000000
             t <- liftIO getCurrentTime
-            send t,
-      siteRouteEncoder = mkRouteEncoder
+            send t
     }
 
 main :: IO ()
