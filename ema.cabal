@@ -124,10 +124,9 @@ library
     Ema
     Ema.CLI
     Ema.Route
+    -- TODO: Hide these when ready
     Ema.Route.Encoder
     Ema.Route.Generic
-
-  other-modules:
     Ema.App
     Ema.Asset
     Ema.Dynamic
