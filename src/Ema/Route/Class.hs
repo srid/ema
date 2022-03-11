@@ -14,7 +14,7 @@ module Ema.Route.Class
   )
 where
 
-import Control.Lens.Combinators (Iso, iso)
+import Control.Lens.Combinators (Iso, Prism', iso, prism')
 import Data.List ((!!))
 import Ema.Route.Encoder
 import Ema.Route.Generic
@@ -58,7 +58,7 @@ instance
   where
   type RouteModel (ConstModelRoute m r) = m
   mkRouteEncoder =
-    gMkRouteEncoder @r & mapRouteEncoder (iso id Just) (iso (Just . ConstModelRoute) unConstModelRoute) (const ())
+    gMkRouteEncoder @r & mapRouteEncoder (iso id Just) (prism' unConstModelRoute (Just . ConstModelRoute)) (const ())
 
 instance IsRoute () where
   type RouteModel () = ()
@@ -109,11 +109,12 @@ instance {-# OVERLAPPABLE #-} HasModel xs x => HasModel (x' ': xs) x where
 innerRouteEncoder ::
   forall m o i (ms :: [Type]).
   HasModel ms m =>
-  Iso o o (Maybe i) i ->
+  Prism' o i ->
+  -- Iso o o (Maybe i) i ->
   RouteEncoder (NP I ms) o ->
   RouteEncoder m i
-innerRouteEncoder rIso =
-  mapRouteEncoder (iso id Just) rIso outerModel
+innerRouteEncoder prism =
+  mapRouteEncoder (iso id Just) prism outerModel
 
 -- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::

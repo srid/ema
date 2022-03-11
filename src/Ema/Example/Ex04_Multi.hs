@@ -5,7 +5,7 @@
 -- | Demonstration of merging multiple sites
 module Ema.Example.Ex04_Multi where
 
-import Control.Lens.Combinators (iso)
+import Control.Lens.Combinators (iso, prism')
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
@@ -33,7 +33,7 @@ main = do
 instance HasModel R where
   runModel cliAct enc () = do
     -- x1 <- runModel cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
-    x2 <- runModel cliAct (innerRouteEncoder (iso getClock R_Clock) enc) ()
+    x2 <- runModel cliAct (innerRouteEncoder (prism' R_Clock getClock) enc) ()
     pure $ x2 <&> \x -> I x :* Nil
 
 instance RenderAsset R where
@@ -41,10 +41,10 @@ instance RenderAsset R where
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex m
     R_Basic r ->
-      let enc' = innerRouteEncoder (iso getBasic R_Basic) enc
+      let enc' = innerRouteEncoder (prism' R_Basic getBasic) enc
        in renderAsset enc' (innerModel m) r
     R_Clock r ->
-      let enc' = innerRouteEncoder (iso getClock R_Clock) enc
+      let enc' = innerRouteEncoder (prism' R_Clock getClock) enc
        in renderAsset enc' (innerModel m) r
 
 getBasic :: R -> Maybe Ex02.Route

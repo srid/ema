@@ -22,7 +22,7 @@ module Ema.Route.Encoder
   )
 where
 
-import Control.Lens (Iso)
+import Control.Lens (Iso, Prism')
 import Control.Lens qualified as Lens
 import Control.Monad.Writer
 import Data.Text qualified as T
@@ -36,51 +36,6 @@ import Data.Text qualified as T
 -- TODO: replace `ctx` arg with Reader monad?
 newtype PartialIsoEnumerableWithCtx ctx s a
   = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
-
--- | A partial Iso between `s` and `a`, with finite `a` values - and with access
--- to some context `x`.
-newtype PIso x s a
-  = PIso
-      ( -- Encoder
-        a -> Reader x s,
-        -- Decoder
-        s -> ReaderT x Maybe a,
-        -- Universe
-        Reader x [a]
-      )
-
-piencode :: PIso r s a -> r -> a -> s
-piencode (PIso (f, _, _)) x =
-  flip runReader x . f
-
-pidecode :: PIso r s a -> r -> s -> Maybe a
-pidecode (PIso (_, f, _)) x =
-  flip runReaderT x . f
-
-piuniverse :: PIso r s a -> r -> [a]
-piuniverse (PIso (_, _, f)) = runReader f
-
-pimap' ::
-  Iso s1 (Maybe s1) s2 s2 ->
-  Iso a1 a1 (Maybe a2) a2 ->
-  (r2 -> r1) ->
-  PIso r1 s1 a1 ->
-  PIso r2 s2 a2
-pimap' sIso aIso rf (PIso (enc, dec, univ)) =
-  PIso (enc', dec', univ')
-  where
-    enc' a = withReader rf $ do
-      let a' = isoLeft aIso a
-      s' <- enc a'
-      pure $ isoRight sIso s'
-    dec' s = withReaderT rf $ do
-      s' <- lift $ isoLeft sIso s
-      a <- dec s'
-      lift $ isoRight aIso a
-    univ' = withReader rf $ do
-      mapMaybe (isoRight aIso) <$> univ
-    isoRight iso x = Lens.withIso iso $ \f _ -> f x
-    isoLeft iso x = Lens.withIso iso $ \_ f -> f x
 
 {-
 type T ctx a s = CtxIso ctx a (Maybe a) s s
@@ -106,7 +61,7 @@ partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s = do
 class PartialIsoFunctor (f :: Type -> Type -> Type -> Type) where
   pimap ::
     Iso a (Maybe a) b b ->
-    Iso c c (Maybe d) d ->
+    Prism' c d ->
     (y -> x) ->
     f x a c ->
     f y b d
@@ -115,7 +70,7 @@ instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
   pimap ::
     forall a b c d x y.
     Iso a (Maybe a) b b ->
-    Iso c c (Maybe d) d ->
+    Prism' c d ->
     (y -> x) ->
     PartialIsoEnumerableWithCtx x a c ->
     PartialIsoEnumerableWithCtx y b d
@@ -124,23 +79,23 @@ instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
     where
       enc' :: y -> d -> b
       enc' m r =
-        let r' :: c = Lens.withIso iso2 $ \_ f -> f r
+        let r' :: c = Lens.review iso2 r
             m' :: x = h m
          in Lens.withIso iso1 $ \f _ -> f $ enc m' r'
       dec' :: y -> b -> Maybe d
       dec' m fp = do
         fp' <- Lens.withIso iso1 $ \_ f -> f fp
         r :: c <- dec (h m) fp'
-        Lens.withIso iso2 $ \f _ -> f r
+        Lens.preview iso2 r
       all_' :: y -> [d]
       all_' m =
-        mapMaybe (\x -> Lens.withIso iso2 $ \f _ -> f x) (all_ $ h m)
+        mapMaybe (Lens.preview iso2) (all_ $ h m)
 
 newtype RouteEncoder a r = RouteEncoder (PartialIsoEnumerableWithCtx a FilePath r)
 
 mapRouteEncoder ::
   Iso FilePath (Maybe FilePath) FilePath FilePath ->
-  Iso r1 r1 (Maybe r2) r2 ->
+  Prism' r1 r2 ->
   (b -> a) ->
   RouteEncoder a r1 ->
   RouteEncoder b r2
@@ -188,14 +143,14 @@ leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
   mapRouteEncoder
     (Lens.iso id Just)
-    (Lens.iso leftToMaybe Left)
+    (Lens.prism' Left leftToMaybe)
     (,undefined)
 
 rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
 rightRouteEncoder =
   mapRouteEncoder
     (Lens.iso id Just)
-    (Lens.iso rightToMaybe Right)
+    (Lens.prism' Right rightToMaybe)
     (undefined,)
 
 singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()

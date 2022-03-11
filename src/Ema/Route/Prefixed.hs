@@ -5,7 +5,7 @@ module Ema.Route.Prefixed
   )
 where
 
-import Control.Lens (iso)
+import Control.Lens (iso, prism')
 import Data.Text qualified as T
 import Ema.Asset (RenderAsset (..))
 import Ema.Model
@@ -34,13 +34,13 @@ toPrefixedRouteEncoder =
   let prefix = symbolVal (Proxy @prefix)
    in mapRouteEncoder
         (iso (prefix </>) $ fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText)
-        (iso (Just . PrefixedRoute) unPrefixedRoute)
+        (prism' unPrefixedRoute (Just . PrefixedRoute))
         id
 
 -- This coerces the r, but without losing the prefix encoding.
 fromPrefixedRouteEncoder :: forall prefix r a. RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
 fromPrefixedRouteEncoder =
-  mapRouteEncoder (iso id Just) (iso (Just . unPrefixedRoute) PrefixedRoute) id
+  mapRouteEncoder (iso id Just) (prism' PrefixedRoute (Just . unPrefixedRoute)) id
 
 -- | A route that is prefixed at some URL prefix
 newtype PrefixedRoute (prefix :: Symbol) r = PrefixedRoute {unPrefixedRoute :: r}
