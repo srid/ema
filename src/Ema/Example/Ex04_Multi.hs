@@ -5,7 +5,7 @@
 -- | Demonstration of merging multiple sites
 module Ema.Example.Ex04_Multi where
 
-import Control.Lens.Combinators (iso, prism')
+import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
@@ -33,7 +33,7 @@ main = do
 instance HasModel R where
   runModel cliAct enc () = do
     -- x1 <- runModel cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
-    x2 <- runModel cliAct (innerRouteEncoder (prism' R_Clock getClock) enc) ()
+    x2 <- runModel cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
     pure $ x2 <&> \x -> I x :* Nil
 
 instance RenderAsset R where
@@ -41,21 +41,11 @@ instance RenderAsset R where
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex m
     R_Basic r ->
-      let enc' = innerRouteEncoder (prism' R_Basic getBasic) enc
+      let enc' = innerRouteEncoder (_As @"R_Basic") enc
        in renderAsset enc' (innerModel m) r
     R_Clock r ->
-      let enc' = innerRouteEncoder (prism' R_Clock getClock) enc
+      let enc' = innerRouteEncoder (_As @"R_Clock") enc
        in renderAsset enc' (innerModel m) r
-
-getBasic :: R -> Maybe Ex02.Route
-getBasic = \case
-  R_Basic r -> Just r
-  _ -> Nothing
-
-getClock :: R -> Maybe Ex03.Route
-getClock = \case
-  R_Clock r -> Just r
-  _ -> Nothing
 
 renderIndex :: M -> LByteString
 renderIndex (I clockTime :* Nil) =

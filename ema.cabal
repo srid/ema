@@ -36,21 +36,21 @@ library
     , base                    >=4.13.0.0 && <=4.17.0.0
     , constraints-extras
     , containers
-    , contravariant
     , data-default
     , dependent-sum
     , dependent-sum-template
     , directory
     , filepath
     , filepattern
+    , generic-optics
     , generics-sop
     , http-types
-    , lens
     , lvar
     , monad-logger
     , monad-logger-extras
     , mtl
     , neat-interpolation
+    , optics-core
     , optparse-applicative
     , relude                  >=0.7      && <1.0
     , sop-core
@@ -122,18 +122,18 @@ library
 
   exposed-modules:
     Ema
-    Ema.CLI
-    Ema.Route.Url
-    Ema.Route.Encoder
-    Ema.Route.Class
-    Ema.Route.Generic
     Ema.App
     Ema.Asset
+    Ema.CLI
     Ema.Dynamic
     Ema.Generate
-    Ema.Route.Prefixed
-    Ema.Server
     Ema.Model
+    Ema.Route.Class
+    Ema.Route.Encoder
+    Ema.Route.Generic
+    Ema.Route.Prefixed
+    Ema.Route.Url
+    Ema.Server
 
   if flag(with-examples)
     other-modules:

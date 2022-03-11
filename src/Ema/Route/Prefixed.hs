@@ -5,7 +5,6 @@ module Ema.Route.Prefixed
   )
 where
 
-import Control.Lens (iso, prism')
 import Data.Text qualified as T
 import Ema.Asset (RenderAsset (..))
 import Ema.Model
@@ -17,6 +16,7 @@ import Ema.Route.Encoder
     mapRouteEncoder,
   )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
+import Optics.Core (iso, prism')
 import System.FilePath ((</>))
 import Text.Show (Show (show))
 

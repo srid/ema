@@ -14,7 +14,6 @@ module Ema.Route.Class
   )
 where
 
-import Control.Lens.Combinators (Iso, Prism', iso, prism')
 import Data.List ((!!))
 import Ema.Route.Encoder
 import Ema.Route.Generic
@@ -23,6 +22,7 @@ import GHC.TypeLits
     TypeError,
   )
 import Generics.SOP
+import Optics.Core (Prism', iso, prism')
 import System.FilePath
   ( joinPath,
     splitDirectories,

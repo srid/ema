@@ -22,10 +22,17 @@ module Ema.Route.Encoder
   )
 where
 
-import Control.Lens (Iso, Prism')
-import Control.Lens qualified as Lens
 import Control.Monad.Writer
 import Data.Text qualified as T
+import Optics.Core
+  ( Iso,
+    Prism',
+    iso,
+    preview,
+    prism',
+    review,
+    withIso,
+  )
 
 -- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
 -- context value.
@@ -79,17 +86,17 @@ instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
     where
       enc' :: y -> d -> b
       enc' m r =
-        let r' :: c = Lens.review iso2 r
+        let r' :: c = review iso2 r
             m' :: x = h m
-         in Lens.withIso iso1 $ \f _ -> f $ enc m' r'
+         in withIso iso1 $ \f _ -> f $ enc m' r'
       dec' :: y -> b -> Maybe d
       dec' m fp = do
-        fp' <- Lens.withIso iso1 $ \_ f -> f fp
+        fp' <- withIso iso1 $ \_ f -> f fp
         r :: c <- dec (h m) fp'
-        Lens.preview iso2 r
+        preview iso2 r
       all_' :: y -> [d]
       all_' m =
-        mapMaybe (Lens.preview iso2) (all_ $ h m)
+        mapMaybe (preview iso2) (all_ $ h m)
 
 newtype RouteEncoder a r = RouteEncoder (PartialIsoEnumerableWithCtx a FilePath r)
 
@@ -142,15 +149,15 @@ mergeRouteEncoder enc1 enc2 =
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
   mapRouteEncoder
-    (Lens.iso id Just)
-    (Lens.prism' Left leftToMaybe)
+    (iso id Just)
+    (prism' Left leftToMaybe)
     (,undefined)
 
 rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
 rightRouteEncoder =
   mapRouteEncoder
-    (Lens.iso id Just)
-    (Lens.prism' Right rightToMaybe)
+    (iso id Just)
+    (prism' Right rightToMaybe)
     (undefined,)
 
 singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
@@ -164,8 +171,8 @@ singletonRouteEncoderFrom fp =
 isoRouteEncoder :: Iso r (Maybe r) FilePath FilePath -> RouteEncoder () r
 isoRouteEncoder iso =
   unsafeMkRouteEncoder
-    (const $ \r -> Lens.withIso iso $ \f _ -> f r)
-    (const $ \fp -> Lens.withIso iso $ \_ g -> g fp)
+    (const $ \r -> withIso iso $ \f _ -> f r)
+    (const $ \fp -> withIso iso $ \_ g -> g fp)
     (const [])
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
