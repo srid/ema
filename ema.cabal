@@ -123,17 +123,16 @@ library
   exposed-modules:
     Ema
     Ema.CLI
-    Ema.Route
-    -- TODO: Hide these when ready
+    Ema.Route.Url
     Ema.Route.Encoder
-    Ema.Route.Generic
+    Ema.Route.Class
     Ema.App
     Ema.Asset
     Ema.Dynamic
     Ema.Generate
-    Ema.Mount
+    Ema.Route.Prefixed
     Ema.Server
-    Ema.Site
+    Ema.Model
 
   if flag(with-examples)
     other-modules:

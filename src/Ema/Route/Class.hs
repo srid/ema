@@ -3,10 +3,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
-module Ema.Route.Generic
-  ( gMkRouteEncoder,
-    IsRoute (RouteModel, mkRouteEncoder),
+module Ema.Route.Class
+  ( IsRoute (RouteModel, mkRouteEncoder),
+    gMkRouteEncoder,
     ConstModelRoute (..),
+
+    -- * Sub routes
     pullOutRouteEncoder,
     getModel,
   )
@@ -18,6 +20,9 @@ import Data.SOP.Constraint (SListIN)
 import Data.Text qualified as T
 import Ema.Route.Encoder
 import GHC.TypeLits
+  ( ErrorMessage (ShowType, Text, (:$$:)),
+    TypeError,
+  )
 import Generics.SOP
 import System.FilePath
   ( joinPath,

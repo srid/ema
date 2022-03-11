@@ -6,12 +6,11 @@
 module Ema.Example.Ex04_Multi where
 
 import Control.Lens.Combinators (iso)
-import Ema qualified
+import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
 import Ema.Example.Ex03_Clock qualified as Ex03
-import Ema.Route.Generic
-import Ema.Site
+import Ema.Route.Class
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo, I (..), NP (..))
 import Text.Blaze.Html5 ((!))

@@ -1,4 +1,4 @@
-module Ema.Mount
+module Ema.Route.Prefixed
   ( PrefixedRoute (PrefixedRoute, unPrefixedRoute),
     toPrefixedRouteEncoder,
     fromPrefixedRouteEncoder,
@@ -7,14 +7,14 @@ where
 
 import Control.Lens (iso)
 import Data.Text qualified as T
+import Ema.Asset (RenderAsset (..))
+import Ema.Model
+  ( HasModel (ModelInput, runModel),
+  )
+import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
   ( RouteEncoder,
     mapRouteEncoder,
-  )
-import Ema.Route.Generic (IsRoute (..))
-import Ema.Site
-  ( HasModel (ModelInput, runModel),
-    RenderAsset (renderAsset),
   )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import System.FilePath ((</>))

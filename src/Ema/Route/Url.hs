@@ -1,6 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 
-module Ema.Route
+module Ema.Route.Url
   ( -- * Create URL from route
     routeUrl,
     routeUrlWith,

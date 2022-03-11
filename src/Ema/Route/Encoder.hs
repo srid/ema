@@ -7,7 +7,6 @@ module Ema.Route.Encoder
     encodeRoute,
     decodeRoute,
     allRoutes,
-    defaultEnum,
     singletonRouteEncoder,
     singletonRouteEncoderFrom,
     isoRouteEncoder,
@@ -15,7 +14,7 @@ module Ema.Route.Encoder
     mapRouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
-    Mergeable (merge),
+    mergeRouteEncoder,
 
     -- * Internal
     checkRouteEncoderForSingleRoute,
@@ -160,13 +159,6 @@ decodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (_, f, _))) = f
 allRoutes :: RouteEncoder model r -> model -> [r]
 allRoutes (RouteEncoder (PartialIsoEnumerableWithCtx (_, _, f))) = f
 
--- | Class of product-cum-sum indexed types that can be merged.
-class Mergeable (f :: Type -> Type -> Type) where
-  -- | Merge by treating the first index as product, and second as sum.
-  merge :: f a b -> f c d -> f (a, c) (Either b d)
-
-instance Mergeable RouteEncoder where merge = mergeRouteEncoder
-
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
 mergeRouteEncoder enc1 enc2 =
@@ -234,11 +226,6 @@ showReadRouteEncoder =
 singletonRouteEncoder :: RouteEncoder a ()
 singletonRouteEncoder =
   singletonRouteEncoderFrom "index.html"
-
--- TODO: Determine this generically somehow
--- See https://github.com/srid/ema/issues/76
-defaultEnum :: (Bounded r, Enum r) => [r]
-defaultEnum = [minBound .. maxBound]
 
 checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
 checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso

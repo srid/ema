@@ -9,7 +9,7 @@ module Ema.Example.Ex02_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Generic (IsRoute)
+import Ema.Route.Class (IsRoute)
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo)
 import Text.Blaze.Html5 ((!))

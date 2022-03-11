@@ -13,14 +13,14 @@ import Data.LVar qualified as LVar
 import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
-import Ema.Route (urlToFilePath)
+import Ema.Model
+import Ema.Route.Class
 import Ema.Route.Encoder
   ( checkRouteEncoderForSingleRoute,
     decodeRoute,
     encodeRoute,
   )
-import Ema.Route.Generic
-import Ema.Site
+import Ema.Route.Url (urlToFilePath)
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H

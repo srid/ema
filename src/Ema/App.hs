@@ -18,13 +18,14 @@ import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
+import Ema.Asset
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
-import Ema.Route.Generic (IsRoute (mkRouteEncoder))
+import Ema.Model (HasModel (ModelInput, runModel))
+import Ema.Route.Class (IsRoute (mkRouteEncoder))
 import Ema.Server qualified as Server
-import Ema.Site (HasModel (ModelInput, runModel), RenderAsset)
 import System.Directory (getCurrentDirectory)
 
 -- TODO: Rename to `run` and `runWithCli`
