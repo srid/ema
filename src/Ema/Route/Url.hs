@@ -13,7 +13,7 @@ import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
-import Ema.Route.Encoder
+import Ema.Route.Encoder (RouteEncoder, encodeRoute)
 import Network.URI.Slug qualified as Slug
 
 -- | Return the relative URL of the given route

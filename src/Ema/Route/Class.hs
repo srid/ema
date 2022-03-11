@@ -9,16 +9,15 @@ module Ema.Route.Class
     ConstModelRoute (..),
 
     -- * Sub routes
-    pullOutRouteEncoder,
-    getModel,
+    innerRouteEncoder,
+    innerModel,
   )
 where
 
 import Control.Lens.Combinators (Iso, iso)
 import Data.List ((!!))
-import Data.SOP.Constraint (SListIN)
-import Data.Text qualified as T
 import Ema.Route.Encoder
+import Ema.Route.Generic
 import GHC.TypeLits
   ( ErrorMessage (ShowType, Text, (:$$:)),
     TypeError,
@@ -46,22 +45,6 @@ class IsRoute r where
     ) =>
     RouteEncoder (RouteModel r) r
   mkRouteEncoder = gMkRouteEncoder
-
-type family NPMaybe f xs where
-  NPMaybe f '[] = ()
-  NPMaybe f xs = NP f xs
-
-class UnNPMaybe f (xs :: [k]) where
-  unNPMaybe :: NPMaybe f xs -> NP f xs
-  npMaybe :: NP f xs -> NPMaybe f xs
-
-instance UnNPMaybe f '[] where
-  unNPMaybe () = Nil
-  npMaybe Nil = ()
-
-instance UnNPMaybe f (x ': xs) where
-  unNPMaybe = id
-  npMaybe = id
 
 newtype ConstModelRoute (m :: Type) r = ConstModelRoute {unConstModelRoute :: r}
 
@@ -94,33 +77,43 @@ type family UnitCons x xs where
 
 -- | TODO: This is like lens, but partial?
 class HasModel (xs :: [Type]) (x :: Type) where
-  getModel :: NP I xs -> x
-  putModel :: x -> NP I xs
+  -- | Extract the inner model
+  innerModel :: NP I xs -> x
+
+  -- | Fill in the outter model containing the given inner model.
+  outerModel :: x -> NP I xs
 
 instance {-# OVERLAPPING #-} HasModel '[] () where
-  getModel _ = ()
-  putModel () = Nil
+  innerModel _ = ()
+  outerModel () = Nil
 
 instance {-# OVERLAPPING #-} HasModel xs () => HasModel (x ': xs) () where
-  getModel _ = ()
-  putModel () = I undefined :* putModel ()
+  innerModel _ = ()
+  outerModel () = I undefined :* outerModel ()
 
 instance (TypeError ('Text "No such model" ':$$: 'ShowType x)) => HasModel '[] x where
-  getModel Nil = undefined
-  putModel _ = undefined
+  innerModel Nil = undefined
+  outerModel _ = undefined
 
 instance {-# OVERLAPPING #-} HasModel (x ': xs) x where
-  getModel (I x :* _) = x
-  putModel x = I x :* undefined
+  innerModel (I x :* _) = x
+  outerModel x = I x :* undefined
 
 instance {-# OVERLAPPABLE #-} HasModel xs x => HasModel (x' ': xs) x where
-  getModel (_ :* xs) = getModel xs
-  putModel x = I undefined :* putModel x
+  innerModel (_ :* xs) = innerModel xs
+  outerModel x = I undefined :* outerModel x
 
 -- TODO: avoid Iso using https://hackage.haskell.org/package/generic-lens
-pullOutRouteEncoder :: forall m o i (ms :: [Type]). HasModel ms m => Iso o o (Maybe i) i -> RouteEncoder (NP I ms) o -> RouteEncoder m i
-pullOutRouteEncoder rIso =
-  mapRouteEncoder (iso id Just) rIso putModel
+
+-- | Extract the inner RouteEncoder.
+innerRouteEncoder ::
+  forall m o i (ms :: [Type]).
+  HasModel ms m =>
+  Iso o o (Maybe i) i ->
+  RouteEncoder (NP I ms) o ->
+  RouteEncoder m i
+innerRouteEncoder rIso =
+  mapRouteEncoder (iso id Just) rIso outerModel
 
 -- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::
@@ -165,20 +158,7 @@ gEncodeRoute (unNPMaybe @_ @_ @ms -> m) x' =
       K . hcollapseMaybe . hcmap (Proxy @(IsRouteIn ms)) encTerm
     encTerm :: forall b. (IsRouteIn ms b) => I b -> K FilePath b
     encTerm =
-      K . encodeRoute (mkRouteEncoder @b) (getModel @_ @(RouteModel b) m) . unI
-
--- | Like `HCollapse`, but limited to 0 or 1 products in a n-ary structure.
-class HCollapseMaybe h xs where
-  hcollapseMaybe :: SListIN h xs => h (K a) xs -> Maybe a
-
-instance HCollapseMaybe NP '[] where
-  hcollapseMaybe Nil = Nothing
-
-instance HCollapseMaybe NP '[p] where
-  hcollapseMaybe (K x :* Nil) = Just x
-
-instance (ps ~ TypeError ('Text "Expected at most 1 product")) => HCollapseMaybe NP (p ': p1 ': ps) where
-  hcollapseMaybe _ = Nothing -- Unreachable, due to TypeError
+      K . encodeRoute (mkRouteEncoder @b) (innerModel @_ @(RouteModel b) m) . unI
 
 class (IsRoute r, HasModel ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
 
@@ -187,15 +167,6 @@ instance (IsRoute r, HasModel ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms
 class (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
 
 instance (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
-
-datatypeCtors :: forall a. HasDatatypeInfo a => NP ConstructorInfo (Code a)
-datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
-
-ctorStripPrefix :: forall a. HasDatatypeInfo a => ConstructorName -> String
-ctorStripPrefix ctorName =
-  let name = datatypeName $ datatypeInfo (Proxy @a)
-   in maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (T.unpack . T.toLower) $
-        T.stripPrefix (T.pack $ name <> "_") (T.pack ctorName)
 
 gDecodeRoute ::
   forall r ms.
@@ -241,41 +212,8 @@ gDecodeRoute (unNPMaybe @_ @I @ms -> m) fp = do
           SNil -> do
             -- Recurse into the only product argument
             guard $ not $ null rest
-            r' <- decodeRoute (mkRouteEncoder @y1) (getModel @_ @(RouteModel y1) m) $ joinPath rest
+            r' <- decodeRoute (mkRouteEncoder @y1) (innerModel @_ @(RouteModel y1) m) $ joinPath rest
             pure (I r', Proxy)
           SCons ->
             -- Not reachable, due to HCollapseMaybe constraint
             Nothing
-
--- | Like `mcana_NS` but returns a Maybe
-mcana_NS ::
-  forall c proxy s f xs.
-  (All c xs) =>
-  proxy c ->
-  (forall y ys. c y => s (y ': ys) -> Either (Maybe (f y)) (s ys)) ->
-  s xs ->
-  Maybe (NS f xs)
-mcana_NS _ decide = go sList
-  where
-    go :: forall ys. (All c ys) => SList ys -> s ys -> Maybe (NS f ys)
-    go SNil _ = Nothing
-    go SCons s = case decide s of
-      Left x -> Z <$> x
-      Right s' -> S <$> go sList s'
-
--- | Like `cana_NP` but returns a Maybe
-mcana_NP ::
-  forall c proxy s f xs.
-  (All c xs) =>
-  proxy c ->
-  (forall y ys. (c y, SListI ys) => s (y ': ys) -> Maybe (f y, s ys)) ->
-  s xs ->
-  Maybe (NP f xs)
-mcana_NP _ uncons = go sList
-  where
-    go :: forall ys. (All c ys) => SList ys -> s ys -> Maybe (NP f ys)
-    go SNil _ = pure Nil
-    go SCons s = do
-      (x, s') <- uncons s
-      xs <- go sList s'
-      pure $ x :* xs

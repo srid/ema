@@ -7,6 +7,7 @@ module Ema.Asset
   )
 where
 
+import Data.SOP
 import Ema.Route.Class
 import Ema.Route.Encoder
 
@@ -26,10 +27,19 @@ data Format = Html | Other
 
 class IsRoute r => RenderAsset r where
   -- | Produce the asset for the given route.
-  renderAsset ::
-    RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
+  renderAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
 
-instance (RenderAsset r1, RenderAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) => RenderAsset (Either r1 r2) where
+-- Combining of two routes
+instance
+  (RenderAsset r1, RenderAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
+  RenderAsset (Either r1 r2)
+  where
   renderAsset enc m = \case
     Left r -> renderAsset @r1 (leftRouteEncoder enc) (fst m) r
     Right r -> renderAsset @r2 (rightRouteEncoder enc) (snd m) r
+
+{-
+instance RenderAsset (NS I rs) where
+  renderAsset enc m r =
+    undefined
+-}

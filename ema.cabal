@@ -126,6 +126,7 @@ library
     Ema.Route.Url
     Ema.Route.Encoder
     Ema.Route.Class
+    Ema.Route.Generic
     Ema.App
     Ema.Asset
     Ema.Dynamic

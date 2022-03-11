@@ -18,7 +18,6 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Class
 import Ema.Route.Encoder (RouteEncoder)
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo)

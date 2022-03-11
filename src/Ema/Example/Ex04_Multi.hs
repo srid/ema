@@ -10,7 +10,6 @@ import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex02_Basic qualified as Ex02
 import Ema.Example.Ex03_Clock qualified as Ex03
-import Ema.Route.Class
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo, I (..), NP (..))
 import Text.Blaze.Html5 ((!))
@@ -33,8 +32,8 @@ main = do
 
 instance HasModel R where
   runModel cliAct enc () = do
-    -- x1 <- runModel cliAct (pullOutRouteEncoder (iso getBasic R_Basic) enc) ()
-    x2 <- runModel cliAct (pullOutRouteEncoder (iso getClock R_Clock) enc) ()
+    -- x1 <- runModel cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
+    x2 <- runModel cliAct (innerRouteEncoder (iso getClock R_Clock) enc) ()
     pure $ x2 <&> \x -> I x :* Nil
 
 instance RenderAsset R where
@@ -42,11 +41,11 @@ instance RenderAsset R where
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex m
     R_Basic r ->
-      let enc' = pullOutRouteEncoder (iso getBasic R_Basic) enc
-       in renderAsset enc' (getModel m) r
+      let enc' = innerRouteEncoder (iso getBasic R_Basic) enc
+       in renderAsset enc' (innerModel m) r
     R_Clock r ->
-      let enc' = pullOutRouteEncoder (iso getClock R_Clock) enc
-       in renderAsset enc' (getModel m) r
+      let enc' = innerRouteEncoder (iso getClock R_Clock) enc
+       in renderAsset enc' (innerModel m) r
 
 getBasic :: R -> Maybe Ex02.Route
 getBasic = \case
