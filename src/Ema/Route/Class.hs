@@ -7,6 +7,8 @@ module Ema.Route.Class
   ( IsRoute (RouteModel, mkRouteEncoder),
     gMkRouteEncoder,
     ConstModelRoute (..),
+    ShowReadable (ShowReadable),
+    Stringable (Stringable),
 
     -- * Sub routes
     innerRouteEncoder,
@@ -60,6 +62,24 @@ instance
   mkRouteEncoder =
     gMkRouteEncoder @r & mapRouteEncoder (iso id Just) (prism' unConstModelRoute (Just . ConstModelRoute)) (const ())
 
+newtype ShowReadable a = ShowReadable a
+  deriving newtype (Show, Read)
+
+newtype Stringable a = Stringable a
+  deriving newtype (ToString, IsString)
+
+instance (Show a, Read a) => IsRoute (ShowReadable a) where
+  type RouteModel (ShowReadable a) = ()
+  mkRouteEncoder = showReadRouteEncoder
+
+instance (IsString a, ToString a) => IsRoute (Stringable a) where
+  type RouteModel (Stringable a) = ()
+  mkRouteEncoder = stringRouteEncoder
+
+deriving via (Stringable Text) instance IsRoute Text
+
+deriving via (Stringable String) instance IsRoute String
+
 instance IsRoute () where
   type RouteModel () = ()
   mkRouteEncoder = singletonRouteEncoder
@@ -83,6 +103,8 @@ class HasModel (xs :: [Type]) (x :: Type) where
   -- | Fill in the outter model containing the given inner model.
   outerModel :: x -> NP I xs
 
+-- Could probably replace this lens-sop:
+-- with https://hackage.haskell.org/package/lens-sop-0.2.0.3/docs/Generics-SOP-Lens.html#v:np
 instance {-# OVERLAPPING #-} HasModel '[] () where
   innerModel _ = ()
   outerModel () = Nil
@@ -103,14 +125,12 @@ instance {-# OVERLAPPABLE #-} HasModel xs x => HasModel (x' ': xs) x where
   innerModel (_ :* xs) = innerModel xs
   outerModel x = I undefined :* outerModel x
 
--- TODO: avoid Iso using https://hackage.haskell.org/package/generic-lens
-
 -- | Extract the inner RouteEncoder.
+-- TODO: avoid having to specify Prism
 innerRouteEncoder ::
   forall m o i (ms :: [Type]).
   HasModel ms m =>
   Prism' o i ->
-  -- Iso o o (Maybe i) i ->
   RouteEncoder (NP I ms) o ->
   RouteEncoder m i
 innerRouteEncoder prism =

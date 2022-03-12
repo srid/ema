@@ -138,7 +138,8 @@ library
   if flag(with-examples)
     other-modules:
       Ema.Example.Common
-      Ema.Example.Ex02_Basic
+      Ema.Example.Ex01_Basic
+      Ema.Example.Ex02_Bookshelf
       Ema.Example.Ex03_Clock
       Ema.Example.Ex04_Multi
 

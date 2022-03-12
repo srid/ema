@@ -13,7 +13,6 @@ import Data.LVar qualified as LVar
 import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
-import Ema.Model
 import Ema.Route.Class
 import Ema.Route.Encoder
   ( checkRouteEncoderForSingleRoute,

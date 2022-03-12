@@ -11,6 +11,7 @@ module Ema.Route.Encoder
     singletonRouteEncoderFrom,
     isoRouteEncoder,
     showReadRouteEncoder,
+    stringRouteEncoder,
     mapRouteEncoder,
     leftRouteEncoder,
     rightRouteEncoder,
@@ -177,12 +178,11 @@ isoRouteEncoder iso =
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
-  unsafeMkRouteEncoder (const enc) (const dec) (const [])
-  where
-    enc r = show r <> ".html"
-    dec fp = do
-      x' <- fmap toString $ T.stripSuffix ".html" $ toText fp
-      readMaybe x'
+  isoRouteEncoder $ iso ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
+
+stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
+stringRouteEncoder =
+  isoRouteEncoder $ iso ((<> ".html") . toString) (fmap (fromString . toString) . T.stripSuffix ".html" . toText)
 
 -- | Route encoder for single route encoding to 'index.html'
 singletonRouteEncoder :: RouteEncoder a ()
