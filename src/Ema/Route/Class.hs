@@ -24,7 +24,7 @@ import GHC.TypeLits
     TypeError,
   )
 import Generics.SOP
-import Optics.Core (Prism', iso, prism')
+import Optics.Core hiding (Contains, to)
 import System.FilePath
   ( joinPath,
     splitDirectories,
@@ -95,46 +95,54 @@ type family UnitCons x xs where
   UnitCons () xs = xs
   UnitCons x xs = x ': xs
 
--- | TODO: This is like lens, but partial?
-class HasModel (xs :: [Type]) (x :: Type) where
-  -- | Extract the inner model
-  innerModel :: NP I xs -> x
+-- | TODO: Can this be simplified?
+class (xs :: [Type]) `Contains` (x :: Type) where
+  -- | A partial iso into/from NP, given a member type.
+  --
+  -- When creating the outer NP structure, rest of the members will be
+  -- undefined.
+  npIso :: Iso' (NP I xs) x
 
-  -- | Fill in the outter model containing the given inner model.
-  outerModel :: x -> NP I xs
+there :: Iso' (NP I (x ': xs)) (NP I xs)
+there = iso tl (\t -> I willNotBeUsed :* t)
+
+here :: Iso' (NP I (x ': xs)) x
+here = iso (unI . hd) (\x -> I x :* willNotBeUsed)
 
 -- Could probably replace this lens-sop:
 -- with https://hackage.haskell.org/package/lens-sop-0.2.0.3/docs/Generics-SOP-Lens.html#v:np
-instance {-# OVERLAPPING #-} HasModel '[] () where
-  innerModel _ = ()
-  outerModel () = Nil
+instance {-# OVERLAPPING #-} Contains '[] () where
+  -- () is always contained in any structure.
+  npIso = iso (const ()) (\() -> Nil)
 
-instance {-# OVERLAPPING #-} HasModel xs () => HasModel (x ': xs) () where
-  innerModel _ = ()
-  outerModel () = I undefined :* outerModel ()
+instance {-# OVERLAPPING #-} Contains xs () => Contains (x ': xs) () where
+  npIso = there % npIso
 
-instance (TypeError ('Text "No such model" ':$$: 'ShowType x)) => HasModel '[] x where
-  innerModel Nil = undefined
-  outerModel _ = undefined
+instance (TypeError ('Text "The type " ':$$: 'ShowType x ':$$: 'Text " does not exist in n-ary product")) => Contains '[] x where
+  npIso = iso willNotBeUsed willNotBeUsed
 
-instance {-# OVERLAPPING #-} HasModel (x ': xs) x where
-  innerModel (I x :* _) = x
-  outerModel x = I x :* undefined
+instance {-# OVERLAPPING #-} Contains (x ': xs) x where
+  npIso = here
 
-instance {-# OVERLAPPABLE #-} HasModel xs x => HasModel (x' ': xs) x where
-  innerModel (_ :* xs) = innerModel xs
-  outerModel x = I undefined :* outerModel x
+instance {-# OVERLAPPABLE #-} Contains xs x => Contains (x' ': xs) x where
+  npIso = there % npIso
+
+willNotBeUsed :: HasCallStack => a
+willNotBeUsed = error "This value will not be used"
 
 -- | Extract the inner RouteEncoder.
 -- TODO: avoid having to specify Prism
 innerRouteEncoder ::
   forall m o i (ms :: [Type]).
-  HasModel ms m =>
+  Contains ms m =>
   Prism' o i ->
   RouteEncoder (NP I ms) o ->
   RouteEncoder m i
-innerRouteEncoder prism =
-  mapRouteEncoder (iso id Just) prism outerModel
+innerRouteEncoder p =
+  mapRouteEncoder (iso id Just) p (review npIso)
+
+innerModel :: Contains ms m => NP I ms -> m
+innerModel = view npIso
 
 -- TODO: Fail in compile time, if ctor naming is bad.
 gMkRouteEncoder ::
@@ -179,11 +187,11 @@ gEncodeRoute (unNPMaybe @_ @_ @ms -> m) x' =
       K . hcollapseMaybe . hcmap (Proxy @(IsRouteIn ms)) encTerm
     encTerm :: forall b. (IsRouteIn ms b) => I b -> K FilePath b
     encTerm =
-      K . encodeRoute (mkRouteEncoder @b) (innerModel @_ @(RouteModel b) m) . unI
+      K . encodeRoute (mkRouteEncoder @b) (view (npIso @_ @(RouteModel b)) m) . unI
 
-class (IsRoute r, HasModel ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
+class (IsRoute r, Contains ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
 
-instance (IsRoute r, HasModel ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
+instance (IsRoute r, Contains ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
 
 class (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
 
@@ -228,12 +236,13 @@ gDecodeRoute (unNPMaybe @_ @I @ms -> m) fp = do
                 anamorphismProduct
                 Proxy
       where
+        -- TODO: replace y1, etc. with sensible vars
         anamorphismProduct :: forall y1 ys1. (IsRouteIn ms y1, SListI ys1) => Proxy (y1 ': ys1) -> Maybe (I y1, Proxy ys1)
         anamorphismProduct Proxy = case sList @ys1 of
           SNil -> do
             -- Recurse into the only product argument
             guard $ not $ null rest
-            r' <- decodeRoute (mkRouteEncoder @y1) (innerModel @_ @(RouteModel y1) m) $ joinPath rest
+            r' <- decodeRoute (mkRouteEncoder @y1) (view (npIso @_ @(RouteModel y1)) m) $ joinPath rest
             pure (I r', Proxy)
           SCons ->
             -- Not reachable, due to HCollapseMaybe constraint
