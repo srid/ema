@@ -14,17 +14,28 @@ import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Encoder (RouteEncoder)
 import UnliftIO (MonadUnliftIO)
 
+-- TODO: rename HasModel -> ModelDynamic
 class IsRoute r => HasModel r where
+  {- Arguments to the model runner. Default: nothing (hence, `()`)
+
+    The arguments should be passed to `Ema.runSite`.
+  -}
   type ModelInput r :: Type
+
   type ModelInput r = ()
-  runModel ::
+
+  {- Get the model's time-varying value as a `Dynamic`.
+
+    If your model is not time-varying, use `pure` to produce a constant value.
+  -}
+  modelDynamic ::
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
     Some CLI.Action ->
     RouteEncoder (RouteModel r) r ->
     ModelInput r ->
     m (Dynamic m (RouteModel r))
-  default runModel ::
+  default modelDynamic ::
     forall m.
     ( MonadIO m,
       MonadUnliftIO m,
@@ -35,4 +46,7 @@ class IsRoute r => HasModel r where
     RouteEncoder (RouteModel r) r ->
     ModelInput r ->
     m (Dynamic m (RouteModel r))
-  runModel _ _ _ = pure $ pure ()
+  modelDynamic _ _ _ =
+    -- The default implementation assumes the minimal model, `()`, which cannot
+    -- be time-varying.
+    pure $ pure ()

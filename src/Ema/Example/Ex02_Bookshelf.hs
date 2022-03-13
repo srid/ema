@@ -36,7 +36,7 @@ main = void $ Ema.runSite @Route ()
 instance RenderAsset Route where
   renderAsset enc () r =
     Ema.AssetGenerated Ema.Html $
-      tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
+      tailwindLayout (H.title "Bookshelf site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
           H.h1 ! A.class_ "text-3xl font-bold" $ "TODO: Bookshelf"
           case r of

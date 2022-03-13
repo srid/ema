@@ -36,7 +36,7 @@ data Route
   deriving (IsRoute) via (ConstModelRoute Model Route)
 
 instance HasModel Route where
-  runModel _ _ () = do
+  modelDynamic _ _ () = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \send -> do
       logInfoNS "Ex03" "Starting clock..."

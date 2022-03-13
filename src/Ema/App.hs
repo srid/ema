@@ -23,7 +23,7 @@ import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
-import Ema.Model (HasModel (ModelInput, runModel))
+import Ema.Model (HasModel (ModelInput, modelDynamic))
 import Ema.Route.Class (IsRoute (mkRouteEncoder))
 import Ema.Server qualified as Server
 import System.Directory (getCurrentDirectory)
@@ -61,7 +61,7 @@ runSiteWithCli cli input = do
     logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
     logInfoNS logSrc "Waiting for initial model ..."
     let enc = mkRouteEncoder @r
-    Dynamic (model0 :: a, cont) <- runModel @r (CLI.action cli) enc input
+    Dynamic (model0 :: a, cont) <- modelDynamic @r (CLI.action cli) enc input
     logInfoNS logSrc "... initial model is now available."
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do

@@ -33,9 +33,9 @@ main = do
   void $ Ema.runSite @R ()
 
 instance HasModel R where
-  runModel cliAct enc () = do
-    -- x1 <- runModel cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
-    x2 <- runModel cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
+  modelDynamic cliAct enc () = do
+    -- x1 <- modelDynamic cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
+    x2 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
     pure $ x2 <&> \x -> I x :* Nil
 
 instance RenderAsset R where

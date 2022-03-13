@@ -8,7 +8,7 @@ where
 import Data.Text qualified as T
 import Ema.Asset (RenderAsset (..))
 import Ema.Model
-  ( HasModel (ModelInput, runModel),
+  ( HasModel (ModelInput, modelDynamic),
   )
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
@@ -22,8 +22,8 @@ import Text.Show (Show (show))
 
 instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) where
   type ModelInput (PrefixedRoute prefix r) = ModelInput r
-  runModel cliAct enc input =
-    runModel @r cliAct (fromPrefixedRouteEncoder enc) input
+  modelDynamic cliAct enc input =
+    modelDynamic @r cliAct (fromPrefixedRouteEncoder enc) input
 
 instance (RenderAsset r, KnownSymbol prefix) => RenderAsset (PrefixedRoute prefix r) where
   renderAsset enc m r =

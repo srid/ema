@@ -7,9 +7,12 @@ module Ema.Asset
   )
 where
 
-import Data.SOP
-import Ema.Route.Class
+import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Encoder
+  ( RouteEncoder,
+    leftRouteEncoder,
+    rightRouteEncoder,
+  )
 
 -- | The type of assets that can be bundled in a static site.
 data Asset a
