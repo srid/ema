@@ -41,7 +41,7 @@ runServerWithWebSocketHotReload ::
     MonadLoggerIO m,
     Eq r,
     IsRoute r,
-    RenderAsset r
+    HasAsset r
   ) =>
   Host ->
   Port ->
@@ -167,7 +167,7 @@ runServerWithWebSocketHotReload host port model = do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (renderAsset enc m r) $ \(err :: SomeException) ->
+      unsafeCatch (routeAsset enc m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err

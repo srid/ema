@@ -9,7 +9,6 @@ import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
 import Ema.Asset
-import Ema.Model
 import Ema.Route.Class (IsRoute (RouteModel, mkRouteEncoder))
 import Ema.Route.Encoder (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
@@ -27,7 +26,7 @@ log = logWithoutLoc "Generate"
 
 generateSite ::
   forall r m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, RenderAsset r) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, HasAsset r) =>
   FilePath ->
   RouteModel r ->
   m [FilePath]
@@ -35,7 +34,7 @@ generateSite dest model = do
   let enc = mkRouteEncoder @r
   -- cliAct = Some $ CLI.Generate dest
   withBlockBuffering $
-    generate dest enc model (renderAsset enc)
+    generate dest enc model (routeAsset enc)
   where
     -- Temporarily use block buffering before calling an IO action that is
     -- known ahead to log rapidly, so as to not hamper serial processing speed.

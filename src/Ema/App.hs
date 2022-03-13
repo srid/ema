@@ -35,7 +35,7 @@ import System.Directory (getCurrentDirectory)
 -- On live-server mode, this function will never return.
 runSite ::
   forall r.
-  (Show r, Eq r, IsRoute r, RenderAsset r, HasModel r) =>
+  (Show r, Eq r, IsRoute r, HasAsset r, HasModel r) =>
   ModelInput r ->
   IO (DSum CLI.Action Identity)
 runSite input = do
@@ -47,7 +47,7 @@ runSite input = do
 -- Useful if you are handling CLI arguments yourself.
 runSiteWithCli ::
   forall r.
-  (Show r, Eq r, IsRoute r, RenderAsset r, HasModel r) =>
+  (Show r, Eq r, IsRoute r, HasAsset r, HasModel r) =>
   Cli ->
   ModelInput r ->
   IO (DSum CLI.Action Identity)

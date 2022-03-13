@@ -45,8 +45,8 @@ instance HasModel Route where
         t <- liftIO getCurrentTime
         send t
 
-instance RenderAsset Route where
-  renderAsset enc m r =
+instance HasAsset Route where
+  routeAsset enc m r =
     Ema.AssetGenerated Ema.Html $ render enc m r
 
 main :: IO ()

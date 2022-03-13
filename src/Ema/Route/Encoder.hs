@@ -18,12 +18,15 @@ module Ema.Route.Encoder
     mergeRouteEncoder,
 
     -- * Internal
+
+    -- TODO: move to Internal.hs
     checkRouteEncoderForSingleRoute,
     -- PartialIsoFunctor (pimap),
+    willNotBeUsed,
   )
 where
 
-import Control.Monad.Writer
+import Control.Monad.Writer (Writer, tell)
 import Data.Text qualified as T
 import Optics.Core
   ( Iso,
@@ -152,14 +155,14 @@ leftRouteEncoder =
   mapRouteEncoder
     (iso id Just)
     (prism' Left leftToMaybe)
-    (,undefined)
+    (,willNotBeUsed)
 
 rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
 rightRouteEncoder =
   mapRouteEncoder
     (iso id Just)
     (prism' Right rightToMaybe)
-    (undefined,)
+    (willNotBeUsed,)
 
 singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
 singletonRouteEncoderFrom fp =
@@ -170,10 +173,10 @@ singletonRouteEncoderFrom fp =
     all_ = [()]
 
 isoRouteEncoder :: Iso r (Maybe r) FilePath FilePath -> RouteEncoder () r
-isoRouteEncoder iso =
+isoRouteEncoder riso =
   unsafeMkRouteEncoder
-    (const $ \r -> withIso iso $ \f _ -> f r)
-    (const $ \fp -> withIso iso $ \_ g -> g fp)
+    (const $ \r -> withIso riso $ \f _ -> f r)
+    (const $ \fp -> withIso riso $ \_ g -> g fp)
     (const [])
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
@@ -191,3 +194,7 @@ singletonRouteEncoder =
 
 checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
 checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso
+
+-- FIXME: a design hack necessitates it.
+willNotBeUsed :: HasCallStack => a
+willNotBeUsed = error "This value will not be used"

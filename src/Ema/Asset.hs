@@ -3,7 +3,7 @@
 module Ema.Asset
   ( Asset (..),
     Format (..),
-    RenderAsset (..),
+    HasAsset (..),
   )
 where
 
@@ -28,21 +28,22 @@ data Asset a
 data Format = Html | Other
   deriving stock (Eq, Show, Ord, Generic)
 
-class IsRoute r => RenderAsset r where
+-- | This route has assets associated with it.
+class IsRoute r => HasAsset r where
   -- | Produce the asset for the given route.
-  renderAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
+  routeAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
 
 -- Combining of two routes
 instance
-  (RenderAsset r1, RenderAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
-  RenderAsset (Either r1 r2)
+  (HasAsset r1, HasAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
+  HasAsset (Either r1 r2)
   where
-  renderAsset enc m = \case
-    Left r -> renderAsset @r1 (leftRouteEncoder enc) (fst m) r
-    Right r -> renderAsset @r2 (rightRouteEncoder enc) (snd m) r
+  routeAsset enc m = \case
+    Left r -> routeAsset @r1 (leftRouteEncoder enc) (fst m) r
+    Right r -> routeAsset @r2 (rightRouteEncoder enc) (snd m) r
 
 {-
-instance RenderAsset (NS I rs) where
-  renderAsset enc m r =
+instance HasAsset (NS I rs) where
+  routeAsset enc m r =
     undefined
 -}

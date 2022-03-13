@@ -79,11 +79,11 @@ mcana_NP ::
   (forall y ys. (c y, SListI ys) => s (y ': ys) -> Maybe (f y, s ys)) ->
   s xs ->
   Maybe (NP f xs)
-mcana_NP _ uncons = go sList
+mcana_NP _ uncons' = go sList
   where
     go :: forall ys. (All c ys) => SList ys -> s ys -> Maybe (NP f ys)
     go SNil _ = pure Nil
     go SCons s = do
-      (x, s') <- uncons s
+      (x, s') <- uncons' s
       xs <- go sList s'
       pure $ x :* xs

@@ -24,7 +24,15 @@ import GHC.TypeLits
     TypeError,
   )
 import Generics.SOP
-import Optics.Core hiding (Contains, to)
+import Optics.Core
+  ( Iso',
+    Prism',
+    iso,
+    prism',
+    review,
+    view,
+    (%),
+  )
 import System.FilePath
   ( joinPath,
     splitDirectories,
@@ -126,9 +134,6 @@ instance {-# OVERLAPPING #-} Contains (x ': xs) x where
 
 instance {-# OVERLAPPABLE #-} Contains xs x => Contains (x' ': xs) x where
   npIso = there % npIso
-
-willNotBeUsed :: HasCallStack => a
-willNotBeUsed = error "This value will not be used"
 
 -- | Extract the inner RouteEncoder.
 -- TODO: avoid having to specify Prism

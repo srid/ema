@@ -14,7 +14,6 @@ import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Encoder (RouteEncoder)
 import UnliftIO (MonadUnliftIO)
 
--- TODO: rename HasModel -> ModelDynamic
 class IsRoute r => HasModel r where
   {- Arguments to the model runner. Default: nothing (hence, `()`)
 

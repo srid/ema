@@ -38,16 +38,16 @@ instance HasModel R where
     x2 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
     pure $ x2 <&> \x -> I x :* Nil
 
-instance RenderAsset R where
-  renderAsset enc m = \case
+instance HasAsset R where
+  routeAsset enc m = \case
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex m
     R_Basic r ->
-      renderAsset (innerRouteEncoder (_As @"R_Basic") enc) (innerModel m) r
+      routeAsset (innerRouteEncoder (_As @"R_Basic") enc) (innerModel m) r
     R_Bookshelf r ->
-      renderAsset (innerRouteEncoder (_As @"R_Bookshelf") enc) (innerModel m) r
+      routeAsset (innerRouteEncoder (_As @"R_Bookshelf") enc) (innerModel m) r
     R_Clock r ->
-      renderAsset (innerRouteEncoder (_As @"R_Clock") enc) (innerModel m) r
+      routeAsset (innerRouteEncoder (_As @"R_Clock") enc) (innerModel m) r
 
 renderIndex :: M -> LByteString
 renderIndex (I clockTime :* Nil) =

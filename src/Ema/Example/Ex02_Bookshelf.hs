@@ -33,8 +33,8 @@ newtype ProductName = ProductName Text
 main :: IO ()
 main = void $ Ema.runSite @Route ()
 
-instance RenderAsset Route where
-  renderAsset enc () r =
+instance HasAsset Route where
+  routeAsset enc () r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Bookshelf site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do

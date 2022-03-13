@@ -6,7 +6,7 @@ module Ema.Route.Prefixed
 where
 
 import Data.Text qualified as T
-import Ema.Asset (RenderAsset (..))
+import Ema.Asset (HasAsset (..))
 import Ema.Model
   ( HasModel (ModelInput, modelDynamic),
   )
@@ -25,9 +25,9 @@ instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) w
   modelDynamic cliAct enc input =
     modelDynamic @r cliAct (fromPrefixedRouteEncoder enc) input
 
-instance (RenderAsset r, KnownSymbol prefix) => RenderAsset (PrefixedRoute prefix r) where
-  renderAsset enc m r =
-    renderAsset @r (fromPrefixedRouteEncoder enc) m (unPrefixedRoute r)
+instance (HasAsset r, KnownSymbol prefix) => HasAsset (PrefixedRoute prefix r) where
+  routeAsset enc m r =
+    routeAsset @r (fromPrefixedRouteEncoder enc) m (unPrefixedRoute r)
 
 toPrefixedRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (PrefixedRoute prefix r)
 toPrefixedRouteEncoder =
