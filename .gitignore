@@ -1,3 +1,4 @@
+.direnv
 dist
 dist-*
 cabal-dev
