@@ -1,49 +1,21 @@
+-- | TODO: Export only what's necessary.
 module Ema.Route.Encoder where
 
-import Control.Monad.Writer (Writer, tell)
+import Control.Monad.Writer (Writer)
 import Data.Text qualified as T
+import Ema.Route.CtxPrism
+  ( CtxPrism,
+    cpmap,
+    cpreview,
+    creview,
+    ctxPrismIsLawfulFor,
+  )
 import Optics.Core
   ( Prism',
     preview,
     prism',
     review,
-    (%),
   )
-
--- | A `Prism` with a context
--- This can't actually be a prism due to coercion problems. Use `toPrism` & `fromPrism`.
-type CtxPrism ctx s a =
-  -- Prism' s a
-  ctx -> (a -> s, s -> Maybe a)
-
-toPrism :: CtxPrism ctx s a -> ctx -> Prism' s a
-toPrism f' ctx = let (f, g) = f' ctx in prism' f g
-
-fromPrism :: (ctx -> Prism' s a) -> CtxPrism ctx s a
-fromPrism f' ctx = let p = f' ctx in (review p, preview p)
-
-partialIsoIsLawfulFor :: forall ctx s a. (Eq a, Eq s, Show a, ToText s) => CtxPrism ctx s a -> ctx -> a -> s -> Writer [Text] Bool
-partialIsoIsLawfulFor pf ctx a s = do
-  let p = toPrism pf ctx
-  tell . one $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
-  let s' :: s = review p a
-  tell . one $ "Route's actual encoding: " <> toText s'
-  let ma' :: Maybe a = preview p s'
-  tell . one $ "Decoding of that encoding: " <> show ma'
-  unless (s == s') $
-    tell . one $ "ERR: " <> toText s <> " /= " <> toText s'
-  unless (Just a == ma') $
-    tell . one $ "ERR: " <> show (Just a) <> " /= " <> show ma'
-  pure $ (s == s') && (Just a == ma')
-
-pimap ::
-  forall a b c d x y.
-  Prism' b a ->
-  Prism' c d ->
-  (y -> x) ->
-  CtxPrism x a c ->
-  CtxPrism y b d
-pimap p q f r = fromPrism $ \ctx -> p % toPrism r (f ctx) % q
 
 -- | An encoder cum decoder that knows how to convert routes to and from
 -- filepaths. The conversion depends on the context `a`.
@@ -56,17 +28,17 @@ mapRouteEncoder ::
   RouteEncoder a r1 ->
   RouteEncoder b r2
 mapRouteEncoder fp r m (RouteEncoder enc) =
-  RouteEncoder $ pimap fp r m enc
+  RouteEncoder $ cpmap fp r m enc
 
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y =
   RouteEncoder $ \ctx -> (x ctx, y ctx)
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (RouteEncoder enc) ctx = review (toPrism enc ctx)
+encodeRoute (RouteEncoder enc) = creview enc
 
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (RouteEncoder enc) ctx = preview (toPrism enc ctx)
+decodeRoute (RouteEncoder enc) = cpreview enc
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
@@ -109,10 +81,10 @@ singletonRouteEncoderFrom fp =
     dec fp' = guard (fp' == fp)
 
 isoRouteEncoder :: Prism' FilePath r -> RouteEncoder () r
-isoRouteEncoder riso =
+isoRouteEncoder p =
   unsafeMkRouteEncoder
-    (const $ \r -> review riso r)
-    (const $ \fp -> preview riso fp)
+    (const $ review p)
+    (const $ preview p)
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
@@ -128,7 +100,7 @@ singletonRouteEncoder =
   singletonRouteEncoderFrom "index.html"
 
 checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
-checkRouteEncoderForSingleRoute (RouteEncoder piso) = partialIsoIsLawfulFor piso
+checkRouteEncoderForSingleRoute (RouteEncoder piso) = ctxPrismIsLawfulFor piso
 
 -- FIXME: a design hack necessitates it.
 willNotBeUsed :: HasCallStack => a

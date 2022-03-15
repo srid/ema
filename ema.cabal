@@ -130,6 +130,7 @@ library
     Ema.Model
     Ema.Route.Class
     Ema.Route.Encoder
+    Ema.Route.CtxPrism
     Ema.Route.Generic
     Ema.Route.Prefixed
     Ema.Route.Url
