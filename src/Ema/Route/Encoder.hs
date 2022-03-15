@@ -1,67 +1,29 @@
-{-# LANGUAGE InstanceSigs #-}
-
-module Ema.Route.Encoder
-  ( -- * Route encoder
-    RouteEncoder,
-    unsafeMkRouteEncoder,
-    encodeRoute,
-    decodeRoute,
-    allRoutes,
-    singletonRouteEncoder,
-    singletonRouteEncoderFrom,
-    isoRouteEncoder,
-    showReadRouteEncoder,
-    stringRouteEncoder,
-    mapRouteEncoder,
-    leftRouteEncoder,
-    rightRouteEncoder,
-    mergeRouteEncoder,
-
-    -- * Internal
-
-    -- TODO: move to Internal.hs
-    checkRouteEncoderForSingleRoute,
-    -- PartialIsoFunctor (pimap),
-    willNotBeUsed,
-  )
-where
+module Ema.Route.Encoder where
 
 import Control.Monad.Writer (Writer, tell)
 import Data.Text qualified as T
 import Optics.Core
-  ( Iso,
-    Prism',
-    iso,
+  ( Prism',
     preview,
     prism',
     review,
-    withIso,
   )
 
--- | An Iso that is not necessarily surjective; as well as takes an (unchanging)
--- context value.
---
--- Parse `s` into (optional) `a` which can always be converted to a `s`. The `a`
--- can be enumerated finitely. `ctx` is used to all functions.
--- TODO: Is this isomrophic to `Iso (ctx, a) (Maybe a) s (ctx, s)` (plus, `ctx -> [a]`)?
--- TODO: replace `ctx` arg with Reader monad?
-newtype PartialIsoEnumerableWithCtx ctx s a
-  = PartialIsoEnumerableWithCtx (ctx -> a -> s, ctx -> s -> Maybe a, ctx -> [a])
+-- | A `Prism` with a context
+-- This can't actually be a prism due to coercion problems. See `toPrism`.
+type CtxPrism ctx s a =
+  -- Prism' (ctx, s) (ctx, a)
+  (ctx -> a -> s, ctx -> s -> Maybe a)
 
-{-
-type T ctx a s = CtxIso ctx a (Maybe a) s s
+toPrism :: CtxPrism ctx s a -> Prism' (ctx, s) (ctx, a)
+toPrism (f, g) = prism' (\(ctx, a) -> (ctx, f ctx a)) (\(ctx, s) -> (ctx,) <$> g ctx s)
 
-type CtxIso ctx a b c d = Iso (ctx, a) b c (ctx, d)
-
-type T' ctx a = ctx -> [a]
--}
-
-partialIsoIsLawfulFor :: (Eq a, Eq s, Show a, ToText s) => PartialIsoEnumerableWithCtx ctx s a -> ctx -> a -> s -> Writer [Text] Bool
-partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s = do
+partialIsoIsLawfulFor :: forall ctx s a. (Eq a, Eq s, Show a, ToText s) => CtxPrism ctx s a -> ctx -> a -> s -> Writer [Text] Bool
+partialIsoIsLawfulFor (toPrism -> p) ctx a s = do
   tell . one $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
-  let s' = to ctx a
+  let s' :: s = snd $ review p (ctx, a)
   tell . one $ "Route's actual encoding: " <> toText s'
-  let ma' = from ctx s'
+  let ma' :: Maybe a = snd <$> preview p (ctx, s')
   tell . one $ "Decoding of that encoding: " <> show ma'
   unless (s == s') $
     tell . one $ "ERR: " <> toText s <> " /= " <> toText s'
@@ -69,43 +31,32 @@ partialIsoIsLawfulFor (PartialIsoEnumerableWithCtx (to, from, _)) ctx a s = do
     tell . one $ "ERR: " <> show (Just a) <> " /= " <> show ma'
   pure $ (s == s') && (Just a == ma')
 
-class PartialIsoFunctor (f :: Type -> Type -> Type -> Type) where
-  pimap ::
-    Iso a (Maybe a) b b ->
-    Prism' c d ->
-    (y -> x) ->
-    f x a c ->
-    f y b d
+pimap ::
+  forall a b c d x y.
+  Prism' b a ->
+  Prism' c d ->
+  (y -> x) ->
+  CtxPrism x a c ->
+  CtxPrism y b d
+pimap iso1 iso2 h (toPrism -> cprism) =
+  (enc', dec')
+  where
+    enc' :: y -> d -> b
+    enc' m r =
+      let r' :: c = review iso2 r
+          m' :: x = h m
+          a = snd $ review cprism (m', r')
+       in review iso1 a
+    dec' :: y -> b -> Maybe d
+    dec' m fp = do
+      fp' <- preview iso1 fp
+      (_, r) <- preview cprism (h m, fp')
+      preview iso2 r
 
-instance PartialIsoFunctor PartialIsoEnumerableWithCtx where
-  pimap ::
-    forall a b c d x y.
-    Iso a (Maybe a) b b ->
-    Prism' c d ->
-    (y -> x) ->
-    PartialIsoEnumerableWithCtx x a c ->
-    PartialIsoEnumerableWithCtx y b d
-  pimap iso1 iso2 h (PartialIsoEnumerableWithCtx (enc, dec, all_)) =
-    PartialIsoEnumerableWithCtx (enc', dec', all_')
-    where
-      enc' :: y -> d -> b
-      enc' m r =
-        let r' :: c = review iso2 r
-            m' :: x = h m
-         in withIso iso1 $ \f _ -> f $ enc m' r'
-      dec' :: y -> b -> Maybe d
-      dec' m fp = do
-        fp' <- withIso iso1 $ \_ f -> f fp
-        r :: c <- dec (h m) fp'
-        preview iso2 r
-      all_' :: y -> [d]
-      all_' m =
-        mapMaybe (preview iso2) (all_ $ h m)
-
-newtype RouteEncoder a r = RouteEncoder (PartialIsoEnumerableWithCtx a FilePath r)
+newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
 mapRouteEncoder ::
-  Iso FilePath (Maybe FilePath) FilePath FilePath ->
+  Prism' FilePath FilePath ->
   Prism' r1 r2 ->
   (b -> a) ->
   RouteEncoder a r1 ->
@@ -113,17 +64,15 @@ mapRouteEncoder ::
 mapRouteEncoder fpIso rIso mf (RouteEncoder enc) =
   RouteEncoder $ pimap fpIso rIso mf enc
 
-unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> (ctx -> [a]) -> RouteEncoder ctx a
-unsafeMkRouteEncoder x y z = RouteEncoder $ PartialIsoEnumerableWithCtx (x, y, z)
+unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
+unsafeMkRouteEncoder x y =
+  RouteEncoder (x, y)
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (f, _, _))) = f
+encodeRoute (RouteEncoder (toPrism -> enc)) m r = snd $ review (enc) (m, r)
 
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (RouteEncoder (PartialIsoEnumerableWithCtx (_, f, _))) = f
-
-allRoutes :: RouteEncoder model r -> model -> [r]
-allRoutes (RouteEncoder (PartialIsoEnumerableWithCtx (_, _, f))) = f
+decodeRoute (RouteEncoder (toPrism -> enc)) m s = snd <$> preview (enc) (m, s)
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
@@ -140,12 +89,6 @@ mergeRouteEncoder enc1 enc2 =
             Right <$> decodeRoute enc2 (snd m) fp
           ]
     )
-    ( \m ->
-        mconcat
-          [ Left <$> allRoutes enc1 (fst m),
-            Right <$> allRoutes enc2 (snd m)
-          ]
-    )
 
 -- | TODO: Can do this using generics, on any `f` (not just Either)
 --
@@ -153,39 +96,37 @@ mergeRouteEncoder enc1 enc2 =
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
   mapRouteEncoder
-    (iso id Just)
+    (prism' id Just)
     (prism' Left leftToMaybe)
     (,willNotBeUsed)
 
 rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
 rightRouteEncoder =
   mapRouteEncoder
-    (iso id Just)
+    (prism' id Just)
     (prism' Right rightToMaybe)
     (willNotBeUsed,)
 
 singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
 singletonRouteEncoderFrom fp =
-  unsafeMkRouteEncoder (const enc) (const dec) (const all_)
+  unsafeMkRouteEncoder (const enc) (const dec)
   where
     enc () = fp
     dec fp' = guard (fp' == fp)
-    all_ = [()]
 
-isoRouteEncoder :: Iso r (Maybe r) FilePath FilePath -> RouteEncoder () r
+isoRouteEncoder :: Prism' FilePath r -> RouteEncoder () r
 isoRouteEncoder riso =
   unsafeMkRouteEncoder
-    (const $ \r -> withIso riso $ \f _ -> f r)
-    (const $ \fp -> withIso riso $ \_ g -> g fp)
-    (const [])
+    (const $ \r -> review riso r)
+    (const $ \fp -> preview riso fp)
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
-  isoRouteEncoder $ iso ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
+  isoRouteEncoder $ prism' ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
 
 stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
 stringRouteEncoder =
-  isoRouteEncoder $ iso ((<> ".html") . toString) (fmap (fromString . toString) . T.stripSuffix ".html" . toText)
+  isoRouteEncoder $ prism' ((<> ".html") . toString) (fmap (fromString . toString) . T.stripSuffix ".html" . toText)
 
 -- | Route encoder for single route encoding to 'index.html'
 singletonRouteEncoder :: RouteEncoder a ()

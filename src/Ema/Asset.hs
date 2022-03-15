@@ -33,6 +33,8 @@ class IsRoute r => HasAsset r where
   -- | Produce the asset for the given route.
   routeAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
 
+  generatableRoutes :: RouteModel r -> [r]
+
 -- Combining of two routes
 instance
   (HasAsset r1, HasAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
@@ -41,6 +43,9 @@ instance
   routeAsset enc m = \case
     Left r -> routeAsset @r1 (leftRouteEncoder enc) (fst m) r
     Right r -> routeAsset @r2 (rightRouteEncoder enc) (snd m) r
+  generatableRoutes m =
+    fmap Left (generatableRoutes @r1 $ fst m)
+      <> fmap Right (generatableRoutes @r2 $ snd m)
 
 {-
 instance HasAsset (NS I rs) where

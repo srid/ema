@@ -16,7 +16,7 @@ import Ema.Route.Encoder
     mapRouteEncoder,
   )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Optics.Core (iso, prism')
+import Optics.Core (prism')
 import System.FilePath ((</>))
 import Text.Show (Show (show))
 
@@ -33,14 +33,14 @@ toPrefixedRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder 
 toPrefixedRouteEncoder =
   let prefix = symbolVal (Proxy @prefix)
    in mapRouteEncoder
-        (iso (prefix </>) $ fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText)
+        (prism' (prefix </>) $ fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText)
         (prism' unPrefixedRoute (Just . PrefixedRoute))
         id
 
 -- This coerces the r, but without losing the prefix encoding.
 fromPrefixedRouteEncoder :: forall prefix r a. RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
 fromPrefixedRouteEncoder =
-  mapRouteEncoder (iso id Just) (prism' PrefixedRoute (Just . unPrefixedRoute)) id
+  mapRouteEncoder (prism' id Just) (prism' PrefixedRoute (Just . unPrefixedRoute)) id
 
 -- | A route that is prefixed at some URL prefix
 newtype PrefixedRoute (prefix :: Symbol) r = PrefixedRoute {unPrefixedRoute :: r}

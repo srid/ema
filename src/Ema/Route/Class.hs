@@ -68,7 +68,7 @@ instance
   where
   type RouteModel (ConstModelRoute m r) = m
   mkRouteEncoder =
-    gMkRouteEncoder @r & mapRouteEncoder (iso id Just) (prism' unConstModelRoute (Just . ConstModelRoute)) (const ())
+    gMkRouteEncoder @r & mapRouteEncoder (prism' id Just) (prism' unConstModelRoute (Just . ConstModelRoute)) (const ())
 
 newtype ShowReadable a = ShowReadable a
   deriving newtype (Show, Read)
@@ -144,7 +144,7 @@ innerRouteEncoder ::
   RouteEncoder (NP I ms) o ->
   RouteEncoder m i
 innerRouteEncoder p =
-  mapRouteEncoder (iso id Just) p (review npIso)
+  mapRouteEncoder (prism' id Just) p (review npIso)
 
 innerModel :: Contains ms m => NP I ms -> m
 innerModel = view npIso
@@ -161,10 +161,7 @@ gMkRouteEncoder ::
   ) =>
   RouteEncoder (NPMaybe I ms) r
 gMkRouteEncoder =
-  unsafeMkRouteEncoder gEncodeRoute gDecodeRoute (const all_)
-  where
-    all_ :: [r]
-    all_ = [] -- TODO
+  unsafeMkRouteEncoder gEncodeRoute gDecodeRoute
 
 gEncodeRoute ::
   forall r ms.

@@ -10,7 +10,7 @@ import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
 import Ema.Asset
 import Ema.Route.Class (IsRoute (RouteModel, mkRouteEncoder))
-import Ema.Route.Encoder (RouteEncoder, allRoutes, checkRouteEncoderForSingleRoute, encodeRoute)
+import Ema.Route.Encoder (RouteEncoder, checkRouteEncoderForSingleRoute, encodeRoute)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -44,24 +44,25 @@ generateSite dest model = do
         <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
 
 generate ::
-  forall r a m.
+  forall r m.
   ( MonadIO m,
     MonadUnliftIO m,
     MonadLoggerIO m,
     HasCallStack,
     Eq r,
-    Show r
+    Show r,
+    HasAsset r
   ) =>
   FilePath ->
-  RouteEncoder a r ->
-  a ->
-  (a -> r -> Asset LByteString) ->
+  RouteEncoder (RouteModel r) r ->
+  RouteModel r ->
+  (RouteModel r -> r -> Asset LByteString) ->
   -- | List of generated files.
   m [FilePath]
 generate dest enc model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
-  let routes = allRoutes enc model
+  let routes = generatableRoutes @r model
   when (null routes) $
     error "allRoutes is empty; nothing to generate"
   forM_ routes $ \route -> do
