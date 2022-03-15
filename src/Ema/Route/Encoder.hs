@@ -9,12 +9,11 @@ import Ema.Route.CtxPrism
     cpreview,
     creview,
     ctxPrismIsLawfulFor,
+    fromPrism,
   )
 import Optics.Core
   ( Prism',
-    preview,
     prism',
-    review,
   )
 
 -- | An encoder cum decoder that knows how to convert routes to and from
@@ -32,7 +31,7 @@ mapRouteEncoder fp r m (RouteEncoder enc) =
 
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y =
-  RouteEncoder $ \ctx -> (x ctx, y ctx)
+  RouteEncoder $ fromPrism $ \ctx -> prism' (x ctx) (y ctx)
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (RouteEncoder enc) = creview enc
@@ -40,9 +39,35 @@ encodeRoute (RouteEncoder enc) = creview enc
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (RouteEncoder enc) = cpreview enc
 
+prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
+prismRouteEncoder = RouteEncoder . fromPrism . const
+
+showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
+showReadRouteEncoder =
+  prismRouteEncoder $ prism' ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
+
+stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
+stringRouteEncoder =
+  prismRouteEncoder $ prism' ((<> ".html") . toString) (fmap (fromString . toString) . T.stripSuffix ".html" . toText)
+
+singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
+singletonRouteEncoderFrom fp =
+  prismRouteEncoder $ prism' (\() -> fp) (\s -> guard (s == fp))
+
+-- | Route encoder for single route encoding to 'index.html'
+singletonRouteEncoder :: RouteEncoder a ()
+singletonRouteEncoder =
+  singletonRouteEncoderFrom "index.html"
+
+checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
+checkRouteEncoderForSingleRoute (RouteEncoder piso) = ctxPrismIsLawfulFor piso
+
+-- TODO: These 'merge' encoders are probably unnecessary, with NS/NP stuff that's upcoming.
+
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
 mergeRouteEncoder enc1 enc2 =
+  -- TODO: this can be made safe, using lens composition.
   unsafeMkRouteEncoder
     ( \m ->
         either
@@ -56,9 +81,6 @@ mergeRouteEncoder enc1 enc2 =
           ]
     )
 
--- | TODO: Can do this using generics, on any `f` (not just Either)
---
--- But we as well need model lens for each inner route. Unless we use heterogenous list?
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
   mapRouteEncoder
@@ -72,35 +94,6 @@ rightRouteEncoder =
     (prism' id Just)
     (prism' Right rightToMaybe)
     (willNotBeUsed,)
-
-singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
-singletonRouteEncoderFrom fp =
-  unsafeMkRouteEncoder (const enc) (const dec)
-  where
-    enc () = fp
-    dec fp' = guard (fp' == fp)
-
-isoRouteEncoder :: Prism' FilePath r -> RouteEncoder () r
-isoRouteEncoder p =
-  unsafeMkRouteEncoder
-    (const $ review p)
-    (const $ preview p)
-
-showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
-showReadRouteEncoder =
-  isoRouteEncoder $ prism' ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
-
-stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
-stringRouteEncoder =
-  isoRouteEncoder $ prism' ((<> ".html") . toString) (fmap (fromString . toString) . T.stripSuffix ".html" . toText)
-
--- | Route encoder for single route encoding to 'index.html'
-singletonRouteEncoder :: RouteEncoder a ()
-singletonRouteEncoder =
-  singletonRouteEncoderFrom "index.html"
-
-checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
-checkRouteEncoderForSingleRoute (RouteEncoder piso) = ctxPrismIsLawfulFor piso
 
 -- FIXME: a design hack necessitates it.
 willNotBeUsed :: HasCallStack => a

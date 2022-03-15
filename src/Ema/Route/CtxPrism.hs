@@ -2,6 +2,9 @@ module Ema.Route.CtxPrism
   ( -- * Type
     CtxPrism,
 
+    -- * Construction
+    fromPrism,
+
     -- * Conversion
     cpreview,
     creview,
