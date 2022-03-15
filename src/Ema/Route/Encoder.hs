@@ -7,23 +7,28 @@ import Optics.Core
     preview,
     prism',
     review,
+    (%),
   )
 
 -- | A `Prism` with a context
--- This can't actually be a prism due to coercion problems. See `toPrism`.
+-- This can't actually be a prism due to coercion problems. Use `toPrism` & `fromPrism`.
 type CtxPrism ctx s a =
-  -- Prism' (ctx, s) (ctx, a)
-  (ctx -> a -> s, ctx -> s -> Maybe a)
+  -- Prism' s a
+  ctx -> (a -> s, s -> Maybe a)
 
-toPrism :: CtxPrism ctx s a -> Prism' (ctx, s) (ctx, a)
-toPrism (f, g) = prism' (\(ctx, a) -> (ctx, f ctx a)) (\(ctx, s) -> (ctx,) <$> g ctx s)
+toPrism :: CtxPrism ctx s a -> ctx -> Prism' s a
+toPrism f' ctx = let (f, g) = f' ctx in prism' f g
+
+fromPrism :: (ctx -> Prism' s a) -> CtxPrism ctx s a
+fromPrism f' ctx = let p = f' ctx in (review p, preview p)
 
 partialIsoIsLawfulFor :: forall ctx s a. (Eq a, Eq s, Show a, ToText s) => CtxPrism ctx s a -> ctx -> a -> s -> Writer [Text] Bool
-partialIsoIsLawfulFor (toPrism -> p) ctx a s = do
+partialIsoIsLawfulFor pf ctx a s = do
+  let p = toPrism pf ctx
   tell . one $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
-  let s' :: s = snd $ review p (ctx, a)
+  let s' :: s = review p a
   tell . one $ "Route's actual encoding: " <> toText s'
-  let ma' :: Maybe a = snd <$> preview p (ctx, s')
+  let ma' :: Maybe a = preview p s'
   tell . one $ "Decoding of that encoding: " <> show ma'
   unless (s == s') $
     tell . one $ "ERR: " <> toText s <> " /= " <> toText s'
@@ -38,21 +43,10 @@ pimap ::
   (y -> x) ->
   CtxPrism x a c ->
   CtxPrism y b d
-pimap iso1 iso2 h (toPrism -> cprism) =
-  (enc', dec')
-  where
-    enc' :: y -> d -> b
-    enc' m r =
-      let r' :: c = review iso2 r
-          m' :: x = h m
-          a = snd $ review cprism (m', r')
-       in review iso1 a
-    dec' :: y -> b -> Maybe d
-    dec' m fp = do
-      fp' <- preview iso1 fp
-      (_, r) <- preview cprism (h m, fp')
-      preview iso2 r
+pimap p q f r = fromPrism $ \ctx -> p % toPrism r (f ctx) % q
 
+-- | An encoder cum decoder that knows how to convert routes to and from
+-- filepaths. The conversion depends on the context `a`.
 newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
 mapRouteEncoder ::
@@ -61,18 +55,18 @@ mapRouteEncoder ::
   (b -> a) ->
   RouteEncoder a r1 ->
   RouteEncoder b r2
-mapRouteEncoder fpIso rIso mf (RouteEncoder enc) =
-  RouteEncoder $ pimap fpIso rIso mf enc
+mapRouteEncoder fp r m (RouteEncoder enc) =
+  RouteEncoder $ pimap fp r m enc
 
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y =
-  RouteEncoder (x, y)
+  RouteEncoder $ \ctx -> (x ctx, y ctx)
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (RouteEncoder (toPrism -> enc)) m r = snd $ review (enc) (m, r)
+encodeRoute (RouteEncoder enc) ctx = review (toPrism enc ctx)
 
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (RouteEncoder (toPrism -> enc)) m s = snd <$> preview (enc) (m, s)
+decodeRoute (RouteEncoder enc) ctx = preview (toPrism enc ctx)
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
