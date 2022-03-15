@@ -41,7 +41,7 @@ runServerWithWebSocketHotReload ::
     MonadLoggerIO m,
     Eq r,
     IsRoute r,
-    HasAsset r
+    CanRender r
   ) =>
   Host ->
   Port ->

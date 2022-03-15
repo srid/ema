@@ -28,15 +28,16 @@ import Optics.Core
 
 -- | A `Prism` with a context
 -- This can't actually be a prism due to coercion problems. Use `toPrism` & `fromPrism`.
+-- See https://stackoverflow.com/q/71489589/55246
 type CtxPrism ctx s a =
-  -- Prism' s a
+  -- FIXME: ought to be `ctx -> Prism' s a`
   ctx -> (a -> s, s -> Maybe a)
 
 toPrism :: CtxPrism ctx s a -> ctx -> Prism' s a
-toPrism f' ctx = let (f, g) = f' ctx in prism' f g
+toPrism f' ctx = let (x, y) = f' ctx in prism' x y
 
 fromPrism :: (ctx -> Prism' s a) -> CtxPrism ctx s a
-fromPrism f' ctx = let p = f' ctx in (review p, preview p)
+fromPrism f ctx = let p = f ctx in (review p, preview p)
 
 creview :: CtxPrism ctx t b -> ctx -> b -> t
 creview p ctx = review (toPrism p ctx)

@@ -26,7 +26,7 @@ log = logWithoutLoc "Generate"
 
 generateSite ::
   forall r m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, HasAsset r) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, CanRender r, CanGenerate r) =>
   FilePath ->
   RouteModel r ->
   m [FilePath]
@@ -51,7 +51,8 @@ generate ::
     HasCallStack,
     Eq r,
     Show r,
-    HasAsset r
+    CanRender r,
+    CanGenerate r
   ) =>
   FilePath ->
   RouteEncoder (RouteModel r) r ->

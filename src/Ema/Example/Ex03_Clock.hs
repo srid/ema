@@ -31,8 +31,8 @@ type Model = UTCTime
 data Route
   = Route_Index
   | Route_OnlyTime
-  deriving stock (Show, Eq, GHC.Generic)
-  deriving anyclass (Generic, HasDatatypeInfo)
+  deriving stock (Show, Eq, GHC.Generic, Enum, Bounded)
+  deriving anyclass (Generic, HasDatatypeInfo, CanGenerate)
   deriving (IsRoute) via (ConstModelRoute Model Route)
 
 instance HasModel Route where
@@ -45,7 +45,7 @@ instance HasModel Route where
         t <- liftIO getCurrentTime
         send t
 
-instance HasAsset Route where
+instance CanRender Route where
   routeAsset enc m r =
     Ema.AssetGenerated Ema.Html $ render enc m r
 

@@ -32,13 +32,21 @@ main :: IO ()
 main = do
   void $ Ema.runSite @R ()
 
+-- TODO: Generic
+instance CanGenerate R where
+  generatableRoutes m =
+    [R_Index]
+      <> (R_Basic <$> generatableRoutes (innerModel m))
+      <> (R_Bookshelf <$> generatableRoutes (innerModel m))
+      <> (R_Clock <$> generatableRoutes (innerModel m))
+
 instance HasModel R where
   modelDynamic cliAct enc () = do
     -- x1 <- modelDynamic cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
     x2 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
     pure $ x2 <&> \x -> I x :* Nil
 
-instance HasAsset R where
+instance CanRender R where
   routeAsset enc m = \case
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex m

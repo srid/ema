@@ -1,9 +1,11 @@
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Asset
   ( Asset (..),
     Format (..),
-    HasAsset (..),
+    CanRender (..),
+    CanGenerate (..),
   )
 where
 
@@ -29,26 +31,35 @@ data Format = Html | Other
   deriving stock (Eq, Show, Ord, Generic)
 
 -- | This route has assets associated with it.
-class IsRoute r => HasAsset r where
+class IsRoute r => CanRender r where
   -- | Produce the asset for the given route.
   routeAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
 
+-- | Class of routes to statically generate.
+class IsRoute r => CanGenerate r where
   generatableRoutes :: RouteModel r -> [r]
+  default generatableRoutes :: (Enum r, Bounded r) => RouteModel r -> [r]
+  generatableRoutes _ = [minBound .. maxBound]
 
 -- Combining of two routes
 instance
-  (HasAsset r1, HasAsset r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
-  HasAsset (Either r1 r2)
+  (CanRender r1, CanRender r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
+  CanRender (Either r1 r2)
   where
   routeAsset enc m = \case
     Left r -> routeAsset @r1 (leftRouteEncoder enc) (fst m) r
     Right r -> routeAsset @r2 (rightRouteEncoder enc) (snd m) r
+
+instance
+  (CanGenerate r1, CanGenerate r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
+  CanGenerate (Either r1 r2)
+  where
   generatableRoutes m =
     fmap Left (generatableRoutes @r1 $ fst m)
       <> fmap Right (generatableRoutes @r2 $ snd m)
 
 {-
-instance HasAsset (NS I rs) where
+instance CanRender (NS I rs) where
   routeAsset enc m r =
     undefined
 -}

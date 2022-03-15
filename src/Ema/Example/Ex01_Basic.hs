@@ -14,13 +14,13 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Route_Index
   | Route_About
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute)
+  deriving stock (Show, Eq, Generic, Enum, Bounded)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute, CanGenerate)
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()
 
-instance HasAsset Route where
+instance CanRender Route where
   routeAsset enc () r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $

@@ -30,10 +30,20 @@ newtype ProductName = ProductName Text
   deriving stock (Show, Eq)
   deriving newtype (IsString, ToString, IsRoute)
 
+instance CanGenerate ProductName where
+  generatableRoutes _ = [ProductName "egg", ProductName "sausage"]
+
+-- TODO: Generic!
+instance CanGenerate ProductRoute where
+  generatableRoutes m = [ProductRoute_Index] <> (ProductRoute_Product <$> generatableRoutes m)
+
+instance CanGenerate Route where
+  generatableRoutes m = [Route_Index, Route_About] <> (Route_Products <$> generatableRoutes m)
+
 main :: IO ()
 main = void $ Ema.runSite @Route ()
 
-instance HasAsset Route where
+instance CanRender Route where
   routeAsset enc () r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Bookshelf site" >> H.base ! A.href "/") $
