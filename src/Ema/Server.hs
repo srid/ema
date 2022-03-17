@@ -47,7 +47,6 @@ runServerWithWebSocketHotReload ::
   Port ->
   LVar (RouteModel r) ->
   m ()
--- TODO: remove host/port (already in cliA)
 runServerWithWebSocketHotReload host port model = do
   let settings =
         Warp.defaultSettings

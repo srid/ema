@@ -43,7 +43,8 @@ isLiveServer (Some (Run _)) = True
 isLiveServer _ = False
 
 data Cli = Cli
-  { action :: (Some Action)
+  { action :: Some Action,
+    verbose :: Bool
   }
   deriving stock (Eq, Show)
 
@@ -54,6 +55,7 @@ cliParser = do
       (command "gen" (info generate (progDesc "Generate static HTML files")))
       <|> subparser (command "run" (info run (progDesc "Run the live server")))
       <|> pure (Some $ Run def)
+  verbose <- switch (long "verbose" <> short 'v' <> help "Enable verbose logging")
   pure Cli {..}
   where
     run :: Parser (Some Action)
