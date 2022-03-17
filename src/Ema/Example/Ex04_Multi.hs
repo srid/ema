@@ -26,7 +26,7 @@ data R
   deriving stock (Show, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo, IsRoute)
 
-type M = NP I '[Ex03.Model]
+type M = NP I '[Ex02.Model, Ex03.Model]
 
 main :: IO ()
 main = do
@@ -42,9 +42,9 @@ instance CanGenerate R where
 
 instance HasModel R where
   modelDynamic cliAct enc () = do
-    -- x1 <- modelDynamic cliAct (innerRouteEncoder (iso getBasic R_Basic) enc) ()
+    x1 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Bookshelf") enc) ()
     x2 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
-    pure $ x2 <&> \x -> I x :* Nil
+    pure $ liftA2 (\x y -> I x :* I y :* Nil) x1 x2
 
 instance CanRender R where
   routeAsset enc m = \case
@@ -58,7 +58,7 @@ instance CanRender R where
       routeAsset (innerRouteEncoder (_As @"R_Clock") enc) (innerModel m) r
 
 renderIndex :: M -> LByteString
-renderIndex (I clockTime :* Nil) =
+renderIndex (I _ :* I clockTime :* Nil) =
   tailwindLayout (H.title "MultiSite" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are two sites composed to produce one:"

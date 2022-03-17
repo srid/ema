@@ -56,6 +56,7 @@ class IsRoute r where
     RouteEncoder (RouteModel r) r
   mkRouteEncoder = gMkRouteEncoder
 
+-- FIXME: this is useless for recursive routes
 newtype ConstModelRoute (m :: Type) r = ConstModelRoute {unConstModelRoute :: r}
 
 instance
