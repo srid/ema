@@ -1,7 +1,7 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/1fc7212a2c3992eedc6eedf498955c321ad81cc2";
+    nixpkgs.url = "github:nixos/nixpkgs/3eb07eeafb52bcbf02ce800f032f18d666a9498d";
     flake-utils.url = "github:numtide/flake-utils";
     flake-utils.inputs.nixpkgs.follows = "nixpkgs";
     flake-compat = {
@@ -14,10 +14,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         name = "ema";
-        overlays = [ ];
-        pkgs = import nixpkgs {
-          inherit system overlays;
-        };
+        pkgs = nixpkgs.legacyPackages.${system};
         emaProject = returnShellEnv:
           pkgs.haskellPackages.developPackage {
             inherit name returnShellEnv;
@@ -29,7 +26,7 @@
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv
-                (with pkgs.haskellPackages; [
+                (with pkgs.haskellPackages; pkgs.lib.lists.optionals returnShellEnv [
                   # Specify your build/dev dependencies here. 
                   cabal-fmt
                   cabal-install
@@ -39,11 +36,10 @@
                   pkgs.nixpkgs-fmt
                 ]);
           };
-        ema = emaProject false;
       in
       rec {
         # Used by `nix build`
-        defaultPackage = ema;
+        defaultPackage = emaProject false;
 
         checks = {
           pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {

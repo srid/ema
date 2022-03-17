@@ -1,10 +1,5 @@
 {
     "editor.formatOnType": true,
     "editor.formatOnSave": true,
-    "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
-    "workbench.colorCustomizations": {
-        "activityBar.background": "#1A322B",
-        "titleBar.activeBackground": "#24463C",
-        "titleBar.activeForeground": "#F7FBFA"
-    }
+    "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix"
 }
