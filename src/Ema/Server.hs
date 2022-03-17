@@ -4,16 +4,17 @@
 
 module Ema.Server where
 
+import Colog
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
-import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Text qualified as T
+import Ema.App.Env
 import Ema.Asset
-import Ema.CLI
-import Ema.Route.Class
+import Ema.CLI (Host (unHost), Port (unPort))
+import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
   ( checkRouteEncoderForSingleRoute,
     decodeRoute,
@@ -38,7 +39,8 @@ runServerWithWebSocketHotReload ::
   ( Show r,
     MonadIO m,
     MonadUnliftIO m,
-    MonadLoggerIO m,
+    HasLog (Env App) (Msg Severity) m,
+    MonadReader (Env App) m,
     Eq r,
     IsRoute r,
     CanRender r
@@ -53,110 +55,107 @@ runServerWithWebSocketHotReload host port model = do
         Warp.defaultSettings
           & Warp.setPort (unPort port)
           & Warp.setHost (fromString . toString . unHost $ host)
-  logger <- askLoggerIO
-
-  logInfoN "=============================================="
-  logInfoN $ "Ema live server running: http://" <> unHost host <> ":" <> show port
-  logInfoN "=============================================="
+  env :: Env App <- ask
+  log I "=============================================="
+  log I $ "Ema live server running: http://" <> unHost host <> ":" <> show port
+  log I "=============================================="
   liftIO $
     Warp.runSettings settings $
       assetsMiddleware $
         WaiWs.websocketsOr
           WS.defaultConnectionOptions
-          (flip runLoggingT logger . wsApp)
-          (httpApp logger)
+          (wsApp env)
+          (httpApp env)
   where
     enc = mkRouteEncoder @r
-    wsApp pendingConn = do
-      conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
-      logger <- askLoggerIO
-      lift $
-        WS.withPingThread conn 30 (pure ()) $
-          flip runLoggingT logger $ do
-            subId <- LVar.addListener model
-            let log lvl (s :: Text) =
-                  logWithoutLoc (toText @String $ printf "WS.Client.%.2d" subId) lvl s
-            log LevelInfo "Connected"
-            let askClientForRoute = do
-                  msg :: Text <- liftIO $ WS.receiveData conn
-                  -- TODO: Let non-html routes pass through.
-                  let pathInfo = pathInfoFromWsMsg msg
-                  log LevelDebug $ "<~~ " <> show pathInfo
-                  pure pathInfo
-                decodeRouteWithCurrentModel pathInfo = do
-                  val <- LVar.get model
-                  pure $ routeFromPathInfo val pathInfo
-                sendRouteHtmlToClient pathInfo s = do
-                  decodeRouteWithCurrentModel pathInfo >>= \case
-                    Left err -> do
-                      log LevelError $ badRouteEncodingMsg err
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
-                    Right Nothing ->
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
-                    Right (Just r) -> do
-                      case renderCatchingErrors logger s r of
-                        AssetStatic staticPath ->
-                          -- HACK: Websocket client should check for REDIRECT prefix.
-                          -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
-                        AssetGenerated Html html ->
-                          liftIO $ WS.sendTextData conn $ html <> wsClientHtml
-                        AssetGenerated Other _s ->
-                          -- HACK: Websocket client should check for REDIRECT prefix.
-                          -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute enc s r)
-                      log LevelDebug $ " ~~> " <> show r
-                loop = flip runLoggingT logger $ do
-                  -- Notice that we @askClientForRoute@ in succession twice here.
-                  -- The first route will be the route the client intends to observe
-                  -- for changes on. The second route, *if* it is sent, indicates
-                  -- that the client wants to *switch* to that route. This proecess
-                  -- repeats ad infinitum: i.e., the third route is for observing
-                  -- changes, the fourth route is for switching to, and so on.
-                  mWatchingRoute <- askClientForRoute
-                  -- Listen *until* either we get a new value, or the client requests
-                  -- to switch to a new route.
-                  liftIO $ do
-                    race (LVar.listenNext model subId) (runLoggingT askClientForRoute logger) >>= \res -> flip runLoggingT logger $ case res of
-                      Left newModel -> do
-                        -- The page the user is currently viewing has changed. Send
-                        -- the new HTML to them.
-                        sendRouteHtmlToClient mWatchingRoute newModel
-                        lift loop
-                      Right mNextRoute -> do
-                        -- The user clicked on a route link; send them the HTML for
-                        -- that route this time, ignoring what we are watching
-                        -- currently (we expect the user to initiate a watch route
-                        -- request immediately following this).
-                        sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                        lift loop
-            liftIO (try loop) >>= \case
-              Right () -> pure ()
-              Left (connExc :: ConnectionException) -> do
-                case connExc of
-                  WS.CloseRequest _ (decodeUtf8 -> reason) ->
-                    log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
-                  _ ->
-                    log LevelError $ "Websocket error: " <> show connExc
-                LVar.removeListener model subId
+    wsApp (env :: Env App) pendingConn = do
+      conn :: WS.Connection <- WS.acceptRequest pendingConn
+      WS.withPingThread conn 30 (pure ()) $
+        runApp env $ do
+          subId <- LVar.addListener model
+          let log' lvl (s :: Text) =
+                log lvl $ (toText @String $ printf "WS.Client.%.2d" subId) <> " " <> s
+          log' I "Connected"
+          let askClientForRoute = do
+                msg :: Text <- liftIO $ WS.receiveData conn
+                -- TODO: Let non-html routes pass through.
+                let pathInfo = pathInfoFromWsMsg msg
+                log' D $ "<~~ " <> show pathInfo
+                pure pathInfo
+              decodeRouteWithCurrentModel pathInfo = do
+                val <- LVar.get model
+                pure $ routeFromPathInfo val pathInfo
+              sendRouteHtmlToClient pathInfo s = do
+                decodeRouteWithCurrentModel pathInfo >>= \case
+                  Left err -> do
+                    log' E $ badRouteEncodingMsg err
+                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
+                  Right Nothing ->
+                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
+                  Right (Just r) -> do
+                    case renderCatchingErrors env s r of
+                      AssetStatic staticPath ->
+                        -- HACK: Websocket client should check for REDIRECT prefix.
+                        -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
+                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
+                      AssetGenerated Html html ->
+                        liftIO $ WS.sendTextData conn $ html <> wsClientHtml
+                      AssetGenerated Other _s ->
+                        -- HACK: Websocket client should check for REDIRECT prefix.
+                        -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
+                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute enc s r)
+                    log' D $ " ~~> " <> show r
+              loop = runApp env $ do
+                -- Notice that we @askClientForRoute@ in succession twice here.
+                -- The first route will be the route the client intends to observe
+                -- for changes on. The second route, *if* it is sent, indicates
+                -- that the client wants to *switch* to that route. This proecess
+                -- repeats ad infinitum: i.e., the third route is for observing
+                -- changes, the fourth route is for switching to, and so on.
+                mWatchingRoute <- askClientForRoute
+                -- Listen *until* either we get a new value, or the client requests
+                -- to switch to a new route.
+                liftIO $ do
+                  race (LVar.listenNext model subId) (runApp env askClientForRoute) >>= \res -> runApp env $ case res of
+                    Left newModel -> do
+                      -- The page the user is currently viewing has changed. Send
+                      -- the new HTML to them.
+                      sendRouteHtmlToClient mWatchingRoute newModel
+                      liftIO loop
+                    Right mNextRoute -> do
+                      -- The user clicked on a route link; send them the HTML for
+                      -- that route this time, ignoring what we are watching
+                      -- currently (we expect the user to initiate a watch route
+                      -- request immediately following this).
+                      sendRouteHtmlToClient mNextRoute =<< LVar.get model
+                      liftIO loop
+          liftIO (try loop) >>= \case
+            Right () -> pure ()
+            Left (connExc :: ConnectionException) -> do
+              case connExc of
+                WS.CloseRequest _ (decodeUtf8 -> reason) ->
+                  log' I $ "Closing websocket connection (reason: " <> reason <> ")"
+                _ ->
+                  log' E $ "Websocket error: " <> show connExc
+              LVar.removeListener model subId
     assetsMiddleware =
       Static.static
-    httpApp logger req f = do
-      flip runLoggingT logger $ do
+    httpApp env req f = do
+      runApp env $ do
         val <- LVar.get model
         let path = Wai.pathInfo req
             mr = routeFromPathInfo val path
-        logInfoNS "HTTP" $ show path <> " as " <> show mr
+        log I $ show path <> " as " <> show mr
         case mr of
           Left err -> do
-            logErrorNS "App" $ badRouteEncodingMsg err
+            log E $ badRouteEncodingMsg err
             let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> wsClientJS
             liftIO $ f $ Wai.responseLBS H.status500 [(H.hContentType, "text/html")] s
           Right Nothing -> do
             let s = emaErrorHtmlResponse decodeRouteNothingMsg <> wsClientJS
             liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
           Right (Just r) -> do
-            case renderCatchingErrors logger val r of
+            case renderCatchingErrors env val r of
               AssetStatic staticPath -> do
                 let mimeType = Static.getMimeType staticPath
                 liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
@@ -166,11 +165,11 @@ runServerWithWebSocketHotReload host port model = do
               AssetGenerated Other s -> do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
-    renderCatchingErrors logger m r =
+    renderCatchingErrors env m r =
       unsafeCatch (routeAsset enc m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
-          flip runLoggingT logger $ logErrorNS "App" $ show @Text err
+          runApp env $ log E $ show @Text err
           pure $
             AssetGenerated Html . mkHtmlErrorMsg $
               show @Text err
@@ -190,8 +189,8 @@ runServerWithWebSocketHotReload host port model = do
             Nothing -> pure Nothing
             Just r ->
               let checks = flip fmap candidates $ \c ->
-                    let (res, log) = runWriter $ checkRouteEncoderForSingleRoute enc m r c
-                     in (res, (c, log))
+                    let (res, logs) = runWriter $ checkRouteEncoderForSingleRoute enc m r c
+                     in (res, (c, logs))
                in if or (fst <$> checks)
                     then pure $ Just r
                     else Left $ BadRouteEncoding (snd <$> checks) r (encodeRoute enc m r)

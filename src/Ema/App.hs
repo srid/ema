@@ -6,18 +6,14 @@ module Ema.App
   )
 where
 
+import Colog
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
-import Control.Monad.Logger (logInfoNS, logWarnNS)
-import Control.Monad.Logger.Extras
-  ( colorize,
-    logToStdout,
-    runLoggerLoggingT,
-  )
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
+import Ema.App.Env
 import Ema.Asset
 import Ema.CLI (Cli)
 import Ema.CLI qualified as CLI
@@ -53,16 +49,15 @@ runSiteWithCli ::
   IO (DSum CLI.Action Identity)
 runSiteWithCli cli input = do
   -- TODO: Allow library users to control logging levels, or colors.
-  let logger = colorize logToStdout
+  let env = mkEnv cli
   model :: LVar a <- LVar.empty
-  flip runLoggerLoggingT logger $ do
+  runApp env $ do
     cwd <- liftIO getCurrentDirectory
-    let logSrc = "main"
-    logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
-    logInfoNS logSrc "Waiting for initial model ..."
+    log I $ "Launching Ema under: " <> toText cwd
+    log I "Waiting for initial model ..."
     let enc = mkRouteEncoder @r
     Dynamic (model0 :: a, cont) <- modelDynamic @r (CLI.action cli) enc input
-    logInfoNS logSrc "... initial model is now available."
+    log I "... initial model is now available."
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
         fs <- generateSite @r dest model0
@@ -71,10 +66,10 @@ runSiteWithCli cli input = do
         LVar.set model model0
         liftIO $
           race_
-            ( flip runLoggerLoggingT logger $ do
+            ( runApp env $ do
                 cont $ LVar.set model
-                logWarnNS logSrc "modelPatcher exited; no more model updates!"
+                log W "modelPatcher exited; no more model updates!"
                 liftIO $ threadDelay maxBound
             )
-            (flip runLoggerLoggingT logger $ Server.runServerWithWebSocketHotReload @r host port model)
+            (runApp env $ Server.runServerWithWebSocketHotReload @r host port model)
         pure $ act :=> Identity ()

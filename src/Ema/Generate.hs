@@ -4,29 +4,34 @@
 
 module Ema.Generate (generateSite) where
 
+import Colog
 import Control.Exception (throw)
-import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
+import Ema.App.Env
 import Ema.Asset
 import Ema.Route.Class (IsRoute (RouteModel, mkRouteEncoder))
 import Ema.Route.Encoder (RouteEncoder, checkRouteEncoderForSingleRoute, encodeRoute)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
-import UnliftIO (MonadUnliftIO)
 import UnliftIO.IO
   ( BufferMode (BlockBuffering, LineBuffering),
     hFlush,
     hSetBuffering,
   )
 
-log :: MonadLogger m => LogLevel -> Text -> m ()
-log = logWithoutLoc "Generate"
-
 generateSite ::
   forall r m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, CanRender r, CanGenerate r) =>
+  ( MonadIO m,
+    Eq r,
+    Show r,
+    IsRoute r,
+    HasLog (Env App) (Msg Severity) m,
+    MonadReader (Env App) m,
+    CanRender r,
+    CanGenerate r
+  ) =>
   FilePath ->
   RouteModel r ->
   m [FilePath]
@@ -46,13 +51,13 @@ generateSite dest model = do
 generate ::
   forall r m.
   ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
     HasCallStack,
     Eq r,
     Show r,
     CanRender r,
-    CanGenerate r
+    CanGenerate r,
+    HasLog (Env App) (Msg Severity) m,
+    MonadReader (Env App) m
   ) =>
   FilePath ->
   RouteEncoder (RouteModel r) r ->
@@ -70,7 +75,7 @@ generate dest enc model render = do
     let (valid, checkLog) = runWriter $ checkRouteEncoderForSingleRoute enc model route $ encodeRoute enc model route
     unless valid $
       error $ "Encoding for route '" <> show route <> "' is not isomorphic; " <> T.intercalate ". " checkLog
-  log LevelInfo $ "Writing " <> show (length routes) <> " routes"
+  log @(Env App) I $ "Writing " <> show (length routes) <> " routes"
   let (staticPaths, generatedPaths) =
         lefts &&& rights $
           routes <&> \r ->
@@ -79,7 +84,7 @@ generate dest enc model render = do
               AssetGenerated _fmt s -> Right (encodeRoute enc model r, s)
   paths <- forM generatedPaths $ \(relPath, !s) -> do
     let fp = dest </> relPath
-    log LevelInfo $ toText $ "W " <> fp
+    log I $ toText $ "W " <> fp
     liftIO $ do
       createDirectoryIfMissing True (takeDirectory fp)
       writeFileLBS fp s
@@ -91,19 +96,25 @@ generate dest enc model render = do
         -- Although the user may pass it, but review before merge.
         copyDirRecursively (encodeRoute enc model r) staticPath dest
       False ->
-        log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
+        log W $ toText $ "? " <> staticPath <> " (missing)"
   noBirdbrainedJekyll dest
   pure paths
 
 -- | Disable birdbrained hacks from GitHub to disable surprises like,
 -- https://github.com/jekyll/jekyll/issues/55
-noBirdbrainedJekyll :: (MonadIO m, MonadLoggerIO m) => FilePath -> m ()
+noBirdbrainedJekyll ::
+  ( MonadIO m,
+    HasLog (Env App) (Msg Severity) m,
+    MonadReader (Env App) m
+  ) =>
+  FilePath ->
+  m ()
 noBirdbrainedJekyll dest = do
   let nojekyll = dest </> ".nojekyll"
   liftIO (doesFileExist nojekyll) >>= \case
     True -> pure ()
     False -> do
-      log LevelInfo $ "Disabling Jekyll by writing " <> toText nojekyll
+      log I $ "Disabling Jekyll by writing " <> toText nojekyll
       writeFileLBS nojekyll ""
 
 newtype StaticAssetMissing = StaticAssetMissing FilePath
@@ -112,9 +123,9 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
 
 copyDirRecursively ::
   ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
-    HasCallStack
+    HasCallStack,
+    HasLog (Env App) (Msg Severity) m,
+    MonadReader (Env App) m
   ) =>
   -- | Source file path relative to CWD
   FilePath ->
@@ -127,7 +138,7 @@ copyDirRecursively srcRel srcAbs destParent = do
   liftIO (doesFileExist srcAbs) >>= \case
     True -> do
       let b = destParent </> srcRel
-      log LevelInfo $ toText $ "C " <> b
+      log I $ toText $ "C " <> b
       copyFileCreatingParents srcAbs b
     False ->
       liftIO (doesDirectoryExist srcAbs) >>= \case
@@ -138,7 +149,7 @@ copyDirRecursively srcRel srcAbs destParent = do
           forM_ fs $ \fp -> do
             let a = srcAbs </> fp
                 b = destParent </> srcRel </> fp
-            log LevelInfo $ toText $ "C " <> b
+            log I $ toText $ "C " <> b
             copyFileCreatingParents a b
   where
     copyFileCreatingParents a b =

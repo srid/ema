@@ -1,9 +1,12 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Ema.Dynamic
   ( Dynamic (Dynamic),
   )
 where
 
-import Control.Monad.Logger (MonadLogger, logDebugNS)
+import Colog
+import Ema.App.Env
 import UnliftIO (MonadUnliftIO, race_)
 import UnliftIO.Concurrent (threadDelay)
 
@@ -28,7 +31,13 @@ instance Functor (Dynamic m) where
         \send -> xf $ send . f
       )
 
-instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
+instance
+  ( MonadUnliftIO m,
+    HasLog (Env App) (Msg Severity) m,
+    MonadReader (Env App) m
+  ) =>
+  Applicative (Dynamic m)
+  where
   pure x = Dynamic (x, \_ -> pure ())
   liftA2 f (Dynamic (x0, xf)) (Dynamic (y0, yf)) =
     Dynamic
@@ -41,23 +50,23 @@ instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
             ( do
                 xf $ \x -> do
                   atomically $ putTMVar sendLock ()
-                  logDebugNS "Dynamic:App" "left update"
+                  log D "left update"
                   send <=< atomically $ do
                     modifyTVar' var $ first (const x)
                     f x . snd <$> readTVar var
                   atomically $ takeTMVar sendLock
-                logDebugNS "Dynamic:App" "updater exited; keeping thread alive"
+                log D "updater exited; keeping thread alive"
                 threadDelay maxBound
             )
             ( do
                 yf $ \y -> do
                   atomically $ putTMVar sendLock ()
-                  logDebugNS "Dynamic:App" "right update"
+                  log D "right update"
                   send <=< atomically $ do
                     modifyTVar' var $ second (const y)
                     (`f` y) . fst <$> readTVar var
                   atomically $ takeTMVar sendLock
-                logDebugNS "Dynamic:App" "updater exited; keeping thread alive"
+                log D "updater exited; keeping thread alive"
                 threadDelay maxBound
             )
       )

@@ -2,8 +2,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use camelCase" #-}
-
 -- | A very simple site with routes, but based on dynamically changing values
 --
 -- The current time is computed in the server every second, and the resultant
@@ -12,8 +10,8 @@
 -- of the browser. More advanced examples will demonstrate that.
 module Ema.Example.Ex03_Clock where
 
+import Colog
 import Control.Concurrent (threadDelay)
-import Control.Monad.Logger (logInfoNS)
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
@@ -39,7 +37,7 @@ instance HasModel Route where
   modelDynamic _ _ () = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \send -> do
-      logInfoNS "Ex03" "Starting clock..."
+      log I "Starting clock..."
       forever $ do
         liftIO $ threadDelay 1000000
         t <- liftIO getCurrentTime

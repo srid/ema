@@ -46,8 +46,6 @@ library
     , generics-sop
     , http-types
     , lvar
-    , monad-logger
-    , monad-logger-extras
     , mtl
     , neat-interpolation
     , optics-core
@@ -57,11 +55,15 @@ library
     , text
     , unliftio
     , url-slug
+    , chronos
+    , typerep-map
     , wai
     , wai-middleware-static
     , wai-websockets
     , warp
     , websockets
+    , co-log 
+    , co-log-core
 
   if flag(with-examples)
     build-depends:
@@ -123,6 +125,7 @@ library
   exposed-modules:
     Ema
     Ema.App
+    Ema.App.Env
     Ema.Asset
     Ema.CLI
     Ema.Dynamic

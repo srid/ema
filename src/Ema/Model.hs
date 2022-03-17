@@ -6,8 +6,9 @@ module Ema.Model
   )
 where
 
-import Control.Monad.Logger (MonadLoggerIO)
+import Colog
 import Data.Some (Some)
+import Ema.App.Env
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
 import Ema.Route.Class (IsRoute (RouteModel))
@@ -29,7 +30,11 @@ class IsRoute r => HasModel r where
   -}
   modelDynamic ::
     forall m.
-    (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
+    ( MonadIO m,
+      MonadUnliftIO m,
+      HasLog (Env App) (Msg Severity) m,
+      MonadReader (Env App) m
+    ) =>
     Some CLI.Action ->
     RouteEncoder (RouteModel r) r ->
     ModelInput r ->
@@ -38,7 +43,8 @@ class IsRoute r => HasModel r where
     forall m.
     ( MonadIO m,
       MonadUnliftIO m,
-      MonadLoggerIO m,
+      HasLog (Env App) (Msg Severity) m,
+      MonadReader (Env App) m,
       RouteModel r ~ ()
     ) =>
     Some CLI.Action ->
