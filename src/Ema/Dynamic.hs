@@ -41,23 +41,23 @@ instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
             ( do
                 xf $ \x -> do
                   atomically $ putTMVar sendLock ()
-                  logDebugNS "Dynamic:App" "left update"
+                  logDebugNS "ema.dyn.app" "left update"
                   send <=< atomically $ do
                     modifyTVar' var $ first (const x)
                     f x . snd <$> readTVar var
                   atomically $ takeTMVar sendLock
-                logDebugNS "Dynamic:App" "updater exited; keeping thread alive"
+                logDebugNS "ema.dyn.app" "updater exited; keeping thread alive"
                 threadDelay maxBound
             )
             ( do
                 yf $ \y -> do
                   atomically $ putTMVar sendLock ()
-                  logDebugNS "Dynamic:App" "right update"
+                  logDebugNS "ema.dyn.app" "right update"
                   send <=< atomically $ do
                     modifyTVar' var $ second (const y)
                     (`f` y) . fst <$> readTVar var
                   atomically $ takeTMVar sendLock
-                logDebugNS "Dynamic:App" "updater exited; keeping thread alive"
+                logDebugNS "ema.dyn.app" "updater exited; keeping thread alive"
                 threadDelay maxBound
             )
       )

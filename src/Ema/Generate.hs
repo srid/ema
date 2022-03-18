@@ -15,11 +15,6 @@ import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist,
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 import UnliftIO (MonadUnliftIO)
-import UnliftIO.IO
-  ( BufferMode (BlockBuffering, LineBuffering),
-    hFlush,
-    hSetBuffering,
-  )
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"

@@ -52,7 +52,7 @@ library
     , neat-interpolation
     , optics-core
     , optparse-applicative
-    , relude                  >=0.7      && <1.0
+    , relude                  >=1.0
     , sop-core
     , text
     , unliftio
