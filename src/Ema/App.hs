@@ -8,19 +8,13 @@ where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
-import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo), logInfoNS, logWarnNS)
-import Control.Monad.Logger.Extras
-  ( Logger (Logger, unLogger),
-    colorize,
-    logToStdout,
-    runLoggerLoggingT,
-  )
+import Control.Monad.Logger (LoggingT (runLoggingT), MonadLoggerIO (askLoggerIO), logInfoNS, logWarnNS)
+import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Dependent.Sum (DSum ((:=>)))
-import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
 import Ema.Asset
-import Ema.CLI (Cli)
+import Ema.CLI (Cli, getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
@@ -51,40 +45,28 @@ runSiteWithCli ::
   ModelInput r ->
   IO (DSum CLI.Action Identity)
 runSiteWithCli cli input = do
-  let logger =
-        logToStdout
-          & colorize
-          & allowLogLevelFrom (bool LevelInfo LevelDebug $ CLI.verbose cli)
-  flip runLoggerLoggingT logger $ do
+  flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
-    let logSrc = "main"
-    logInfoNS logSrc $ "Launching Ema under: " <> toText cwd
-    logInfoNS logSrc "Waiting for initial model ..."
+    logInfoNS "ema" $ "Launching Ema under: " <> toText cwd
     Dynamic (model0 :: RouteModel r, cont) <- modelDynamic @r (CLI.action cli) (mkRouteEncoder @r) input
-    logInfoNS logSrc "... initial model is now available."
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
         fs <- generateSite @r dest model0
         pure $ act :=> Identity fs
       Some act@(CLI.Run (host, port)) -> do
-        model :: LVar (RouteModel r) <- LVar.empty
+        model <- LVar.empty
         LVar.set model model0
+        logger <- askLoggerIO
         liftIO $
           race_
-            ( flip runLoggerLoggingT logger $ do
+            ( flip runLoggingT logger $ do
                 cont $ LVar.set model
-                logWarnNS logSrc "modelPatcher exited; no more model updates!"
+                logWarnNS "ema" "modelPatcher exited; no more model updates!"
                 -- We want to keep this thread alive, so that the server thread
                 -- doesn't exit.
                 liftIO $ threadDelay maxBound
             )
-            ( flip runLoggerLoggingT logger $ do
+            ( flip runLoggingT logger $ do
                 Server.runServerWithWebSocketHotReload @r host port model
             )
         pure $ act :=> Identity ()
-
-allowLogLevelFrom :: LogLevel -> Logger -> Logger
-allowLogLevelFrom minLevel (Logger f) = Logger $ \loc src level msg ->
-  if level >= minLevel
-    then f loc src level msg
-    else pure ()

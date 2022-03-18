@@ -13,7 +13,7 @@
 module Ema.Example.Ex03_Clock where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad.Logger (logInfoNS)
+import Control.Monad.Logger (logDebugNS, logInfoNS)
 import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
@@ -43,6 +43,7 @@ instance HasModel Route where
       forever $ do
         liftIO $ threadDelay 1000000
         t <- liftIO getCurrentTime
+        logDebugNS "Ex03" "Updating clock..."
         send t
 
 instance CanRender Route where

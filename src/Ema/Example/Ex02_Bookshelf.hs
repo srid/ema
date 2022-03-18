@@ -30,7 +30,8 @@ instance IsRoute Route where
     gMkRouteEncoder
       & mapRouteEncoder (prism' id Just) (prism' id Just) npModel
 
-npModel = (\x -> I (I x :* Nil) :* Nil)
+npModel :: x -> NP I '[NP I '[x]]
+npModel x = I (I x :* Nil) :* Nil
 
 instance HasModel Route where
   modelDynamic _ _ _ = do

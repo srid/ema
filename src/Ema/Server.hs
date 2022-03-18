@@ -54,9 +54,9 @@ runServerWithWebSocketHotReload host port model = do
           & Warp.setHost (fromString . toString . unHost $ host)
   logger <- askLoggerIO
 
-  logInfoN "=============================================="
-  logInfoN $ "Ema live server running: http://" <> unHost host <> ":" <> show port
-  logInfoN "=============================================="
+  logInfoNS "ema" "=============================================="
+  logInfoNS "ema" $ "Ema live server running: http://" <> unHost host <> ":" <> show port
+  logInfoNS "ema" "=============================================="
   liftIO $
     Warp.runSettings settings $
       assetsMiddleware $
@@ -74,7 +74,7 @@ runServerWithWebSocketHotReload host port model = do
           flip runLoggingT logger $ do
             subId <- LVar.addListener model
             let log lvl (s :: Text) =
-                  logWithoutLoc (toText @String $ printf "WS.Client.%.2d" subId) lvl s
+                  logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
             log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
@@ -145,7 +145,7 @@ runServerWithWebSocketHotReload host port model = do
         val <- LVar.get model
         let path = Wai.pathInfo req
             mr = routeFromPathInfo val path
-        logInfoNS "HTTP" $ show path <> " as " <> show mr
+        logInfoNS "ema.http" $ "GET " <> ("/" <> T.intercalate "/" path) <> " as " <> show mr
         case mr of
           Left err -> do
             logErrorNS "App" $ badRouteEncodingMsg err

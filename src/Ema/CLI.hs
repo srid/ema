@@ -4,6 +4,12 @@
 
 module Ema.CLI where
 
+import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo))
+import Control.Monad.Logger.Extras
+  ( Logger (Logger),
+    colorize,
+    logToStdout,
+  )
 import Data.Constraint.Extras.TH (deriveArgDict)
 import Data.Default (Default (def))
 import Data.GADT.Compare.TH
@@ -79,3 +85,15 @@ cliAction = do
             <> progDesc "Ema - static site generator"
             <> header "Ema"
         )
+
+getLogger :: Cli -> Logger
+getLogger cli =
+  logToStdout
+    & colorize
+    & allowLogLevelFrom (bool LevelInfo LevelDebug $ verbose cli)
+  where
+    allowLogLevelFrom :: LogLevel -> Logger -> Logger
+    allowLogLevelFrom minLevel (Logger f) = Logger $ \loc src level msg ->
+      if level >= minLevel
+        then f loc src level msg
+        else pure ()
