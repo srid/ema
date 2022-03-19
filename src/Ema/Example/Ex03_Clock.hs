@@ -33,7 +33,7 @@ data Route
   | Route_OnlyTime
   deriving stock (Show, Eq, GHC.Generic, Enum, Bounded)
   deriving anyclass (Generic, HasDatatypeInfo, CanGenerate)
-  deriving (IsRoute) via (ConstModelRoute Model Route)
+  deriving (IsRoute) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
   modelDynamic _ _ () = do

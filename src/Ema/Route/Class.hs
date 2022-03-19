@@ -6,7 +6,6 @@
 module Ema.Route.Class
   ( IsRoute (RouteModel, mkRouteEncoder),
     gMkRouteEncoder,
-    ConstModelRoute (..),
     SingleModelRoute (..),
     ShowReadable (ShowReadable),
     Stringable (Stringable),
@@ -56,47 +55,29 @@ class IsRoute r where
     RouteEncoder (RouteModel r) r
   mkRouteEncoder = gMkRouteEncoder
 
--- | DerivingVia repr for simple top-level routes without arguments
-newtype ConstModelRoute (m :: Type) r = ConstModelRoute {unConstModelRoute :: r}
-
 -- | DerivingVia repr for routes that use a single model for all inner routes.
 --
 -- This uses NPConst to support >1 constr with same model.
 newtype SingleModelRoute (m :: Type) r = SingleModelRoute {unSingleModelRoute :: r}
 
-instance
-  ( GRouteModel (Code r) ~ '[],
-    HasDatatypeInfo r,
-    All2 IsRoute (Code r),
-    All (IsRouteProd '[]) (Code r)
-  ) =>
-  IsRoute (ConstModelRoute m r)
-  where
-  type RouteModel (ConstModelRoute m r) = m
-  mkRouteEncoder =
-    gMkRouteEncoder @r
-      & mapRouteEncoder
-        (prism' id Just)
-        (prism' unConstModelRoute (Just . ConstModelRoute))
-        (const Nil)
-
 -- | Like `NP` but all elements are the same.
-class NPConst (f :: k -> Type) (xs :: [k]) where
-  type NPConstType f xs :: k
-  npConstFrom :: f (NPConstType f xs) -> NP f xs
+--
+-- Each of `xs` is equivalent to `a`.
+class NPConst (f :: k -> Type) (xs :: [k]) (a :: k) where
+  npConstFrom :: f a -> NP f xs
 
-instance {-# OVERLAPPING #-} NPConst f (x ': '[]) where
-  type NPConstType f (x ': '[]) = x
+instance NPConst I '[] a where
+  npConstFrom _ = Nil
+
+instance {-# OVERLAPPING #-} NPConst f (x ': '[]) x where
   npConstFrom x = x :* Nil
 
-instance (NPConst f xs, NPConstType f xs ~ x) => NPConst f (x ': xs) where
-  type NPConstType f (x ': xs) = x
-  npConstFrom x = x :* npConstFrom x
+instance (NPConst f xs x) => NPConst f (x ': xs) x where
+  npConstFrom x = x :* npConstFrom @_ @f @xs @x x
 
 instance
   ( GRouteModel (Code r) ~ ms,
-    NPConst I ms,
-    NPConstType I ms ~ m,
+    NPConst I ms m,
     HasDatatypeInfo r,
     All2 IsRoute (Code r),
     All (IsRouteProd ms) (Code r)
