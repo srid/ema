@@ -54,4 +54,4 @@ instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
 
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) where
   type RouteModel (PrefixedRoute prefix r) = RouteModel r
-  mkRouteEncoder = toPrefixedRouteEncoder @prefix @r @(RouteModel r) $ mkRouteEncoder @r
+  routeEncoder = toPrefixedRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r

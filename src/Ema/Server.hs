@@ -65,7 +65,7 @@ runServerWithWebSocketHotReload host port model = do
           (flip runLoggingT logger . wsApp)
           (httpApp logger)
   where
-    enc = mkRouteEncoder @r
+    enc = routeEncoder @r
     wsApp pendingConn = do
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO

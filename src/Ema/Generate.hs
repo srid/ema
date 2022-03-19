@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
 import Ema.Asset
-import Ema.Route.Class (IsRoute (RouteModel, mkRouteEncoder))
+import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Route.Encoder (RouteEncoder, checkRouteEncoderForSingleRoute, encodeRoute)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -26,7 +26,7 @@ generateSite ::
   RouteModel r ->
   m [FilePath]
 generateSite dest model = do
-  let enc = mkRouteEncoder @r
+  let enc = routeEncoder @r
   -- cliAct = Some $ CLI.Generate dest
   withBlockBuffering $
     generate dest enc model (routeAsset enc)

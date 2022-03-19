@@ -55,7 +55,7 @@ newtype ProductName = ProductName Text
 
 instance IsRoute ProductName where
   type RouteModel ProductName = Model
-  mkRouteEncoder =
+  routeEncoder =
     stringRouteEncoder
       & anyModelRouteEncoder
 
@@ -68,7 +68,7 @@ newtype CategoryName = CategoryName Text
 
 instance IsRoute CategoryName where
   type RouteModel CategoryName = Model
-  mkRouteEncoder =
+  routeEncoder =
     stringRouteEncoder
       & anyModelRouteEncoder
       -- Since category names can contain whitespace, we replace them in URLs

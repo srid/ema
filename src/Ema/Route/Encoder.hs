@@ -31,7 +31,6 @@ mapRouteEncoder ::
 mapRouteEncoder fp r m (RouteEncoder enc) =
   RouteEncoder $ cpmap fp r m enc
 
--- TODO: use `mkRouteEncoder :: (ctx -> Prism' FilePath r) -> RouteEncoder ctx r`
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y =
   RouteEncoder $ fromPrism $ \ctx -> prism' (x ctx) (y ctx)

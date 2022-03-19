@@ -4,8 +4,8 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Ema.Route.Class
-  ( IsRoute (RouteModel, mkRouteEncoder),
-    gMkRouteEncoder,
+  ( IsRoute (RouteModel, routeEncoder),
+    gRouteEncoder,
     SingleModelRoute (..),
     ShowReadable (ShowReadable),
     Stringable (Stringable),
@@ -43,8 +43,8 @@ import Prelude hiding (All, Generic)
 class IsRoute r where
   type RouteModel r :: Type
   type RouteModel r = NP I (GRouteModel (Code r))
-  mkRouteEncoder :: RouteEncoder (RouteModel r) r
-  default mkRouteEncoder ::
+  routeEncoder :: RouteEncoder (RouteModel r) r
+  default routeEncoder ::
     ( Generic r,
       ms ~ GRouteModel (Code r),
       All2 IsRoute (Code r),
@@ -53,7 +53,7 @@ class IsRoute r where
       RouteModel r ~ NP I ms
     ) =>
     RouteEncoder (RouteModel r) r
-  mkRouteEncoder = gMkRouteEncoder
+  routeEncoder = gRouteEncoder
 
 -- | DerivingVia repr for routes that use a single model for all inner routes.
 --
@@ -85,8 +85,8 @@ instance
   IsRoute (SingleModelRoute m r)
   where
   type RouteModel (SingleModelRoute m r) = m
-  mkRouteEncoder =
-    gMkRouteEncoder @r
+  routeEncoder =
+    gRouteEncoder @r
       & mapRouteEncoder
         (prism' id Just)
         (prism' unSingleModelRoute (Just . SingleModelRoute))
@@ -100,11 +100,11 @@ newtype Stringable a = Stringable a
 
 instance (Show a, Read a) => IsRoute (ShowReadable a) where
   type RouteModel (ShowReadable a) = ()
-  mkRouteEncoder = showReadRouteEncoder
+  routeEncoder = showReadRouteEncoder
 
 instance (IsString a, ToString a) => IsRoute (Stringable a) where
   type RouteModel (Stringable a) = ()
-  mkRouteEncoder = stringRouteEncoder
+  routeEncoder = stringRouteEncoder
 
 deriving via (Stringable Text) instance IsRoute Text
 
@@ -112,7 +112,7 @@ deriving via (Stringable String) instance IsRoute String
 
 instance IsRoute () where
   type RouteModel () = ()
-  mkRouteEncoder = singletonRouteEncoder
+  routeEncoder = singletonRouteEncoder
 
 type family GRouteModel (xss :: [[Type]]) :: [Type] where
   GRouteModel '[] = '[]
@@ -177,7 +177,7 @@ innerModel :: Contains ms m => NP I ms -> m
 innerModel = view npIso
 
 -- TODO: Fail in compile time, if ctor naming is bad.
-gMkRouteEncoder ::
+gRouteEncoder ::
   forall r ms.
   ( Generic r,
     ms ~ GRouteModel (Code r),
@@ -186,7 +186,7 @@ gMkRouteEncoder ::
     HasDatatypeInfo r
   ) =>
   RouteEncoder (NP I ms) r
-gMkRouteEncoder =
+gRouteEncoder =
   unsafeMkRouteEncoder gEncodeRoute gDecodeRoute
 
 gEncodeRoute ::
@@ -214,7 +214,7 @@ gEncodeRoute m x' =
       K . hcollapseMaybe . hcmap (Proxy @(IsRouteIn ms)) encTerm
     encTerm :: forall b. (IsRouteIn ms b) => I b -> K FilePath b
     encTerm =
-      K . encodeRoute (mkRouteEncoder @b) (view (npIso @_ @(RouteModel b)) m) . unI
+      K . encodeRoute (routeEncoder @b) (view (npIso @_ @(RouteModel b)) m) . unI
 
 class (IsRoute r, Contains ms (RouteModel r)) => IsRouteIn ms r
 
@@ -268,7 +268,7 @@ gDecodeRoute m fp = do
           SNil -> do
             -- Recurse into the only product argument
             guard $ not $ null rest
-            r' <- decodeRoute (mkRouteEncoder @y1) (view (npIso @_ @(RouteModel y1)) m) $ joinPath rest
+            r' <- decodeRoute (routeEncoder @y1) (view (npIso @_ @(RouteModel y1)) m) $ joinPath rest
             pure (I r', Proxy)
           SCons ->
             -- Not reachable, due to HCollapseMaybe constraint
