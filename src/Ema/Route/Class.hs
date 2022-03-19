@@ -61,7 +61,7 @@ newtype ConstModelRoute (m :: Type) r = ConstModelRoute {unConstModelRoute :: r}
 
 -- | DerivingVia repr for routes that use a single model for all inner routes.
 --
--- FIXME: doesn't work for >1 constrs using the same model.
+-- This uses NPConst to support >1 constr with same model.
 newtype SingleModelRoute (m :: Type) r = SingleModelRoute {unSingleModelRoute :: r}
 
 instance
@@ -80,11 +80,26 @@ instance
         (prism' unConstModelRoute (Just . ConstModelRoute))
         (const Nil)
 
+-- | Like `NP` but all elements are the same.
+class NPConst (f :: k -> Type) (xs :: [k]) where
+  type NPConstType f xs :: k
+  npConstFrom :: f (NPConstType f xs) -> NP f xs
+
+instance {-# OVERLAPPING #-} NPConst f (x ': '[]) where
+  type NPConstType f (x ': '[]) = x
+  npConstFrom x = x :* Nil
+
+instance (NPConst f xs, NPConstType f xs ~ x) => NPConst f (x ': xs) where
+  type NPConstType f (x ': xs) = x
+  npConstFrom x = x :* npConstFrom x
+
 instance
-  ( GRouteModel (Code r) ~ '[RouteModel (SingleModelRoute m r)],
+  ( GRouteModel (Code r) ~ ms,
+    NPConst I ms,
+    NPConstType I ms ~ m,
     HasDatatypeInfo r,
     All2 IsRoute (Code r),
-    All (IsRouteProd '[m]) (Code r)
+    All (IsRouteProd ms) (Code r)
   ) =>
   IsRoute (SingleModelRoute m r)
   where
@@ -94,7 +109,7 @@ instance
       & mapRouteEncoder
         (prism' id Just)
         (prism' unSingleModelRoute (Just . SingleModelRoute))
-        (\m -> I m :* Nil)
+        (npConstFrom . I)
 
 newtype ShowReadable a = ShowReadable a
   deriving newtype (Show, Read)

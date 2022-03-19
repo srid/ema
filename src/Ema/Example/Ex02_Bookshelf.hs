@@ -31,7 +31,7 @@ instance HasModel Route where
 data ProductRoute
   = ProductRoute_Index
   | ProductRoute_Product ProductName
-  --  ProductRoute_Product2 ProductName
+  | ProductRoute_Product2 ProductName
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
