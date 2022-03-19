@@ -42,6 +42,12 @@ decodeRoute (RouteEncoder enc) = cpreview enc
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = RouteEncoder . fromPrism . const
 
+anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
+anyModelRouteEncoder = mapRouteEncoder (prism' id Just) (prism' id Just) (const ())
+
+slugifyRouteEncoder :: RouteEncoder a r -> RouteEncoder a r
+slugifyRouteEncoder = mapRouteEncoder (prism' (toString . T.replace " " "-" . toText) Just) (prism' id Just) id
+
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
   prismRouteEncoder $ prism' ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
