@@ -82,8 +82,8 @@ instance IsRoute CategoryName where
       replacing :: Text -> Text -> Iso' FilePath FilePath
       replacing needle replacement =
         iso
-          (toString . T.replace needle replacement . toText)
           (toString . T.replace replacement needle . toText)
+          (toString . T.replace needle replacement . toText)
 
 instance CanGenerate CategoryName where
   generatableRoutes m = CategoryName <$> modelCategories m

@@ -183,6 +183,7 @@ innerModel :: Contains ms m => NP I ms -> m
 innerModel = view npIso
 
 -- TODO: Fail in compile time, if ctor naming is bad.
+-- TODO: Can I simplify this using `prefixRouteEncoder`?
 gRouteEncoder ::
   forall r ms.
   ( Generic r,

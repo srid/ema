@@ -19,20 +19,18 @@ import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder (RouteEncoder)
-import GHC.Generics qualified as GHC
-import Generics.SOP (Generic, HasDatatypeInfo)
+import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
-import Prelude hiding (Generic)
 
 type Model = UTCTime
 
 data Route
   = Route_Index
   | Route_OnlyTime
-  deriving stock (Show, Eq, GHC.Generic, Enum, Bounded)
-  deriving anyclass (Generic, HasDatatypeInfo, CanGenerate)
+  deriving stock (Show, Eq, Generic, Enum, Bounded)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, CanGenerate)
   deriving (IsRoute) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
