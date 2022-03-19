@@ -7,7 +7,7 @@ import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex01_Basic qualified as Ex01
-import Ema.Example.Ex02_Bookshelf qualified as Ex02
+import Ema.Example.Ex02_Store qualified as Ex02
 import Ema.Example.Ex03_Clock qualified as Ex03
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo, I (..), NP (..))
@@ -62,7 +62,7 @@ renderIndex (I _ :* I clockTime :* Nil) =
       H.p "You can compose Ema sites. Here are two sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
         H.li $ routeElem "basic" "Ex01_Basic"
-        H.li $ routeElem "bookshelf" "Ex02_Bookshelf"
+        H.li $ routeElem "bookshelf" "Ex02_Store"
         H.li $ routeElem "clock" "Ex03_Clock"
       H.p $ do
         "The current time is: "

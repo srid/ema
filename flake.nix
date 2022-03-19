@@ -23,7 +23,7 @@
             overrides = self: super: with pkgs.haskell.lib; {
               # lvar = self.callCabal2nix "lvar" inputs.lvar { };
               # url-slug = inputs.url-slug.defaultPackage.${system};
-              relude = self.callHackage "relude" "1.0.0.1" { };  # Not on nixpkgs, for some reason.
+              relude = self.callHackage "relude" "1.0.0.1" { }; # Not on nixpkgs, for some reason.
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv

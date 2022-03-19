@@ -129,8 +129,8 @@ library
     Ema.Generate
     Ema.Model
     Ema.Route.Class
-    Ema.Route.Encoder
     Ema.Route.CtxPrism
+    Ema.Route.Encoder
     Ema.Route.Generic
     Ema.Route.Prefixed
     Ema.Route.Url
@@ -140,7 +140,7 @@ library
     other-modules:
       Ema.Example.Common
       Ema.Example.Ex01_Basic
-      Ema.Example.Ex02_Bookshelf
+      Ema.Example.Ex02_Store
       Ema.Example.Ex03_Clock
       Ema.Example.Ex04_Multi
 

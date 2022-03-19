@@ -15,7 +15,13 @@ data Route
   = Route_Index
   | Route_About
   deriving stock (Show, Eq, Generic, Enum, Bounded)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute, CanGenerate)
+  deriving anyclass
+    ( SOP.Generic,
+      SOP.HasDatatypeInfo,
+      HasModel,
+      IsRoute,
+      CanGenerate
+    )
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

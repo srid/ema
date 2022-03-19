@@ -1,15 +1,17 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | TODO: rewrite this to load books.json and display that, with individual page for books too.
-module Ema.Example.Ex02_Bookshelf where
+-- | A simple web store for products
+--
+-- TODO: rewrite this to load store.json and display that, with individual page for books too.
+module Ema.Example.Ex02_Store where
 
 import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder
 import Generics.SOP qualified as SOP
-import Optics.Core (prism')
+import Optics.Core (Prism', prism')
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -80,6 +82,7 @@ instance IsRoute CategoryName where
           (replacingPrism " " "-")
           (prism' id Just)
           id
+      replacingPrism :: Text -> Text -> Prism' FilePath FilePath
       replacingPrism needle replacement =
         prism'
           (toString . T.replace needle replacement . toText)

@@ -13,6 +13,8 @@ import Ema.Route.CtxPrism
   )
 import Optics.Core
   ( Prism',
+    castOptic,
+    equality,
     prism',
   )
 
@@ -29,6 +31,7 @@ mapRouteEncoder ::
 mapRouteEncoder fp r m (RouteEncoder enc) =
   RouteEncoder $ cpmap fp r m enc
 
+-- TODO: use `mkRouteEncoder :: (ctx -> Prism' FilePath r) -> RouteEncoder ctx r`
 unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
 unsafeMkRouteEncoder x y =
   RouteEncoder $ fromPrism $ \ctx -> prism' (x ctx) (y ctx)
@@ -42,11 +45,12 @@ decodeRoute (RouteEncoder enc) = cpreview enc
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = RouteEncoder . fromPrism . const
 
+-- | Returns a new route encoder that ignores its model.
 anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
-anyModelRouteEncoder = mapRouteEncoder (prism' id Just) (prism' id Just) (const ())
-
-slugifyRouteEncoder :: RouteEncoder a r -> RouteEncoder a r
-slugifyRouteEncoder = mapRouteEncoder (prism' (toString . T.replace " " "-" . toText) Just) (prism' id Just) id
+anyModelRouteEncoder = mapRouteEncoder idPrism idPrism (const ())
+  where
+    idPrism :: Prism' a a
+    idPrism = castOptic equality
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
