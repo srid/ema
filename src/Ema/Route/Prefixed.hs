@@ -1,7 +1,6 @@
 module Ema.Route.Prefixed
   ( PrefixedRoute (PrefixedRoute, unPrefixedRoute),
-    toPrefixedRouteEncoder,
-    fromPrefixedRouteEncoder,
+    prefixRouteEncoder,
   )
 where
 
@@ -24,17 +23,18 @@ import Text.Show (Show (show))
 instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) where
   type ModelInput (PrefixedRoute prefix r) = ModelInput r
   modelDynamic cliAct enc input =
-    modelDynamic @r cliAct (fromPrefixedRouteEncoder enc) input
+    modelDynamic @r cliAct (chainRouteEncoder coercedTo enc) input
 
 instance (CanRender r, KnownSymbol prefix) => CanRender (PrefixedRoute prefix r) where
   routeAsset enc m r =
-    routeAsset @r (fromPrefixedRouteEncoder enc) m (unPrefixedRoute r)
+    routeAsset @r (chainRouteEncoder coercedTo enc) m (unPrefixedRoute r)
 
 instance (CanGenerate r, KnownSymbol prefix) => CanGenerate (PrefixedRoute prefix r) where
   generatableRoutes m = PrefixedRoute <$> generatableRoutes @r m
 
-toPrefixedRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (PrefixedRoute prefix r)
-toPrefixedRouteEncoder =
+-- | Prefix the encoding of the given RouteEncoder.
+prefixRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (PrefixedRoute prefix r)
+prefixRouteEncoder =
   mapRouteEncoder
     (prism' (prefix </>) stripPrefix)
     coercedTo
@@ -43,11 +43,6 @@ toPrefixedRouteEncoder =
     prefix = symbolVal (Proxy @prefix)
     stripPrefix =
       fmap toString . T.stripPrefix (toText $ prefix <> "/") . toText
-
--- This coerces the r, but without losing the prefix encoding.
-fromPrefixedRouteEncoder :: forall prefix r a. RouteEncoder a (PrefixedRoute prefix r) -> RouteEncoder a r
-fromPrefixedRouteEncoder =
-  chainRouteEncoder coercedTo
 
 -- | A route that is prefixed at some URL prefix
 newtype PrefixedRoute (prefix :: Symbol) r = PrefixedRoute {unPrefixedRoute :: r}
@@ -58,4 +53,4 @@ instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
 
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) where
   type RouteModel (PrefixedRoute prefix r) = RouteModel r
-  routeEncoder = toPrefixedRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
+  routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r

@@ -30,7 +30,6 @@ import Optics.Core
     Iso',
     NoIx,
     Optic',
-    Prism',
     coercedTo,
     equality,
     iso,
