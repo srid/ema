@@ -27,6 +27,7 @@ import Generics.SOP
 import Optics.Core
   ( Iso',
     Prism',
+    equality,
     iso,
     prism',
     review,
@@ -88,7 +89,7 @@ instance
   routeEncoder =
     gRouteEncoder @r
       & mapRouteEncoder
-        (prism' id Just)
+        equality
         (prism' unSingleModelRoute (Just . SingleModelRoute))
         (npConstFrom . I)
 
@@ -171,7 +172,7 @@ innerRouteEncoder ::
   RouteEncoder (NP I ms) o ->
   RouteEncoder m i
 innerRouteEncoder p =
-  mapRouteEncoder (prism' id Just) p (review npIso)
+  mapRouteEncoder equality p (review npIso)
 
 innerModel :: Contains ms m => NP I ms -> m
 innerModel = view npIso

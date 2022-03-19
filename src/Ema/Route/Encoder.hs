@@ -12,9 +12,14 @@ import Ema.Route.CtxPrism
     fromPrism,
   )
 import Optics.Core
-  ( Prism',
+  ( A_Prism,
+    Is,
+    NoIx,
+    Optic',
+    Prism',
     castOptic,
     equality,
+    iso,
     prism',
   )
 
@@ -23,13 +28,14 @@ import Optics.Core
 newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
 mapRouteEncoder ::
-  Prism' FilePath FilePath ->
-  Prism' r1 r2 ->
+  (pr `Is` A_Prism, pf `Is` A_Prism) =>
+  Optic' pf NoIx FilePath FilePath ->
+  Optic' pr NoIx r1 r2 ->
   (b -> a) ->
   RouteEncoder a r1 ->
   RouteEncoder b r2
 mapRouteEncoder fp r m (RouteEncoder enc) =
-  RouteEncoder $ cpmap fp r m enc
+  RouteEncoder $ cpmap (castOptic fp) (castOptic r) m enc
 
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
@@ -47,18 +53,28 @@ prismRouteEncoder = mkRouteEncoder . const
 
 -- | Returns a new route encoder that ignores its model.
 anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
-anyModelRouteEncoder = mapRouteEncoder idPrism idPrism (const ())
-  where
-    idPrism :: Prism' a a
-    idPrism = castOptic equality
+anyModelRouteEncoder = mapRouteEncoder equality equality (const ())
 
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
-  prismRouteEncoder $ prism' ((<> ".html") . show) (readMaybe <=< fmap toString . T.stripSuffix ".html" . toText)
+  htmlSuffixEncoder
+    & chainRouteEncoder (prism' show readMaybe)
 
 stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
 stringRouteEncoder =
-  prismRouteEncoder $ prism' ((<> ".html") . toString) (fmap (fromString . toString) . T.stripSuffix ".html" . toText)
+  htmlSuffixEncoder
+    & chainRouteEncoder (castOptic stringIso)
+  where
+    stringIso = iso fromString toString
+
+chainRouteEncoder :: Prism' r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
+chainRouteEncoder f =
+  mapRouteEncoder equality f id
+
+-- | An encoder that uses the ".html" suffix
+htmlSuffixEncoder :: RouteEncoder a FilePath
+htmlSuffixEncoder =
+  prismRouteEncoder $ prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . toText)
 
 singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
 singletonRouteEncoderFrom fp =
@@ -94,14 +110,14 @@ mergeRouteEncoder enc1 enc2 =
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
   mapRouteEncoder
-    (prism' id Just)
+    equality
     (prism' Left leftToMaybe)
     (,willNotBeUsed)
 
 rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
 rightRouteEncoder =
   mapRouteEncoder
-    (prism' id Just)
+    equality
     (prism' Right rightToMaybe)
     (willNotBeUsed,)
 

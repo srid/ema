@@ -11,7 +11,7 @@ import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder
 import Generics.SOP qualified as SOP
-import Optics.Core (Prism', prism')
+import Optics.Core (Prism', equality, prism')
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -80,7 +80,7 @@ instance IsRoute CategoryName where
       slugifyRouteEncoder =
         mapRouteEncoder
           (replacingPrism " " "-")
-          (prism' id Just)
+          equality
           id
       replacingPrism :: Text -> Text -> Prism' FilePath FilePath
       replacingPrism needle replacement =
