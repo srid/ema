@@ -187,7 +187,8 @@ gRouteEncoder ::
   ) =>
   RouteEncoder (NP I ms) r
 gRouteEncoder =
-  unsafeMkRouteEncoder gEncodeRoute gDecodeRoute
+  mkRouteEncoder $ \m ->
+    prism' (gEncodeRoute m) (gDecodeRoute m)
 
 gEncodeRoute ::
   forall r ms.

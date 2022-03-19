@@ -31,9 +31,9 @@ mapRouteEncoder ::
 mapRouteEncoder fp r m (RouteEncoder enc) =
   RouteEncoder $ cpmap fp r m enc
 
-unsafeMkRouteEncoder :: (ctx -> a -> FilePath) -> (ctx -> FilePath -> Maybe a) -> RouteEncoder ctx a
-unsafeMkRouteEncoder x y =
-  RouteEncoder $ fromPrism $ \ctx -> prism' (x ctx) (y ctx)
+-- | Make a `RouteEncoder` manually.
+mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
+mkRouteEncoder = RouteEncoder . fromPrism
 
 encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (RouteEncoder enc) = creview enc
@@ -41,8 +41,9 @@ encodeRoute (RouteEncoder enc) = creview enc
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (RouteEncoder enc) = cpreview enc
 
+-- | Like `mkRouteEncoder` but without using context
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
-prismRouteEncoder = RouteEncoder . fromPrism . const
+prismRouteEncoder = mkRouteEncoder . const
 
 -- | Returns a new route encoder that ignores its model.
 anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
@@ -77,18 +78,18 @@ checkRouteEncoderForSingleRoute (RouteEncoder piso) = ctxPrismIsLawfulFor piso
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
 mergeRouteEncoder enc1 enc2 =
   -- TODO: this can be made safe, using lens composition.
-  unsafeMkRouteEncoder
-    ( \m ->
-        either
+  mkRouteEncoder $ \m ->
+    prism'
+      ( either
           (encodeRoute enc1 (fst m))
           (encodeRoute enc2 (snd m))
-    )
-    ( \m fp ->
-        asum
-          [ Left <$> decodeRoute enc1 (fst m) fp,
-            Right <$> decodeRoute enc2 (snd m) fp
-          ]
-    )
+      )
+      ( \fp ->
+          asum
+            [ Left <$> decodeRoute enc1 (fst m) fp,
+              Right <$> decodeRoute enc2 (snd m) fp
+            ]
+      )
 
 leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
 leftRouteEncoder =
