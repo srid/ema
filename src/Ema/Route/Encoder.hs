@@ -37,6 +37,20 @@ mapRouteEncoder ::
 mapRouteEncoder fp r m (RouteEncoder enc) =
   RouteEncoder $ cpmap (castOptic fp) (castOptic r) m enc
 
+chainRouteEncoder :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
+chainRouteEncoder f =
+  mapRouteEncoder equality f id
+
+-- | Patch the encoded value of a RouteEncoder.
+patchRouteEncoder :: pr `Is` A_Prism => Optic' pr NoIx FilePath FilePath -> RouteEncoder a r -> RouteEncoder a r
+patchRouteEncoder f =
+  mapRouteEncoder f equality id
+
+-- | Returns a new route encoder that ignores its model.
+anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
+anyModelRouteEncoder =
+  mapRouteEncoder equality equality (const ())
+
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
 mkRouteEncoder = RouteEncoder . fromPrism
@@ -51,10 +65,6 @@ decodeRoute (RouteEncoder enc) = cpreview enc
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = mkRouteEncoder . const
 
--- | Returns a new route encoder that ignores its model.
-anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
-anyModelRouteEncoder = mapRouteEncoder equality equality (const ())
-
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
   htmlSuffixEncoder
@@ -63,13 +73,9 @@ showReadRouteEncoder =
 stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
 stringRouteEncoder =
   htmlSuffixEncoder
-    & chainRouteEncoder (castOptic stringIso)
+    & chainRouteEncoder stringIso
   where
     stringIso = iso fromString toString
-
-chainRouteEncoder :: Prism' r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
-chainRouteEncoder f =
-  mapRouteEncoder equality f id
 
 -- | An encoder that uses the ".html" suffix
 htmlSuffixEncoder :: RouteEncoder a FilePath

@@ -11,7 +11,7 @@ import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder
 import Generics.SOP qualified as SOP
-import Optics.Core (Prism', equality, prism')
+import Optics.Core (Iso', iso)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -78,15 +78,12 @@ instance IsRoute CategoryName where
     where
       slugifyRouteEncoder :: RouteEncoder a r -> RouteEncoder a r
       slugifyRouteEncoder =
-        mapRouteEncoder
-          (replacingPrism " " "-")
-          equality
-          id
-      replacingPrism :: Text -> Text -> Prism' FilePath FilePath
-      replacingPrism needle replacement =
-        prism'
+        patchRouteEncoder (replacing " " "-")
+      replacing :: Text -> Text -> Iso' FilePath FilePath
+      replacing needle replacement =
+        iso
           (toString . T.replace needle replacement . toText)
-          (Just . toString . T.replace replacement needle . toText)
+          (toString . T.replace replacement needle . toText)
 
 instance CanGenerate CategoryName where
   generatableRoutes m = CategoryName <$> modelCategories m
@@ -112,9 +109,9 @@ main = void $ Ema.runSite @Route ()
 instance CanRender Route where
   routeAsset enc m@(Model ps cats) r =
     Ema.AssetGenerated Ema.Html $
-      tailwindLayout (H.title "Bookshelf site" >> H.base ! A.href "/") $
+      tailwindLayout (H.title "Store example (Ema)" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
-          H.h1 ! A.class_ "text-3xl font-bold" $ "TODO: Bookshelf"
+          H.h1 ! A.class_ "text-3xl font-bold" $ "Store"
           case r of
             Route_Index -> do
               "You are on the index page. "
