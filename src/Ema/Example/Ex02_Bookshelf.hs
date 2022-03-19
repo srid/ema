@@ -4,13 +4,11 @@
 -- | TODO: rewrite this to load books.json and display that, with individual page for books too.
 module Ema.Example.Ex02_Bookshelf where
 
-import Data.SOP
 import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder
 import Generics.SOP qualified as SOP
-import Optics.Core
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -23,15 +21,7 @@ data Route
   | Route_Products ProductRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-
-instance IsRoute Route where
-  type RouteModel Route = Model
-  mkRouteEncoder =
-    gMkRouteEncoder
-      & mapRouteEncoder (prism' id Just) (prism' id Just) npModel
-
-npModel :: x -> NP I '[NP I '[x]]
-npModel x = I (I x :* Nil) :* Nil
+  deriving (IsRoute) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
   modelDynamic _ _ _ = do
@@ -41,8 +31,10 @@ instance HasModel Route where
 data ProductRoute
   = ProductRoute_Index
   | ProductRoute_Product ProductName
+  --  ProductRoute_Product2 ProductName
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
 
 newtype ProductName = ProductName Text
   deriving stock (Show, Eq)
@@ -64,10 +56,10 @@ instance CanGenerate ProductName where
 
 -- TODO: Generic!
 instance CanGenerate ProductRoute where
-  generatableRoutes m = [ProductRoute_Index] <> (ProductRoute_Product <$> generatableRoutes (innerModel m))
+  generatableRoutes m = [ProductRoute_Index] <> (ProductRoute_Product <$> generatableRoutes m)
 
 instance CanGenerate Route where
-  generatableRoutes m = [Route_Index, Route_About] <> (Route_Products <$> generatableRoutes (innerModel $ npModel m))
+  generatableRoutes m = [Route_Index, Route_About] <> (Route_Products <$> generatableRoutes m)
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

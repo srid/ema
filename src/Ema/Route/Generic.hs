@@ -14,25 +14,6 @@ import GHC.TypeLits
 import Generics.SOP
 import Prelude hiding (All)
 
--- | Like `NP`, but the empty case is reduced to `()`
---
--- This is useful to "hide" sop-core from user in the simple use cases.
-type family NPMaybe f xs where
-  NPMaybe f '[] = ()
-  NPMaybe f xs = NP f xs
-
-class UnNPMaybe f (xs :: [k]) where
-  unNPMaybe :: NPMaybe f xs -> NP f xs
-  npMaybe :: NP f xs -> NPMaybe f xs
-
-instance UnNPMaybe f '[] where
-  unNPMaybe () = Nil
-  npMaybe Nil = ()
-
-instance UnNPMaybe f (x ': xs) where
-  unNPMaybe = id
-  npMaybe = id
-
 -- | Like `HCollapse`, but limited to 0 or 1 products in a n-ary structure.
 class HCollapseMaybe h xs where
   hcollapseMaybe :: SListIN h xs => h (K a) xs -> Maybe a

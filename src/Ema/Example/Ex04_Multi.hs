@@ -1,6 +1,4 @@
-{-# HLINT ignore "Use camelCase" #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Demonstration of merging multiple sites
 module Ema.Example.Ex04_Multi where
@@ -42,8 +40,8 @@ instance CanGenerate R where
 
 instance HasModel R where
   modelDynamic cliAct enc () = do
-    x1 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Bookshelf") enc) ()
-    x2 <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
+    x1 :: Dynamic m Ex02.Model <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Bookshelf") enc) ()
+    x2 :: Dynamic m Ex03.Model <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
     pure $ liftA2 (\x y -> I x :* I y :* Nil) x1 x2
 
 instance CanRender R where

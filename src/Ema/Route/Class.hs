@@ -7,6 +7,7 @@ module Ema.Route.Class
   ( IsRoute (RouteModel, mkRouteEncoder),
     gMkRouteEncoder,
     ConstModelRoute (..),
+    SingleModelRoute (..),
     ShowReadable (ShowReadable),
     Stringable (Stringable),
 
@@ -42,7 +43,7 @@ import Prelude hiding (All, Generic)
 
 class IsRoute r where
   type RouteModel r :: Type
-  type RouteModel r = NPMaybe I (GRouteModel (Code r))
+  type RouteModel r = NP I (GRouteModel (Code r))
   mkRouteEncoder :: RouteEncoder (RouteModel r) r
   default mkRouteEncoder ::
     ( Generic r,
@@ -50,14 +51,18 @@ class IsRoute r where
       All2 IsRoute (Code r),
       All (IsRouteProd ms) (Code r),
       HasDatatypeInfo r,
-      RouteModel r ~ NPMaybe I ms,
-      UnNPMaybe I ms
+      RouteModel r ~ NP I ms
     ) =>
     RouteEncoder (RouteModel r) r
   mkRouteEncoder = gMkRouteEncoder
 
--- FIXME: this is useless for recursive routes
+-- | DerivingVia repr for simple top-level routes without arguments
 newtype ConstModelRoute (m :: Type) r = ConstModelRoute {unConstModelRoute :: r}
+
+-- | DerivingVia repr for routes that use a single model for all inner routes.
+--
+-- FIXME: doesn't work for >1 constrs using the same model.
+newtype SingleModelRoute (m :: Type) r = SingleModelRoute {unSingleModelRoute :: r}
 
 instance
   ( GRouteModel (Code r) ~ '[],
@@ -69,7 +74,27 @@ instance
   where
   type RouteModel (ConstModelRoute m r) = m
   mkRouteEncoder =
-    gMkRouteEncoder @r & mapRouteEncoder (prism' id Just) (prism' unConstModelRoute (Just . ConstModelRoute)) (const ())
+    gMkRouteEncoder @r
+      & mapRouteEncoder
+        (prism' id Just)
+        (prism' unConstModelRoute (Just . ConstModelRoute))
+        (const Nil)
+
+instance
+  ( GRouteModel (Code r) ~ '[RouteModel (SingleModelRoute m r)],
+    HasDatatypeInfo r,
+    All2 IsRoute (Code r),
+    All (IsRouteProd '[m]) (Code r)
+  ) =>
+  IsRoute (SingleModelRoute m r)
+  where
+  type RouteModel (SingleModelRoute m r) = m
+  mkRouteEncoder =
+    gMkRouteEncoder @r
+      & mapRouteEncoder
+        (prism' id Just)
+        (prism' unSingleModelRoute (Just . SingleModelRoute))
+        (\m -> I m :* Nil)
 
 newtype ShowReadable a = ShowReadable a
   deriving newtype (Show, Read)
@@ -102,6 +127,7 @@ type family GRouteModel (xss :: [[Type]]) :: [Type] where
 
 type family UnitCons x xs where
   UnitCons () xs = xs
+  UnitCons (NP I '[]) xs = xs
   UnitCons x xs = x ': xs
 
 -- | TODO: Can this be simplified?
@@ -123,6 +149,10 @@ here = iso (unI . hd) (\x -> I x :* willNotBeUsed)
 instance {-# OVERLAPPING #-} Contains '[] () where
   -- () is always contained in any structure.
   npIso = iso (const ()) (\() -> Nil)
+
+instance {-# OVERLAPPING #-} Contains '[] (NP I '[]) where
+  -- NP I '[] is always contained in any structure.
+  npIso = iso (const Nil) id
 
 instance {-# OVERLAPPING #-} Contains xs () => Contains (x ': xs) () where
   npIso = there % npIso
@@ -157,10 +187,9 @@ gMkRouteEncoder ::
     ms ~ GRouteModel (Code r),
     All2 IsRoute (Code r),
     All (IsRouteProd ms) (Code r),
-    HasDatatypeInfo r,
-    UnNPMaybe I ms
+    HasDatatypeInfo r
   ) =>
-  RouteEncoder (NPMaybe I ms) r
+  RouteEncoder (NP I ms) r
 gMkRouteEncoder =
   unsafeMkRouteEncoder gEncodeRoute gDecodeRoute
 
@@ -170,13 +199,12 @@ gEncodeRoute ::
     ms ~ GRouteModel (Code r),
     All2 IsRoute (Code r),
     All (IsRouteProd ms) (Code r),
-    HasDatatypeInfo r,
-    UnNPMaybe I ms
+    HasDatatypeInfo r
   ) =>
-  NPMaybe I ms ->
+  NP I ms ->
   r ->
   FilePath
-gEncodeRoute (unNPMaybe @_ @_ @ms -> m) x' =
+gEncodeRoute m x' =
   let x = unSOP $ from @r x'
       ctorNames :: [ConstructorName] =
         hcollapse $ hmap (K . constructorName) $ datatypeCtors @r
@@ -192,9 +220,9 @@ gEncodeRoute (unNPMaybe @_ @_ @ms -> m) x' =
     encTerm =
       K . encodeRoute (mkRouteEncoder @b) (view (npIso @_ @(RouteModel b)) m) . unI
 
-class (IsRoute r, Contains ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
+class (IsRoute r, Contains ms (RouteModel r)) => IsRouteIn ms r
 
-instance (IsRoute r, Contains ms (RouteModel r), UnNPMaybe I ms) => IsRouteIn ms r
+instance (IsRoute r, Contains ms (RouteModel r)) => IsRouteIn ms r
 
 class (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
 
@@ -206,13 +234,12 @@ gDecodeRoute ::
     ms ~ GRouteModel (Code r),
     All2 IsRoute (Code r),
     All (IsRouteProd ms) (Code r),
-    UnNPMaybe I ms,
     HasDatatypeInfo r
   ) =>
-  NPMaybe I ms ->
+  NP I ms ->
   FilePath ->
   Maybe r
-gDecodeRoute (unNPMaybe @_ @I @ms -> m) fp = do
+gDecodeRoute m fp = do
   basePath : restPath <- pure $ splitDirectories fp
   -- Build the sum using an anamorphism
   to . SOP

@@ -7,6 +7,7 @@ module Ema.Model
 where
 
 import Control.Monad.Logger (MonadLoggerIO)
+import Data.SOP
 import Data.Some (Some)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
@@ -39,7 +40,7 @@ class IsRoute r => HasModel r where
     ( MonadIO m,
       MonadUnliftIO m,
       MonadLoggerIO m,
-      RouteModel r ~ ()
+      RouteModel r ~ NP I '[]
     ) =>
     Some CLI.Action ->
     RouteEncoder (RouteModel r) r ->
@@ -48,4 +49,4 @@ class IsRoute r => HasModel r where
   modelDynamic _ _ _ =
     -- The default implementation assumes the minimal model, `()`, which cannot
     -- be time-varying.
-    pure $ pure ()
+    pure $ pure Nil

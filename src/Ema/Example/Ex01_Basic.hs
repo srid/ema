@@ -21,7 +21,7 @@ main :: IO ()
 main = void $ Ema.runSite @Route ()
 
 instance CanRender Route where
-  routeAsset enc () r =
+  routeAsset enc m r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
@@ -37,4 +37,4 @@ instance CanRender Route where
       routeElem r' w =
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
-        A.href (fromString . toString $ Ema.routeUrl enc () r')
+        A.href (fromString . toString $ Ema.routeUrl enc m r')
