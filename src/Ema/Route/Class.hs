@@ -25,8 +25,13 @@ import GHC.TypeLits
   )
 import Generics.SOP
 import Optics.Core
-  ( Iso',
+  ( A_Prism,
+    Is,
+    Iso',
+    NoIx,
+    Optic',
     Prism',
+    coercedTo,
     equality,
     iso,
     prism',
@@ -90,7 +95,7 @@ instance
     gRouteEncoder @r
       & mapRouteEncoder
         equality
-        (prism' unSingleModelRoute (Just . SingleModelRoute))
+        coercedTo
         (npConstFrom . I)
 
 newtype ShowReadable a = ShowReadable a
@@ -166,13 +171,14 @@ instance {-# OVERLAPPABLE #-} Contains xs x => Contains (x' ': xs) x where
 -- | Extract the inner RouteEncoder.
 -- TODO: avoid having to specify Prism
 innerRouteEncoder ::
-  forall m o i (ms :: [Type]).
+  forall m o i (ms :: [Type]) pf.
+  pf `Is` A_Prism =>
   Contains ms m =>
-  Prism' o i ->
+  Optic' pf NoIx o i ->
   RouteEncoder (NP I ms) o ->
   RouteEncoder m i
-innerRouteEncoder p =
-  mapRouteEncoder equality p (review npIso)
+innerRouteEncoder r =
+  mapRouteEncoder equality r (review npIso)
 
 innerModel :: Contains ms m => NP I ms -> m
 innerModel = view npIso
