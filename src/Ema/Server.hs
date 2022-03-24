@@ -333,6 +333,14 @@ wsClientJS =
              sendObservePath(path);
           }
 
+          function scrollToAnchor(hash) {
+            console.log(`ema: Scroll to $${hash}`)
+            var el = document.querySelector(hash);
+            if (el !== null) {
+              el.scrollIntoView({ behavior: 'smooth' });
+            }
+          };
+
           function handleRouteClicks(e) {
               const origin = e.target.closest("a");
               if (origin) {
@@ -340,6 +348,7 @@ wsClientJS =
                   if (origin.getAttribute("href").startsWith("#")) {
                     // Switching to local anchor
                     window.history.pushState({}, "", window.location.pathname + origin.hash);
+                    scrollToAnchor(window.location.hash);
                     e.preventDefault();
                   }else{
                     // Switching to another route
@@ -383,6 +392,8 @@ wsClientJS =
             setTimeout(function () {init(true);}, 400);
           };
 
+          
+
           ws.onmessage = evt => {
             if (evt.data.startsWith("REDIRECT ")) {
               console.log("ema: redirect");
@@ -396,10 +407,7 @@ wsClientJS =
                 routeVisible = document.location.pathname;
               }
               if (window.location.hash) {
-                var el = document.querySelector(window.location.hash);
-                if (el !== null) {
-                  el.scrollIntoView({ behavior: 'smooth' });
-                }
+                scrollToAnchor(window.location.hash);
               }
               watchCurrentRoute();
             };
