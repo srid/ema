@@ -33,7 +33,7 @@ runSite ::
   IO (DSum CLI.Action Identity)
 runSite input = do
   cli <- CLI.cliAction
-  runSiteWithCli @r cli input
+  fmap snd $ runSiteWithCli @r cli input
 
 -- | Like @runSite@ but takes the CLI action
 --
@@ -43,7 +43,7 @@ runSiteWithCli ::
   (Show r, Eq r, IsRoute r, CanRender r, HasModel r, CanGenerate r) =>
   Cli ->
   ModelInput r ->
-  IO (DSum CLI.Action Identity)
+  IO (RouteModel r, DSum CLI.Action Identity)
 runSiteWithCli cli input = do
   flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
@@ -52,7 +52,7 @@ runSiteWithCli cli input = do
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
         fs <- generateSite @r dest model0
-        pure $ act :=> Identity fs
+        pure (model0, act :=> Identity fs)
       Some act@(CLI.Run (host, port)) -> do
         model <- LVar.empty
         LVar.set model model0
@@ -69,4 +69,4 @@ runSiteWithCli cli input = do
             ( flip runLoggingT logger $ do
                 Server.runServerWithWebSocketHotReload @r host port model
             )
-        pure $ act :=> Identity ()
+        pure (model0, act :=> Identity ())
