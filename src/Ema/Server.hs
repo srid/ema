@@ -337,8 +337,15 @@ wsClientJS =
               const origin = e.target.closest("a");
               if (origin) {
                 if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
-                  switchRoute(origin.pathname, origin.hash);
-                  e.preventDefault();
+                  if (origin.getAttribute("href").startsWith("#")) {
+                    // Switching to local anchor
+                    window.history.pushState({}, "", window.location.pathname + origin.hash);
+                    e.preventDefault();
+                  }else{
+                    // Switching to another route
+                    switchRoute(origin.pathname, origin.hash);
+                    e.preventDefault();
+                  }
                 };
               }
             };
