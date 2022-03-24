@@ -31,14 +31,14 @@ routeUrlWith urlStrategy enc model =
           case nonEmpty (filepathToUrl htmlFp) of
             Nothing ->
               ""
-            Just (removeLastIf "index" -> partsSansIndex) ->
+            Just (removeLastIfOneOf ["index", "index.html"] -> partsSansIndex) ->
               T.intercalate "/" partsSansIndex
         Nothing ->
           T.intercalate "/" $ filepathToUrl fp
       where
-        removeLastIf :: Eq a => a -> NonEmpty a -> [a]
-        removeLastIf x xs =
-          if NE.last xs == x
+        removeLastIfOneOf :: Eq a => [a] -> NonEmpty a -> [a]
+        removeLastIfOneOf x xs =
+          if NE.last xs `elem` x
             then NE.init xs
             else toList xs
         urlStrategySuffix = \case
