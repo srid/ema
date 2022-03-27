@@ -30,9 +30,10 @@ type Model = UTCTime
 data Route
   = Route_Index
   | Route_OnlyTime
-  deriving stock (Show, Eq, Generic, Enum, Bounded)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, CanGenerate)
+  deriving stock (Show, Eq, Ord, Generic, Enum, Bounded)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
+  deriving (CanGenerate) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
   modelDynamic _ _ () = do

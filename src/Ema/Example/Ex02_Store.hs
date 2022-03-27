@@ -27,9 +27,10 @@ data Route
   | Route_About
   | Route_Products ProductRoute
   | Route_Category CategoryRoute
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
+  deriving (CanGenerate) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
   modelDynamic _ _ _ = do
@@ -39,19 +40,21 @@ instance HasModel Route where
 data ProductRoute
   = ProductRoute_Index
   | ProductRoute_Product ProductName
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
+  deriving (CanGenerate) via (SingleModelRoute Model ProductRoute)
 
 data CategoryRoute
   = CategoryRoute_Index
   | CategoryRoute_Category CategoryName
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model CategoryRoute)
+  deriving (CanGenerate) via (SingleModelRoute Model CategoryRoute)
 
 newtype ProductName = ProductName Text
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Ord)
   deriving newtype (IsString, ToString)
 
 instance IsRoute ProductName where
@@ -64,7 +67,7 @@ instance CanGenerate ProductName where
   generatableRoutes m = ProductName <$> modelProducts m
 
 newtype CategoryName = CategoryName Text
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Ord)
   deriving newtype (IsString, ToString)
 
 instance IsRoute CategoryName where
@@ -88,21 +91,6 @@ instance IsRoute CategoryName where
 
 instance CanGenerate CategoryName where
   generatableRoutes m = CategoryName <$> modelCategories m
-
--- TODO: Generic!
-instance CanGenerate ProductRoute where
-  generatableRoutes m =
-    [ProductRoute_Index] <> (ProductRoute_Product <$> generatableRoutes m)
-
-instance CanGenerate CategoryRoute where
-  generatableRoutes m =
-    [CategoryRoute_Index] <> (CategoryRoute_Category <$> generatableRoutes m)
-
-instance CanGenerate Route where
-  generatableRoutes m =
-    [Route_Index, Route_About]
-      <> (Route_Products <$> generatableRoutes m)
-      <> (Route_Category <$> generatableRoutes m)
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

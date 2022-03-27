@@ -13,6 +13,13 @@ module Ema.Route.Class (
   -- * Sub routes
   innerRouteEncoder,
   innerModel,
+
+  -- * Generic helpers
+  IsRouteProd,
+  IsRouteIn,
+  GRouteModel,
+  Contains (npIso),
+  NPConst (npConstFrom),
 ) where
 
 import Data.List ((!!))

@@ -14,7 +14,7 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Route_Index
   | Route_About
-  deriving stock (Show, Eq, Generic, Enum, Bounded)
+  deriving stock (Show, Eq, Ord, Generic, Enum, Bounded)
   deriving anyclass
     ( SOP.Generic
     , SOP.HasDatatypeInfo
