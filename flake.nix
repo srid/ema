@@ -1,14 +1,11 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/3eb07eeafb52bcbf02ce800f032f18d666a9498d";
+    nixpkgs.url = "github:nixos/nixpkgs/30d3d79b7d3607d56546dd2a6b49e156ba0ec634";
     flake-utils.url = "github:numtide/flake-utils";
     flake-utils.inputs.nixpkgs.follows = "nixpkgs";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    flake-compat.url = "github:edolstra/flake-compat";
+    flake-compat.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -41,17 +38,6 @@
       rec {
         # Used by `nix build`
         defaultPackage = emaProject false;
-
-        checks = {
-          pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              hlint.enable = true;
-              nixpkgs-fmt.enable = true;
-              ormolu.enable = true;
-            };
-          };
-        };
 
         # Used by `nix develop`
         devShell = emaProject true;
