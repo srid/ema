@@ -19,8 +19,9 @@
         let
           name = "ema";
           pkgs = nixpkgs.legacyPackages.${system};
+          hp = pkgs.haskellPackages;
           emaProject = returnShellEnv:
-            pkgs.haskellPackages.developPackage {
+            hp.developPackage {
               inherit name returnShellEnv;
               root = ./.;
               withHoogle = false;
@@ -31,7 +32,7 @@
               };
               modifier = drv:
                 pkgs.haskell.lib.addBuildTools drv
-                  (with pkgs.haskellPackages; pkgs.lib.lists.optionals returnShellEnv [
+                  (with hp; pkgs.lib.lists.optionals returnShellEnv [
                     # Specify your build/dev dependencies here. 
                     cabal-fmt
                     cabal-install
@@ -88,7 +89,21 @@
             format-haskell = inputs.lint-utils.linters.${system}.fourmolu ./. fourmoluOpts;
             format-cabal = inputs.lint-utils.linters.${system}.cabal-fmt ./.;
             format-nix = inputs.lint-utils.linters.${system}.nixpkgs-fmt ./.;
+            hls = checkedShellScript "hls" "${hp.haskell-language-server}/bin/haskell-language-server";
           };
+
+          # We need this hack because `nix flake check` won't work for Haskell
+          # projects: https://nixos.wiki/wiki/Import_From_Derivation#IFD_and_Haskell
+          #
+          # Instead, run: `nix build .#check.x86_64-linux` (replace with your system)
+          check =
+            pkgs.runCommand "combined-checks"
+              {
+                checksss = builtins.attrValues self.checks.${system};
+              } ''
+              echo $checksss
+              touch $out
+            '';
 
         }) // {
       herculesCI.ciSystems = [ "x86_64-linux" ];

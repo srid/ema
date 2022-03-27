@@ -14,17 +14,10 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Route_Index
   | Route_About
-  deriving stock (Show, Eq, Ord, Generic, Enum, Bounded)
+  deriving stock
+    (Show, Eq, Ord, Generic)
   deriving anyclass
-    ( SOP.Generic
-    , SOP.HasDatatypeInfo
-    , HasModel
-    , IsRoute
-    , CanGenerate
-    )
-
-main :: IO ()
-main = void $ Ema.runSite @Route ()
+    (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute, CanGenerate)
 
 instance CanRender Route where
   routeAsset enc m r =
@@ -44,3 +37,6 @@ instance CanRender Route where
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
         A.href (fromString . toString $ Ema.routeUrl enc m r')
+
+main :: IO ()
+main = void $ Ema.runSite @Route ()
