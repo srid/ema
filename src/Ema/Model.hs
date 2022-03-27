@@ -1,10 +1,9 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Ema.Model
-  ( HasModel (..),
-  )
-where
+module Ema.Model (
+  HasModel (..),
+) where
 
 import Control.Monad.Logger (MonadLoggerIO)
 import Data.SOP
@@ -37,10 +36,10 @@ class IsRoute r => HasModel r where
     m (Dynamic m (RouteModel r))
   default modelDynamic ::
     forall m.
-    ( MonadIO m,
-      MonadUnliftIO m,
-      MonadLoggerIO m,
-      RouteModel r ~ NP I '[]
+    ( MonadIO m
+    , MonadUnliftIO m
+    , MonadLoggerIO m
+    , RouteModel r ~ NP I '[]
     ) =>
     Some CLI.Action ->
     RouteEncoder (RouteModel r) r ->

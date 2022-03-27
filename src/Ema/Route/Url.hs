@@ -1,13 +1,12 @@
 {-# LANGUAGE InstanceSigs #-}
 
-module Ema.Route.Url
-  ( -- * Create URL from route
-    routeUrl,
-    routeUrlWith,
-    UrlStrategy (..),
-    urlToFilePath,
-  )
-where
+module Ema.Route.Url (
+  -- * Create URL from route
+  routeUrl,
+  routeUrlWith,
+  UrlStrategy (..),
+  urlToFilePath,
+) where
 
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
@@ -16,10 +15,11 @@ import Data.Text qualified as T
 import Ema.Route.Encoder (RouteEncoder, encodeRoute)
 import Network.URI.Slug qualified as Slug
 
--- | Return the relative URL of the given route
---
--- As the returned URL is relative, you will have to either make it absolute (by
--- prepending with `/`) or set the `<base>` URL in your HTML head element.
+{- | Return the relative URL of the given route
+
+ As the returned URL is relative, you will have to either make it absolute (by
+ prepending with `/`) or set the `<base>` URL in your HTML head element.
+-}
 routeUrlWith :: UrlStrategy -> RouteEncoder a r -> a -> r -> Text
 routeUrlWith urlStrategy enc model =
   relUrlFromPath . encodeRoute enc model

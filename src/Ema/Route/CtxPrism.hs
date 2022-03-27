@@ -1,34 +1,34 @@
-module Ema.Route.CtxPrism
-  ( -- * Type
-    CtxPrism,
+module Ema.Route.CtxPrism (
+  -- * Type
+  CtxPrism,
 
-    -- * Construction
-    fromPrism,
+  -- * Construction
+  fromPrism,
 
-    -- * Conversion
-    cpreview,
-    creview,
+  -- * Conversion
+  cpreview,
+  creview,
 
-    -- * Functor
-    cpmap,
+  -- * Functor
+  cpmap,
 
-    -- * Law checks
-    ctxPrismIsLawfulFor,
-  )
-where
+  -- * Law checks
+  ctxPrismIsLawfulFor,
+) where
 
 import Control.Monad.Writer (Writer, tell)
-import Optics.Core
-  ( Prism',
-    preview,
-    prism',
-    review,
-    (%),
-  )
+import Optics.Core (
+  Prism',
+  preview,
+  prism',
+  review,
+  (%),
+ )
 
--- | A `Prism` with a context
--- This can't actually be a prism due to coercion problems. Use `toPrism` & `fromPrism`.
--- See https://stackoverflow.com/q/71489589/55246
+{- | A `Prism` with a context
+ This can't actually be a prism due to coercion problems. Use `toPrism` & `fromPrism`.
+ See https://stackoverflow.com/q/71489589/55246
+-}
 type CtxPrism ctx s a =
   -- FIXME: ought to be `ctx -> Prism' s a`
   ctx -> (a -> s, s -> Maybe a)

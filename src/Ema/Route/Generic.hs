@@ -7,10 +7,10 @@ module Ema.Route.Generic where
 
 import Data.SOP.Constraint (SListIN)
 import Data.Text qualified as T
-import GHC.TypeLits
-  ( ErrorMessage (Text),
-    TypeError,
-  )
+import GHC.TypeLits (
+  ErrorMessage (Text),
+  TypeError,
+ )
 import Generics.SOP
 import Prelude hiding (All)
 
@@ -24,7 +24,7 @@ instance HCollapseMaybe NP '[] where
 instance HCollapseMaybe NP '[p] where
   hcollapseMaybe (K x :* Nil) = Just x
 
-instance (ps ~ TypeError ('Text "Expected at most 1 product")) => HCollapseMaybe NP (p ': p1 ': ps) where
+instance (ps ~ TypeError ( 'Text "Expected at most 1 product")) => HCollapseMaybe NP (p ': p1 ': ps) where
   hcollapseMaybe _ = Nothing -- Unreachable, due to TypeError
 
 datatypeCtors :: forall a. HasDatatypeInfo a => NP ConstructorInfo (Code a)

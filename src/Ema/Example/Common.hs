@@ -1,7 +1,6 @@
-module Ema.Example.Common
-  ( tailwindLayout,
-  )
-where
+module Ema.Example.Common (
+  tailwindLayout,
+) where
 
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))

@@ -16,11 +16,11 @@ data Route
   | Route_About
   deriving stock (Show, Eq, Generic, Enum, Bounded)
   deriving anyclass
-    ( SOP.Generic,
-      SOP.HasDatatypeInfo,
-      HasModel,
-      IsRoute,
-      CanGenerate
+    ( SOP.Generic
+    , SOP.HasDatatypeInfo
+    , HasModel
+    , IsRoute
+    , CanGenerate
     )
 
 main :: IO ()

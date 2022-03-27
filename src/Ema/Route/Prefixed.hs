@@ -1,20 +1,19 @@
-module Ema.Route.Prefixed
-  ( PrefixedRoute (PrefixedRoute, unPrefixedRoute),
-    prefixRouteEncoder,
-  )
-where
+module Ema.Route.Prefixed (
+  PrefixedRoute (PrefixedRoute, unPrefixedRoute),
+  prefixRouteEncoder,
+) where
 
 import Data.Text qualified as T
 import Ema.Asset (CanGenerate (generatableRoutes), CanRender (..))
-import Ema.Model
-  ( HasModel (ModelInput, modelDynamic),
-  )
+import Ema.Model (
+  HasModel (ModelInput, modelDynamic),
+ )
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder
-  ( RouteEncoder,
-    chainRouteEncoder,
-    mapRouteEncoder,
-  )
+import Ema.Route.Encoder (
+  RouteEncoder,
+  chainRouteEncoder,
+  mapRouteEncoder,
+ )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism')
 import System.FilePath ((</>))

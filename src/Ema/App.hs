@@ -1,10 +1,9 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Ema.App
-  ( runSite,
-    runSiteWithCli,
-  )
-where
+module Ema.App (
+  runSite,
+  runSiteWithCli,
+) where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
@@ -23,9 +22,10 @@ import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
 import System.Directory (getCurrentDirectory)
 
--- | Run the given Ema site, and return the generated files.
---
--- On live-server mode, this function will never return.
+{- | Run the given Ema site, and return the generated files.
+
+ On live-server mode, this function will never return.
+-}
 runSite ::
   forall r.
   (Show r, Eq r, IsRoute r, CanRender r, HasModel r, CanGenerate r) =>
@@ -33,11 +33,12 @@ runSite ::
   IO (DSum CLI.Action Identity)
 runSite input = do
   cli <- CLI.cliAction
-  fmap snd $ runSiteWithCli @r cli input
+  snd <$> runSiteWithCli @r cli input
 
--- | Like @runSite@ but takes the CLI action
---
--- Useful if you are handling CLI arguments yourself.
+{- | Like @runSite@ but takes the CLI action
+
+ Useful if you are handling CLI arguments yourself.
+-}
 runSiteWithCli ::
   forall r.
   (Show r, Eq r, IsRoute r, CanRender r, HasModel r, CanGenerate r) =>

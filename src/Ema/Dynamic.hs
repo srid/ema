@@ -1,39 +1,39 @@
-module Ema.Dynamic
-  ( Dynamic (Dynamic),
-  )
-where
+module Ema.Dynamic (
+  Dynamic (Dynamic),
+) where
 
 import Control.Monad.Logger (MonadLogger, logDebugNS)
 import UnliftIO (MonadUnliftIO, race_)
 import UnliftIO.Concurrent (threadDelay)
 
--- | A time-varying value
---
---  To create a Dynamic, supply the initial value along with a function that knows
---  how to update it using the given update function.
---
--- Dynamic's can be composed using Applicative.
+{- | A time-varying value
+
+  To create a Dynamic, supply the initial value along with a function that knows
+  how to update it using the given update function.
+
+ Dynamic's can be composed using Applicative.
+-}
 newtype Dynamic m a
   = Dynamic
       ( -- Initial value
-        a,
-        -- Set a new value
+        a
+      , -- Set a new value
         (a -> m ()) -> m ()
       )
 
 instance Functor (Dynamic m) where
   fmap f (Dynamic (x0, xf)) =
     Dynamic
-      ( f x0,
-        \send -> xf $ send . f
+      ( f x0
+      , \send -> xf $ send . f
       )
 
 instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
   pure x = Dynamic (x, \_ -> pure ())
   liftA2 f (Dynamic (x0, xf)) (Dynamic (y0, yf)) =
     Dynamic
-      ( f x0 y0,
-        \send -> do
+      ( f x0 y0
+      , \send -> do
           var <- newTVarIO (x0, y0)
           sendLock :: TMVar () <- newEmptyTMVarIO
           -- TODO: Use site name in logging?

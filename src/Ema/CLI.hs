@@ -5,17 +5,17 @@
 module Ema.CLI where
 
 import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo))
-import Control.Monad.Logger.Extras
-  ( Logger (Logger),
-    colorize,
-    logToStdout,
-  )
+import Control.Monad.Logger.Extras (
+  Logger (Logger),
+  colorize,
+  logToStdout,
+ )
 import Data.Constraint.Extras.TH (deriveArgDict)
 import Data.Default (Default (def))
-import Data.GADT.Compare.TH
-  ( DeriveGCompare (deriveGCompare),
-    DeriveGEQ (deriveGEq),
-  )
+import Data.GADT.Compare.TH (
+  DeriveGCompare (deriveGCompare),
+  DeriveGEQ (deriveGEq),
+ )
 import Data.GADT.Show.TH (DeriveGShow (deriveGShow))
 import Data.Some (Some (..))
 import Options.Applicative hiding (action)
@@ -49,8 +49,8 @@ isLiveServer (Some (Run _)) = True
 isLiveServer _ = False
 
 data Cli = Cli
-  { action :: Some Action,
-    verbose :: Bool
+  { action :: Some Action
+  , verbose :: Bool
   }
   deriving stock (Eq, Show)
 

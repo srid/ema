@@ -1,20 +1,19 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Ema.Asset
-  ( Asset (..),
-    Format (..),
-    CanRender (..),
-    CanGenerate (..),
-  )
-where
+module Ema.Asset (
+  Asset (..),
+  Format (..),
+  CanRender (..),
+  CanGenerate (..),
+) where
 
 import Ema.Route.Class (IsRoute (RouteModel))
-import Ema.Route.Encoder
-  ( RouteEncoder,
-    leftRouteEncoder,
-    rightRouteEncoder,
-  )
+import Ema.Route.Encoder (
+  RouteEncoder,
+  leftRouteEncoder,
+  rightRouteEncoder,
+ )
 
 -- | The type of assets that can be bundled in a static site.
 data Asset a

@@ -40,14 +40,14 @@ generateSite dest model = do
 
 generate ::
   forall r m.
-  ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
-    HasCallStack,
-    Eq r,
-    Show r,
-    CanRender r,
-    CanGenerate r
+  ( MonadIO m
+  , MonadUnliftIO m
+  , MonadLoggerIO m
+  , HasCallStack
+  , Eq r
+  , Show r
+  , CanRender r
+  , CanGenerate r
   ) =>
   FilePath ->
   RouteEncoder (RouteModel r) r ->
@@ -90,8 +90,9 @@ generate dest enc model render = do
   noBirdbrainedJekyll dest
   pure paths
 
--- | Disable birdbrained hacks from GitHub to disable surprises like,
--- https://github.com/jekyll/jekyll/issues/55
+{- | Disable birdbrained hacks from GitHub to disable surprises like,
+ https://github.com/jekyll/jekyll/issues/55
+-}
 noBirdbrainedJekyll :: (MonadIO m, MonadLoggerIO m) => FilePath -> m ()
 noBirdbrainedJekyll dest = do
   let nojekyll = dest </> ".nojekyll"
@@ -106,10 +107,10 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving anyclass (Exception)
 
 copyDirRecursively ::
-  ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
-    HasCallStack
+  ( MonadIO m
+  , MonadUnliftIO m
+  , MonadLoggerIO m
+  , HasCallStack
   ) =>
   -- | Source file path relative to CWD
   FilePath ->

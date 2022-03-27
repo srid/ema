@@ -3,46 +3,45 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
-module Ema.Route.Class
-  ( IsRoute (RouteModel, routeEncoder),
-    gRouteEncoder,
-    SingleModelRoute (..),
-    ShowReadable (ShowReadable),
-    Stringable (Stringable),
+module Ema.Route.Class (
+  IsRoute (RouteModel, routeEncoder),
+  gRouteEncoder,
+  SingleModelRoute (..),
+  ShowReadable (ShowReadable),
+  Stringable (Stringable),
 
-    -- * Sub routes
-    innerRouteEncoder,
-    innerModel,
-  )
-where
+  -- * Sub routes
+  innerRouteEncoder,
+  innerModel,
+) where
 
 import Data.List ((!!))
 import Ema.Route.Encoder
 import Ema.Route.Generic
-import GHC.TypeLits
-  ( ErrorMessage (ShowType, Text, (:$$:)),
-    TypeError,
-  )
+import GHC.TypeLits (
+  ErrorMessage (ShowType, Text, (:$$:)),
+  TypeError,
+ )
 import Generics.SOP
-import Optics.Core
-  ( A_Prism,
-    Is,
-    Iso',
-    NoIx,
-    Optic',
-    coercedTo,
-    equality,
-    iso,
-    prism',
-    review,
-    view,
-    (%),
-  )
-import System.FilePath
-  ( joinPath,
-    splitDirectories,
-    (</>),
-  )
+import Optics.Core (
+  A_Prism,
+  Is,
+  Iso',
+  NoIx,
+  Optic',
+  coercedTo,
+  equality,
+  iso,
+  prism',
+  review,
+  view,
+  (%),
+ )
+import System.FilePath (
+  joinPath,
+  splitDirectories,
+  (</>),
+ )
 import Prelude hiding (All, Generic)
 
 class IsRoute r where
@@ -50,24 +49,26 @@ class IsRoute r where
   type RouteModel r = NP I (GRouteModel (Code r))
   routeEncoder :: RouteEncoder (RouteModel r) r
   default routeEncoder ::
-    ( Generic r,
-      ms ~ GRouteModel (Code r),
-      All2 IsRoute (Code r),
-      All (IsRouteProd ms) (Code r),
-      HasDatatypeInfo r,
-      RouteModel r ~ NP I ms
+    ( Generic r
+    , ms ~ GRouteModel (Code r)
+    , All2 IsRoute (Code r)
+    , All (IsRouteProd ms) (Code r)
+    , HasDatatypeInfo r
+    , RouteModel r ~ NP I ms
     ) =>
     RouteEncoder (RouteModel r) r
   routeEncoder = gRouteEncoder
 
--- | DerivingVia repr for routes that use a single model for all inner routes.
---
--- This uses NPConst to support >1 constr with same model.
+{- | DerivingVia repr for routes that use a single model for all inner routes.
+
+ This uses NPConst to support >1 constr with same model.
+-}
 newtype SingleModelRoute (m :: Type) r = SingleModelRoute {unSingleModelRoute :: r}
 
--- | Like `NP` but all elements are the same.
---
--- Each of `xs` is equivalent to `a`.
+{- | Like `NP` but all elements are the same.
+
+ Each of `xs` is equivalent to `a`.
+-}
 class NPConst (f :: k -> Type) (xs :: [k]) (a :: k) where
   npConstFrom :: f a -> NP f xs
 
@@ -81,11 +82,11 @@ instance (NPConst f xs x) => NPConst f (x ': xs) x where
   npConstFrom x = x :* npConstFrom @_ @f @xs @x x
 
 instance
-  ( GRouteModel (Code r) ~ ms,
-    NPConst I ms m,
-    HasDatatypeInfo r,
-    All2 IsRoute (Code r),
-    All (IsRouteProd ms) (Code r)
+  ( GRouteModel (Code r) ~ ms
+  , NPConst I ms m
+  , HasDatatypeInfo r
+  , All2 IsRoute (Code r)
+  , All (IsRouteProd ms) (Code r)
   ) =>
   IsRoute (SingleModelRoute m r)
   where
@@ -124,19 +125,16 @@ type family GRouteModel (xss :: [[Type]]) :: [Type] where
   GRouteModel ('[] ': xss) = GRouteModel xss
   GRouteModel ('[x] ': xss) = RouteModel x `UnitCons` GRouteModel xss
 -- TODO: reuse from below
-  GRouteModel (_ ': _) = TypeError ('Text "More than 1 route product")
+  GRouteModel (_ ': _) = TypeError ( 'Text "More than 1 route product")
 
 type family UnitCons x xs where
   UnitCons () xs = xs
   UnitCons (NP I '[]) xs = xs
   UnitCons x xs = x ': xs
 
--- | TODO: Can this be simplified?
-class (xs :: [Type]) `Contains` (x :: Type) where
-  -- | A partial iso into/from NP, given a member type.
-  --
-  -- When creating the outer NP structure, rest of the members will be
-  -- undefined.
+-- TODO: Can this be simplified?
+class Contains (xs :: [Type]) (x :: Type) where
+  -- | A partial iso into/from NP, given a member type. When creating the outer NP structure, rest of the members will be `undefined`.
   npIso :: Iso' (NP I xs) x
 
 there :: Iso' (NP I (x ': xs)) (NP I xs)
@@ -158,7 +156,7 @@ instance {-# OVERLAPPING #-} Contains '[] (NP I '[]) where
 instance {-# OVERLAPPING #-} Contains xs () => Contains (x ': xs) () where
   npIso = there % npIso
 
-instance (TypeError ('Text "The type " ':$$: 'ShowType x ':$$: 'Text " does not exist in n-ary product")) => Contains '[] x where
+instance (TypeError ( 'Text "The type " ':$$: 'ShowType x ':$$: 'Text " does not exist in n-ary product")) => Contains '[] x where
   npIso = iso willNotBeUsed willNotBeUsed
 
 instance {-# OVERLAPPING #-} Contains (x ': xs) x where
@@ -167,8 +165,9 @@ instance {-# OVERLAPPING #-} Contains (x ': xs) x where
 instance {-# OVERLAPPABLE #-} Contains xs x => Contains (x' ': xs) x where
   npIso = there % npIso
 
--- | Extract the inner RouteEncoder.
--- TODO: avoid having to specify Prism
+{- | Extract the inner RouteEncoder.
+ TODO: avoid having to specify Prism
+-}
 innerRouteEncoder ::
   forall m o i (ms :: [Type]) pf.
   pf `Is` A_Prism =>
@@ -186,11 +185,11 @@ innerModel = view npIso
 -- TODO: Can I simplify this using `prefixRouteEncoder`?
 gRouteEncoder ::
   forall r ms.
-  ( Generic r,
-    ms ~ GRouteModel (Code r),
-    All2 IsRoute (Code r),
-    All (IsRouteProd ms) (Code r),
-    HasDatatypeInfo r
+  ( Generic r
+  , ms ~ GRouteModel (Code r)
+  , All2 IsRoute (Code r)
+  , All (IsRouteProd ms) (Code r)
+  , HasDatatypeInfo r
   ) =>
   RouteEncoder (NP I ms) r
 gRouteEncoder =
@@ -199,11 +198,11 @@ gRouteEncoder =
 
 gEncodeRoute ::
   forall r ms.
-  ( Generic r,
-    ms ~ GRouteModel (Code r),
-    All2 IsRoute (Code r),
-    All (IsRouteProd ms) (Code r),
-    HasDatatypeInfo r
+  ( Generic r
+  , ms ~ GRouteModel (Code r)
+  , All2 IsRoute (Code r)
+  , All (IsRouteProd ms) (Code r)
+  , HasDatatypeInfo r
   ) =>
   NP I ms ->
   r ->
@@ -234,11 +233,11 @@ instance (All (IsRouteIn ms) xs, HCollapseMaybe NP xs) => IsRouteProd ms xs
 
 gDecodeRoute ::
   forall r ms.
-  ( Generic r,
-    ms ~ GRouteModel (Code r),
-    All2 IsRoute (Code r),
-    All (IsRouteProd ms) (Code r),
-    HasDatatypeInfo r
+  ( Generic r
+  , ms ~ GRouteModel (Code r)
+  , All2 IsRoute (Code r)
+  , All (IsRouteProd ms) (Code r)
+  , HasDatatypeInfo r
   ) =>
   NP I ms ->
   FilePath ->

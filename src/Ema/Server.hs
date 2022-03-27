@@ -14,11 +14,11 @@ import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
 import Ema.Route.Class
-import Ema.Route.Encoder
-  ( checkRouteEncoderForSingleRoute,
-    decodeRoute,
-    encodeRoute,
-  )
+import Ema.Route.Encoder (
+  checkRouteEncoderForSingleRoute,
+  decodeRoute,
+  encodeRoute,
+ )
 import Ema.Route.Url (urlToFilePath)
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -35,13 +35,13 @@ import UnliftIO (MonadUnliftIO)
 
 runServerWithWebSocketHotReload ::
   forall r m.
-  ( Show r,
-    MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
-    Eq r,
-    IsRoute r,
-    CanRender r
+  ( Show r
+  , MonadIO m
+  , MonadUnliftIO m
+  , MonadLoggerIO m
+  , Eq r
+  , IsRoute r
+  , CanRender r
   ) =>
   Host ->
   Port ->
@@ -208,8 +208,9 @@ mkHtmlErrorMsg s =
       <> s
       <> "</div><p>Once you fix the source of the error, this page will automatically refresh.</body>"
 
--- | Return the equivalent of WAI's @pathInfo@, from the raw path string
--- (`document.location.pathname`) the browser sends us.
+{- | Return the equivalent of WAI's @pathInfo@, from the raw path string
+ (`document.location.pathname`) the browser sends us.
+-}
 pathInfoFromWsMsg :: Text -> [Text]
 pathInfoFromWsMsg =
   filter (/= "") . T.splitOn "/" . T.drop 1
@@ -218,9 +219,9 @@ decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
 data BadRouteEncoding r = BadRouteEncoding
-  { _bre_candidates :: [(FilePath, [Text])],
-    _bre_decodedRoute :: r,
-    _bre_routeEncoded :: FilePath
+  { _bre_candidates :: [(FilePath, [Text])]
+  , _bre_decodedRoute :: r
+  , _bre_routeEncoded :: FilePath
   }
   deriving stock (Show)
 

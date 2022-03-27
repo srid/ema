@@ -1,9 +1,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | A simple web store for products
---
--- TODO: rewrite this to load store.json and display that, with individual page for books too.
+{- | A simple web store for products
+
+ TODO: rewrite this to load store.json and display that, with individual page for books too.
+-}
 module Ema.Example.Ex02_Store where
 
 import Data.Text qualified as T
@@ -17,8 +18,8 @@ import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
 
 data Model = Model
-  { modelProducts :: [Text],
-    modelCategories :: [Text]
+  { modelProducts :: [Text]
+  , modelCategories :: [Text]
   }
 
 data Route

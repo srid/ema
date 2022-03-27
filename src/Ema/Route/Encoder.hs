@@ -3,28 +3,29 @@ module Ema.Route.Encoder where
 
 import Control.Monad.Writer (Writer)
 import Data.Text qualified as T
-import Ema.Route.CtxPrism
-  ( CtxPrism,
-    cpmap,
-    cpreview,
-    creview,
-    ctxPrismIsLawfulFor,
-    fromPrism,
-  )
-import Optics.Core
-  ( A_Prism,
-    Is,
-    NoIx,
-    Optic',
-    Prism',
-    castOptic,
-    equality,
-    iso,
-    prism',
-  )
+import Ema.Route.CtxPrism (
+  CtxPrism,
+  cpmap,
+  cpreview,
+  creview,
+  ctxPrismIsLawfulFor,
+  fromPrism,
+ )
+import Optics.Core (
+  A_Prism,
+  Is,
+  NoIx,
+  Optic',
+  Prism',
+  castOptic,
+  equality,
+  iso,
+  prism',
+ )
 
--- | An encoder cum decoder that knows how to convert routes to and from
--- filepaths. The conversion depends on the context `a`.
+{- | An encoder cum decoder that knows how to convert routes to and from
+ filepaths. The conversion depends on the context `a`.
+-}
 newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
 mapRouteEncoder ::
@@ -108,8 +109,8 @@ mergeRouteEncoder enc1 enc2 =
       )
       ( \fp ->
           asum
-            [ Left <$> decodeRoute enc1 (fst m) fp,
-              Right <$> decodeRoute enc2 (snd m) fp
+            [ Left <$> decodeRoute enc1 (fst m) fp
+            , Right <$> decodeRoute enc2 (snd m) fp
             ]
       )
 
