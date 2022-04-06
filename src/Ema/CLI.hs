@@ -58,7 +58,7 @@ cliParser :: Parser Cli
 cliParser = do
   action <-
     subparser
-      (command "gen" (info generate (progDesc "Generate static HTML files")))
+      (command "gen" (info generate (progDesc "Generate static site")))
       <|> subparser (command "run" (info run (progDesc "Run the live server")))
       <|> pure (Some $ Run def)
   verbose <- switch (long "verbose" <> short 'v' <> help "Enable verbose logging")
