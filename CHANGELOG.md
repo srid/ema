@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- GHC 9.0 support
 - Better handling of URL anchors (#83; #87)
 - Fix bug in `Ex02_Basic.hs` (wasn't generating HTML files)
 - Fix `runEmaPure` not generating routes
