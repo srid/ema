@@ -11,7 +11,7 @@ import Ema.Asset
 import Ema.Model
 import Ema.Route.Class
 import Ema.Route.Encoder
-import Optics.Core (equality, prism', review)
+import Optics.Core (Iso', equality, iso, prism', review)
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
  sub-routes.
@@ -26,9 +26,36 @@ type family MultiModelInput (rs :: [Type]) :: [Type] where
   MultiModelInput '[] = '[]
   MultiModelInput (r ': rs) = ModelInput r : MultiModel rs
 
-instance IsRoute (MultiRoute rs) where
-  type RouteModel (MultiRoute rs) = NP I (MultiModel rs)
-  routeEncoder = undefined
+instance IsRoute (MultiRoute '[]) where
+  type RouteModel (MultiRoute '[]) = NP I '[]
+  routeEncoder = impossibleEncoder
+    where
+      impossibleEncoder :: RouteEncoder (NP I '[]) (MultiRoute '[])
+      impossibleEncoder = mkRouteEncoder $ \Nil ->
+        prism' (\case {}) (const Nothing)
+
+instance
+  ( IsRoute r
+  , IsRoute (MultiRoute rs)
+  , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
+  ) =>
+  IsRoute (MultiRoute (r ': rs))
+  where
+  type RouteModel (MultiRoute (r ': rs)) = NP I (RouteModel r ': MultiModel rs)
+  routeEncoder =
+    let r0e = routeEncoder @r
+        rse = routeEncoder @(MultiRoute rs)
+        enc = mergeRouteEncoder r0e rse
+     in mapRouteEncoder equality rIso (\(I m :* ms) -> (m, ms)) enc
+    where
+      rIso :: Iso' (Either r (MultiRoute rs)) (MultiRoute (r ': rs))
+      rIso =
+        iso
+          (either (Z . I) S)
+          ( \case
+              Z (I r) -> Left r
+              S rs -> Right rs
+          )
 
 instance HasModel (MultiRoute '[]) where
   type ModelInput (MultiRoute '[]) = NP I '[]
@@ -38,6 +65,7 @@ instance
   ( HasModel r
   , HasModel (MultiRoute rs)
   , ModelInput (MultiRoute rs) ~ NP I (MultiModelInput rs)
+  , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
   ) =>
   HasModel (MultiRoute (r ': rs))
   where
@@ -50,7 +78,13 @@ instance
 instance CanRender (MultiRoute '[]) where
   routeAsset _ Nil = \case {}
 
-instance (CanRender r, CanRender (MultiRoute rs)) => CanRender (MultiRoute (r ': rs)) where
+instance
+  ( CanRender r
+  , CanRender (MultiRoute rs)
+  , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
+  ) =>
+  CanRender (MultiRoute (r ': rs))
+  where
   routeAsset enc (I m :* ms) = \case
     Z (I r) ->
       routeAsset @r (headEncoder enc) m r
@@ -78,7 +112,13 @@ headEncoder =
 instance CanGenerate (MultiRoute '[]) where
   generatableRoutes Nil = mempty
 
-instance (CanGenerate r, CanGenerate (MultiRoute rs)) => CanGenerate (MultiRoute (r ': rs)) where
+instance
+  ( CanGenerate r
+  , CanGenerate (MultiRoute rs)
+  , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
+  ) =>
+  CanGenerate (MultiRoute (r ': rs))
+  where
   generatableRoutes (I m :* ms) =
     fmap (Z . I) (generatableRoutes @r m)
       <> fmap S (generatableRoutes @(MultiRoute rs) ms)
