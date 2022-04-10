@@ -11,7 +11,7 @@ import Ema.Asset
 import Ema.Model
 import Ema.Route.Class
 import Ema.Route.Encoder
-import Optics.Core (coercedTo, equality, prism', review, (%))
+import Optics.Core (equality, prism', review)
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
  sub-routes.
@@ -22,14 +22,30 @@ type family MultiModel (rs :: [Type]) :: [Type] where
   MultiModel '[] = '[]
   MultiModel (r ': rs) = RouteModel r : MultiModel rs
 
+type family MultiModelInput (rs :: [Type]) :: [Type] where
+  MultiModelInput '[] = '[]
+  MultiModelInput (r ': rs) = ModelInput r : MultiModel rs
+
 instance IsRoute (MultiRoute rs) where
   type RouteModel (MultiRoute rs) = NP I (MultiModel rs)
   routeEncoder = undefined
 
-instance HasModel (MultiRoute rs) where
-  type ModelInput (MultiRoute rs) = ()
-  modelDynamic _ _ () = do
-    undefined
+instance HasModel (MultiRoute '[]) where
+  type ModelInput (MultiRoute '[]) = NP I '[]
+  modelDynamic _ _ Nil = pure $ pure Nil
+
+instance
+  ( HasModel r
+  , HasModel (MultiRoute rs)
+  , ModelInput (MultiRoute rs) ~ NP I (MultiModelInput rs)
+  ) =>
+  HasModel (MultiRoute (r ': rs))
+  where
+  type ModelInput (MultiRoute (r ': rs)) = NP I (ModelInput r ': MultiModelInput rs)
+  modelDynamic cliAct enc (I i :* is) = do
+    m <- modelDynamic @r cliAct (headEncoder enc) i
+    ms <- modelDynamic @(MultiRoute rs) cliAct (tailEncoder enc) is
+    pure $ liftA2 (\a b -> I a :* b) m ms
 
 instance CanRender (MultiRoute '[]) where
   routeAsset _ Nil = \case {}
