@@ -33,7 +33,7 @@ instance CanRender Route where
               routeElem Route_Index "Go to Index"
               ". You are on the about page. "
     where
-      routeElem r' w =
+      routeElem r' w = do
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
         A.href (fromString . toString $ Ema.routeUrl enc m r')

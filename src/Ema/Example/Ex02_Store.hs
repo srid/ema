@@ -135,7 +135,7 @@ instance CanRender Route where
                   H.h3 ! A.class_ "p-2 border-2" $ fromString . toString $ name
                   routeElem (Route_Category CategoryRoute_Index) "Back to categories"
     where
-      routeElem r' w =
+      routeElem r' w = do
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
         A.href (fromString . toString $ Ema.routeUrl enc m r')

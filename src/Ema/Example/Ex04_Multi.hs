@@ -22,22 +22,14 @@ data R
   | R_Basic Ex01.Route
   | R_Store Ex02.Route
   | R_Clock Ex03.Route
-  deriving stock (Show, Eq, GHC.Generic)
-  deriving anyclass (Generic, HasDatatypeInfo, IsRoute)
+  deriving stock (Show, Ord, Eq, GHC.Generic)
+  deriving anyclass (Generic, HasDatatypeInfo, IsRoute, CanGenerate)
 
 type M = NP I '[Ex02.Model, Ex03.Model]
 
 main :: IO ()
 main = do
   void $ Ema.runSite @R ()
-
--- TODO: Generic
-instance CanGenerate R where
-  generatableRoutes m =
-    [R_Index]
-      <> (R_Basic <$> generatableRoutes (innerModel m))
-      <> (R_Store <$> generatableRoutes (innerModel m))
-      <> (R_Clock <$> generatableRoutes (innerModel m))
 
 -- Can we do generic of this too?
 -- Can demo in 'mergeSite' (of two Emanotes?)
@@ -72,5 +64,5 @@ renderIndex enc m@(I _store :* I clockTime :* Nil) =
         "The current time is: "
         H.small $ show clockTime
   where
-    routeElem r w =
+    routeElem r w = do
       H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! A.href (H.toValue $ routeUrl enc m r) $ w
