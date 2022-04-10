@@ -20,6 +20,8 @@ module Ema.Route.Class (
   GRouteModel,
   Contains (npIso),
   NPConst (npConstFrom),
+  here,
+  there,
 ) where
 
 import Data.List ((!!))

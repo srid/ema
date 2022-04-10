@@ -135,6 +135,7 @@ library
     Ema.Route.Prefixed
     Ema.Route.Url
     Ema.Server
+    Ema.Multi
 
   if flag(with-examples)
     other-modules:

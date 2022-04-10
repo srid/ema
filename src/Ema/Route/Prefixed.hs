@@ -21,8 +21,8 @@ import Text.Show (Show (show))
 
 instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) where
   type ModelInput (PrefixedRoute prefix r) = ModelInput r
-  modelDynamic cliAct enc input =
-    modelDynamic @r cliAct (chainRouteEncoder coercedTo enc) input
+  modelDynamic cliAct enc =
+    modelDynamic @r cliAct (chainRouteEncoder coercedTo enc)
 
 instance (CanRender r, KnownSymbol prefix) => CanRender (PrefixedRoute prefix r) where
   routeAsset enc m r =
