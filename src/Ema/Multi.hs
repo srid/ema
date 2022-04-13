@@ -2,14 +2,17 @@
 
 {- | Merging multiple Ema sites into one.
 
-    This is implemented in using `sop-core`'s NS and NP types.
+    This is implemented in using `sop-core`'s NS and NP types. Use as
+    `MultiRoute '[MySite1, MySite2, ...]`.
 -}
-module Ema.Multi where
+module Ema.Multi (
+  MultiRoute,
+) where
 
-import Data.SOP
-import Ema.Asset
-import Ema.Model
-import Ema.Route.Class
+import Data.SOP (I (..), NP (..), NS (..))
+import Ema.Asset (CanGenerate (..), CanRender (..))
+import Ema.Model (HasModel (..))
+import Ema.Route.Class (IsRoute (..), here, there)
 import Ema.Route.Encoder
 import Optics.Core (Iso', equality, iso, prism', review)
 
@@ -43,19 +46,8 @@ instance
   where
   type RouteModel (MultiRoute (r ': rs)) = NP I (RouteModel r ': MultiModel rs)
   routeEncoder =
-    let r0e = routeEncoder @r
-        rse = routeEncoder @(MultiRoute rs)
-        enc = mergeRouteEncoder r0e rse
-     in mapRouteEncoder equality rIso (\(I m :* ms) -> (m, ms)) enc
-    where
-      rIso :: Iso' (Either r (MultiRoute rs)) (MultiRoute (r ': rs))
-      rIso =
-        iso
-          (either (Z . I) S)
-          ( \case
-              Z (I r) -> Left r
-              S rs -> Right rs
-          )
+    routeEncoder @r
+      `hMergeRouteEncoder` routeEncoder @(MultiRoute rs)
 
 instance HasModel (MultiRoute '[]) where
   type ModelInput (MultiRoute '[]) = NP I '[]
@@ -73,7 +65,7 @@ instance
   modelDynamic cliAct enc (I i :* is) = do
     m <- modelDynamic @r cliAct (headEncoder enc) i
     ms <- modelDynamic @(MultiRoute rs) cliAct (tailEncoder enc) is
-    pure $ liftA2 (\a b -> I a :* b) m ms
+    pure $ curry toNP <$> m <*> ms
 
 instance CanRender (MultiRoute '[]) where
   routeAsset _ Nil = \case {}
@@ -85,29 +77,11 @@ instance
   ) =>
   CanRender (MultiRoute (r ': rs))
   where
-  routeAsset enc (I m :* ms) = \case
-    Z (I r) ->
-      routeAsset @r (headEncoder enc) m r
-    S rs' ->
-      routeAsset @(MultiRoute rs) (tailEncoder enc) ms rs'
-
-tailEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (NP I (MultiModel rs)) (MultiRoute rs)
-tailEncoder =
-  mapRouteEncoder equality (prism' S f) (review there)
-  where
-    f :: NS I (r ': rs) -> Maybe (NS I rs)
-    f = \case
-      Z _ -> Nothing
-      S rs' -> Just rs'
-
-headEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (RouteModel r) r
-headEncoder =
-  mapRouteEncoder equality (prism' (Z . I) f) (review here)
-  where
-    f :: NS I (r ': rs) -> Maybe r
-    f = \case
-      Z (I r) -> Just r
-      _ -> Nothing
+  routeAsset enc (I m :* ms) =
+    fromNS
+      >>> either
+        (routeAsset @r (headEncoder enc) m)
+        (routeAsset @(MultiRoute rs) (tailEncoder enc) ms)
 
 instance CanGenerate (MultiRoute '[]) where
   generatableRoutes Nil = mempty
@@ -120,5 +94,37 @@ instance
   CanGenerate (MultiRoute (r ': rs))
   where
   generatableRoutes (I m :* ms) =
-    fmap (Z . I) (generatableRoutes @r m)
-      <> fmap S (generatableRoutes @(MultiRoute rs) ms)
+    fmap (toNS . Left) (generatableRoutes @r m)
+      <> fmap (toNS . Right) (generatableRoutes @(MultiRoute rs) ms)
+
+tailEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (NP I (MultiModel rs)) (MultiRoute rs)
+tailEncoder =
+  mapRouteEncoder equality (prism' (toNS . Right) (fromNS >>> rightToMaybe)) (review there)
+
+headEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (RouteModel r) r
+headEncoder =
+  mapRouteEncoder equality (prism' (toNS . Left) (fromNS >>> leftToMaybe)) (review here)
+
+-- | Like `mergRouteEncoder` but uses sop-core types instead of Either/Product.
+hMergeRouteEncoder ::
+  RouteEncoder a r ->
+  RouteEncoder (NP I as) (NS I rs) ->
+  RouteEncoder (NP I (a ': as)) (NS I (r ': rs))
+hMergeRouteEncoder a b =
+  mergeRouteEncoder a b
+    & mapRouteEncoderRoute (iso toNS fromNS)
+    & mapRouteEncoderModel fromNP
+
+fromNP :: NP I (a ': as) -> (a, NP I as)
+fromNP (I x :* y) = (x, y)
+
+toNP :: (a, NP I as) -> NP I (a ': as)
+toNP (x, y) = I x :* y
+
+fromNS :: NS I (a ': as) -> Either a (NS I as)
+fromNS = \case
+  Z (I x) -> Left x
+  S xs -> Right xs
+
+toNS :: Either a (NS I as) -> NS I (a ': as)
+toNS = either (Z . I) S

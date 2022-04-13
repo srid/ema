@@ -14,10 +14,16 @@ import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Encoder (RouteEncoder)
 import UnliftIO (MonadUnliftIO)
 
+{- | Class of routes with an associated model
+
+  The default implementation works with generic deriving of `IsRoute`.
+-}
 class IsRoute r => HasModel r where
   {- Arguments to the model runner. Default: nothing (hence, `()`)
 
-    The arguments should be passed to `Ema.runSite`.
+    The value of `ModelInput` should be passed to `Ema.runSite`. It is whatever
+    data that is required to create the model `Dynamic` using `modelDynamic`.
+
   -}
   type ModelInput r :: Type
 
@@ -31,6 +37,7 @@ class IsRoute r => HasModel r where
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
     Some CLI.Action ->
+    -- | The `RouteEncoder` associated with `r`
     RouteEncoder (RouteModel r) r ->
     ModelInput r ->
     m (Dynamic m (RouteModel r))
@@ -46,6 +53,6 @@ class IsRoute r => HasModel r where
     ModelInput r ->
     m (Dynamic m (RouteModel r))
   modelDynamic _ _ _ =
-    -- The default implementation assumes the minimal model, `()`, which cannot
+    -- The default implementation assumes the constant unit model which cannot
     -- be time-varying.
     pure $ pure Nil

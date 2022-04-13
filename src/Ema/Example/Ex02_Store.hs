@@ -82,7 +82,7 @@ instance IsRoute CategoryName where
     where
       slugifyRouteEncoder :: RouteEncoder a r -> RouteEncoder a r
       slugifyRouteEncoder =
-        patchRouteEncoder (replacing " " "-")
+        mapRouteEncoderFilePath (replacing " " "-")
       replacing :: Text -> Text -> Iso' FilePath FilePath
       replacing needle replacement =
         iso

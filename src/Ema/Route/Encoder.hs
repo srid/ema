@@ -28,30 +28,6 @@ import Optics.Core (
 -}
 newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
-mapRouteEncoder ::
-  (pr `Is` A_Prism, pf `Is` A_Prism) =>
-  Optic' pf NoIx FilePath FilePath ->
-  Optic' pr NoIx r1 r2 ->
-  (b -> a) ->
-  RouteEncoder a r1 ->
-  RouteEncoder b r2
-mapRouteEncoder fp r m (RouteEncoder enc) =
-  RouteEncoder $ cpmap (castOptic fp) (castOptic r) m enc
-
-chainRouteEncoder :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
-chainRouteEncoder f =
-  mapRouteEncoder equality f id
-
--- | Patch the encoded value of a RouteEncoder.
-patchRouteEncoder :: pr `Is` A_Prism => Optic' pr NoIx FilePath FilePath -> RouteEncoder a r -> RouteEncoder a r
-patchRouteEncoder f =
-  mapRouteEncoder f equality id
-
--- | Returns a new route encoder that ignores its model.
-anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
-anyModelRouteEncoder =
-  mapRouteEncoder equality equality (const ())
-
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
 mkRouteEncoder = RouteEncoder . fromPrism
@@ -62,6 +38,32 @@ encodeRoute (RouteEncoder enc) = creview enc
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (RouteEncoder enc) = cpreview enc
 
+mapRouteEncoder ::
+  (pr `Is` A_Prism, pf `Is` A_Prism) =>
+  Optic' pf NoIx FilePath FilePath ->
+  Optic' pr NoIx r1 r2 ->
+  (b -> a) ->
+  RouteEncoder a r1 ->
+  RouteEncoder b r2
+mapRouteEncoder fp r m (RouteEncoder enc) =
+  RouteEncoder $ cpmap (castOptic fp) (castOptic r) m enc
+
+-- | Like `mapRouteEncoder` but maps only the route
+mapRouteEncoderRoute :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
+mapRouteEncoderRoute f = mapRouteEncoder equality f id
+
+-- | Like `mapRouteEncoder` but maps only the encoded FilePath
+mapRouteEncoderFilePath :: pr `Is` A_Prism => Optic' pr NoIx FilePath FilePath -> RouteEncoder a r -> RouteEncoder a r
+mapRouteEncoderFilePath f = mapRouteEncoder f equality id
+
+-- | Like `mapRouteEncoder` but (contra)maps the model
+mapRouteEncoderModel :: (b -> a) -> RouteEncoder a r2 -> RouteEncoder b r2
+mapRouteEncoderModel = mapRouteEncoder equality equality
+
+-- | Returns a new route encoder that ignores its model.
+anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
+anyModelRouteEncoder = mapRouteEncoderModel (const ())
+
 -- | Like `mkRouteEncoder` but without using context
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = mkRouteEncoder . const
@@ -69,12 +71,12 @@ prismRouteEncoder = mkRouteEncoder . const
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
 showReadRouteEncoder =
   htmlSuffixEncoder
-    & chainRouteEncoder (prism' show readMaybe)
+    & mapRouteEncoderRoute (prism' show readMaybe)
 
 stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
 stringRouteEncoder =
   htmlSuffixEncoder
-    & chainRouteEncoder stringIso
+    & mapRouteEncoderRoute stringIso
   where
     stringIso = iso fromString toString
 
@@ -94,8 +96,6 @@ singletonRouteEncoder =
 
 checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
 checkRouteEncoderForSingleRoute (RouteEncoder piso) = ctxPrismIsLawfulFor piso
-
--- TODO: These 'merge' encoders are probably unnecessary, with NS/NP stuff that's upcoming.
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)

@@ -25,6 +25,9 @@ data R
   deriving stock (Show, Ord, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo, IsRoute, CanGenerate)
 
+-- The Generic deriving of `IsRoute` automatically determines the model type.
+-- Here we use an alias to refer to it. Note that `Ex01.Route` has an unit model
+-- (`()`), and therefore it is not included in this heterogenous list.
 type M = NP I '[Ex02.Model, Ex03.Model]
 
 main :: IO ()
@@ -62,6 +65,8 @@ renderIndex enc m@(I _store :* I clockTime :* Nil) =
         H.li $ routeElem (R_Clock Ex03.Route_Index) "Ex03_Clock"
       H.p $ do
         "The current time is: "
+        -- This illustrates how we can access a sub-model from the top-level
+        -- renderer.
         H.small $ show clockTime
   where
     routeElem r w = do

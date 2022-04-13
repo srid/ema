@@ -8,8 +8,7 @@ module Ema.Asset (
   CanGenerate (..),
 ) where
 
-import Data.SOP.NP
-import Data.SOP.NS
+import Data.SOP.NP (cpure_POP)
 import Data.Set qualified as Set
 import Ema.Route.Class (
   Contains (npIso),
@@ -20,11 +19,7 @@ import Ema.Route.Class (
   NPConst (npConstFrom),
   SingleModelRoute (SingleModelRoute),
  )
-import Ema.Route.Encoder (
-  RouteEncoder,
-  leftRouteEncoder,
-  rightRouteEncoder,
- )
+import Ema.Route.Encoder (RouteEncoder)
 import Generics.SOP hiding (Generic)
 import Optics.Core (view)
 import Prelude hiding (All)
@@ -40,17 +35,32 @@ data Asset a
     AssetGenerated Format a
   deriving stock (Eq, Show, Ord, Functor, Generic)
 
-data Format = Html | Other
+-- | The format of a generated asset.
+data Format
+  = -- | Html assets are served by the server with hot-reload
+    Html
+  | -- | Other assets are served by the server as static files.
+    Other
   deriving stock (Eq, Show, Ord, Generic)
 
--- | This route has assets associated with it.
+{- | Class of routes that can be rendered as assets.
+
+  All routes should have this instance, derived manually indicating how to
+  render them.
+-}
 class IsRoute r => CanRender r where
   -- | Produce the asset for the given route.
   routeAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
 
--- | Class of routes to statically generate.
+{- | Class of routes to statically generate.
+
+  For routes with dynamic models you typically want to derive this manually for
+  some inner routes and use generic deriving for the rest.
+-}
 class IsRoute r => CanGenerate r where
   generatableRoutes :: RouteModel r -> [r]
+  -- The default implementation uses generics to compute the enumeration
+  -- recursively, while ignoring the model.
   default generatableRoutes ::
     ( IsRoute r
     , All2 CanGenerate (Code r)
@@ -117,26 +127,3 @@ gGeneratableRoutes m =
     insideRoutes =
       let m' = view (npIso @_ @(RouteModel b)) m
        in generatableRoutes m'
-
--- Combining of two routes
-instance
-  (CanRender r1, CanRender r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
-  CanRender (Either r1 r2)
-  where
-  routeAsset enc m = \case
-    Left r -> routeAsset @r1 (leftRouteEncoder enc) (fst m) r
-    Right r -> routeAsset @r2 (rightRouteEncoder enc) (snd m) r
-
-instance
-  (CanGenerate r1, CanGenerate r2, IsRoute (Either r1 r2), RouteModel (Either r1 r2) ~ (RouteModel r1, RouteModel r2)) =>
-  CanGenerate (Either r1 r2)
-  where
-  generatableRoutes m =
-    fmap Left (generatableRoutes @r1 $ fst m)
-      <> fmap Right (generatableRoutes @r2 $ snd m)
-
-{-
-instance CanRender (NS I rs) where
-  routeAsset enc m r =
-    undefined
--}

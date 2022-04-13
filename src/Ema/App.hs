@@ -12,7 +12,7 @@ import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
-import Ema.Asset
+import Ema.Asset (CanGenerate, CanRender)
 import Ema.CLI (Cli, getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
@@ -22,13 +22,17 @@ import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
 import System.Directory (getCurrentDirectory)
 
-{- | Run the given Ema site, and return the generated files.
+{- | Run the given Ema site,
 
- On live-server mode, this function will never return.
+  Takes as argument the associated `ModelInput`.
+
+  In generate mode, return the generated files.  On live-server mode, this
+  function will never return.
 -}
 runSite ::
   forall r.
   (Show r, Eq r, IsRoute r, CanRender r, HasModel r, CanGenerate r) =>
+  -- | The input required to create the `Dynamic` of the `ModelRoute`
   ModelInput r ->
   IO (DSum CLI.Action Identity)
 runSite input = do
@@ -37,7 +41,7 @@ runSite input = do
 
 {- | Like @runSite@ but takes the CLI action
 
- Useful if you are handling CLI arguments yourself.
+ Useful if you are handling the CLI arguments yourself.
 -}
 runSiteWithCli ::
   forall r.

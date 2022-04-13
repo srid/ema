@@ -11,8 +11,8 @@ import Ema.Model (
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
   RouteEncoder,
-  chainRouteEncoder,
   mapRouteEncoder,
+  mapRouteEncoderRoute,
  )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism')
@@ -22,11 +22,11 @@ import Text.Show (Show (show))
 instance (HasModel r, KnownSymbol prefix) => HasModel (PrefixedRoute prefix r) where
   type ModelInput (PrefixedRoute prefix r) = ModelInput r
   modelDynamic cliAct enc =
-    modelDynamic @r cliAct (chainRouteEncoder coercedTo enc)
+    modelDynamic @r cliAct (mapRouteEncoderRoute coercedTo enc)
 
 instance (CanRender r, KnownSymbol prefix) => CanRender (PrefixedRoute prefix r) where
   routeAsset enc m r =
-    routeAsset @r (chainRouteEncoder coercedTo enc) m (unPrefixedRoute r)
+    routeAsset @r (mapRouteEncoderRoute coercedTo enc) m (unPrefixedRoute r)
 
 instance (CanGenerate r, KnownSymbol prefix) => CanGenerate (PrefixedRoute prefix r) where
   generatableRoutes m = PrefixedRoute <$> generatableRoutes @r m
