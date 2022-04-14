@@ -18,10 +18,10 @@ module Ema.Route.Class (
 ) where
 
 import Data.List ((!!))
+import Data.SOP.Extra
 import Data.SOP.NP (cpure_POP)
 import Data.Set qualified as Set
 import Ema.Route.Encoder
-import Ema.Route.Generic
 import GHC.TypeLits (
   ErrorMessage (ShowType, Text, (:$$:)),
   TypeError,

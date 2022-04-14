@@ -3,14 +3,6 @@ module Ema.Route.Encoder where
 
 import Control.Monad.Writer (Writer)
 import Data.Text qualified as T
-import Ema.Route.CtxPrism (
-  CtxPrism,
-  cpmap,
-  cpreview,
-  creview,
-  ctxPrismIsLawfulFor,
-  fromPrism,
- )
 import Optics.Core (
   A_Prism,
   Is,
@@ -21,6 +13,14 @@ import Optics.Core (
   equality,
   iso,
   prism',
+ )
+import Optics.CtxPrism (
+  CtxPrism,
+  cpmap,
+  cpreview,
+  creview,
+  ctxPrismIsLawfulFor,
+  fromPrism,
  )
 
 {- | An encoder cum decoder that knows how to convert routes to and from

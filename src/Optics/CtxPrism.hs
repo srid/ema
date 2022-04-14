@@ -1,4 +1,4 @@
-module Ema.Route.CtxPrism (
+module Optics.CtxPrism (
   -- * Type
   CtxPrism,
 

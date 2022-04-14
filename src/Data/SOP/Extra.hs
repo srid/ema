@@ -3,7 +3,7 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 -- | Helpers for generics-sop
-module Ema.Route.Generic where
+module Data.SOP.Extra where
 
 import Data.SOP.Constraint (SListIN)
 import Data.Text qualified as T
