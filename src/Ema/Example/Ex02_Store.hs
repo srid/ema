@@ -58,7 +58,6 @@ instance IsRoute ProductName where
   type RouteModel ProductName = Model
   routeEncoder =
     stringRouteEncoder
-      & anyModelRouteEncoder
   allRoutes m =
     ProductName <$> modelProducts m
 
@@ -70,7 +69,6 @@ instance IsRoute CategoryName where
   type RouteModel CategoryName = Model
   routeEncoder =
     stringRouteEncoder
-      & anyModelRouteEncoder
       -- Since category names can contain whitespace, we replace them in URLs
       -- with '-'. This allows use to use stringRouteEncoder, and "fix" up its
       -- result manually.

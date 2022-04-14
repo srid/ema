@@ -60,25 +60,21 @@ mapRouteEncoderFilePath f = mapRouteEncoder f equality id
 mapRouteEncoderModel :: (b -> a) -> RouteEncoder a r2 -> RouteEncoder b r2
 mapRouteEncoderModel = mapRouteEncoder equality equality
 
--- | Returns a new route encoder that ignores its model.
-anyModelRouteEncoder :: RouteEncoder () r -> RouteEncoder a r
-anyModelRouteEncoder = mapRouteEncoderModel (const ())
-
--- | Like `mkRouteEncoder` but without using context
+-- | Like `mkRouteEncoder` but ignores the context
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = mkRouteEncoder . const
 
-showReadRouteEncoder :: (Show r, Read r) => RouteEncoder () r
+-- | A route encoder that uses Show/Read to encode/decode.
+showReadRouteEncoder :: (Show r, Read r) => RouteEncoder a r
 showReadRouteEncoder =
   htmlSuffixEncoder
     & mapRouteEncoderRoute (prism' show readMaybe)
 
-stringRouteEncoder :: (IsString a, ToString a) => RouteEncoder () a
+-- | A route encoder that uses toString/fromString to encode/decode.
+stringRouteEncoder :: (IsString r, ToString r) => RouteEncoder a r
 stringRouteEncoder =
   htmlSuffixEncoder
-    & mapRouteEncoderRoute stringIso
-  where
-    stringIso = iso fromString toString
+    & mapRouteEncoderRoute (iso fromString toString)
 
 -- | An encoder that uses the ".html" suffix
 htmlSuffixEncoder :: RouteEncoder a FilePath
