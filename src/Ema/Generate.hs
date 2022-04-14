@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
 import Ema.Asset
-import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
+import Ema.Route.Class (IsRoute (RouteModel, generatableRoutes, routeEncoder))
 import Ema.Route.Encoder (RouteEncoder, checkRouteEncoderForSingleRoute, encodeRoute)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -21,7 +21,7 @@ log = logWithoutLoc "Generate"
 
 generateSite ::
   forall r m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, CanRender r, CanGenerate r) =>
+  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, CanRender r) =>
   FilePath ->
   RouteModel r ->
   m [FilePath]
@@ -47,7 +47,6 @@ generate ::
   , Eq r
   , Show r
   , CanRender r
-  , CanGenerate r
   ) =>
   FilePath ->
   RouteEncoder (RouteModel r) r ->

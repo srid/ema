@@ -10,11 +10,11 @@ module Ema.Multi (
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))
-import Ema.Asset (CanGenerate (..), CanRender (..))
+import Ema.Asset (CanRender (..))
 import Ema.Model (HasModel (..))
 import Ema.Route.Class (IsRoute (..), here, there)
 import Ema.Route.Encoder
-import Optics.Core (Iso', equality, iso, prism', review)
+import Optics.Core (equality, iso, prism', review)
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
  sub-routes.
@@ -36,6 +36,7 @@ instance IsRoute (MultiRoute '[]) where
       impossibleEncoder :: RouteEncoder (NP I '[]) (MultiRoute '[])
       impossibleEncoder = mkRouteEncoder $ \Nil ->
         prism' (\case {}) (const Nothing)
+  generatableRoutes Nil = mempty
 
 instance
   ( IsRoute r
@@ -48,6 +49,9 @@ instance
   routeEncoder =
     routeEncoder @r
       `hMergeRouteEncoder` routeEncoder @(MultiRoute rs)
+  generatableRoutes (I m :* ms) =
+    fmap (toNS . Left) (generatableRoutes @r m)
+      <> fmap (toNS . Right) (generatableRoutes @(MultiRoute rs) ms)
 
 instance HasModel (MultiRoute '[]) where
   type ModelInput (MultiRoute '[]) = NP I '[]
@@ -82,20 +86,6 @@ instance
       >>> either
         (routeAsset @r (headEncoder enc) m)
         (routeAsset @(MultiRoute rs) (tailEncoder enc) ms)
-
-instance CanGenerate (MultiRoute '[]) where
-  generatableRoutes Nil = mempty
-
-instance
-  ( CanGenerate r
-  , CanGenerate (MultiRoute rs)
-  , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
-  ) =>
-  CanGenerate (MultiRoute (r ': rs))
-  where
-  generatableRoutes (I m :* ms) =
-    fmap (toNS . Left) (generatableRoutes @r m)
-      <> fmap (toNS . Right) (generatableRoutes @(MultiRoute rs) ms)
 
 tailEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (NP I (MultiModel rs)) (MultiRoute rs)
 tailEncoder =

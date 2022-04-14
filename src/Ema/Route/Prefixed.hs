@@ -4,7 +4,7 @@ module Ema.Route.Prefixed (
 ) where
 
 import Data.Text qualified as T
-import Ema.Asset (CanGenerate (generatableRoutes), CanRender (..))
+import Ema.Asset (CanRender (..))
 import Ema.Model (
   HasModel (ModelInput, modelDynamic),
  )
@@ -28,9 +28,6 @@ instance (CanRender r, KnownSymbol prefix) => CanRender (PrefixedRoute prefix r)
   routeAsset enc m r =
     routeAsset @r (mapRouteEncoderRoute coercedTo enc) m (unPrefixedRoute r)
 
-instance (CanGenerate r, KnownSymbol prefix) => CanGenerate (PrefixedRoute prefix r) where
-  generatableRoutes m = PrefixedRoute <$> generatableRoutes @r m
-
 -- | Prefix the encoding of the given RouteEncoder.
 prefixRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (PrefixedRoute prefix r)
 prefixRouteEncoder =
@@ -53,3 +50,4 @@ instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) where
   type RouteModel (PrefixedRoute prefix r) = RouteModel r
   routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
+  generatableRoutes m = PrefixedRoute <$> generatableRoutes @r m

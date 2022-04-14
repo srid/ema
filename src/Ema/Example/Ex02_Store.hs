@@ -30,7 +30,6 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
-  deriving (CanGenerate) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
   modelDynamic _ _ _ = do
@@ -43,7 +42,6 @@ data ProductRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
-  deriving (CanGenerate) via (SingleModelRoute Model ProductRoute)
 
 data CategoryRoute
   = CategoryRoute_Index
@@ -51,7 +49,6 @@ data CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model CategoryRoute)
-  deriving (CanGenerate) via (SingleModelRoute Model CategoryRoute)
 
 newtype ProductName = ProductName Text
   deriving stock (Show, Eq, Ord)
@@ -62,9 +59,8 @@ instance IsRoute ProductName where
   routeEncoder =
     stringRouteEncoder
       & anyModelRouteEncoder
-
-instance CanGenerate ProductName where
-  generatableRoutes m = ProductName <$> modelProducts m
+  generatableRoutes m =
+    ProductName <$> modelProducts m
 
 newtype CategoryName = CategoryName Text
   deriving stock (Show, Eq, Ord)
@@ -88,9 +84,8 @@ instance IsRoute CategoryName where
         iso
           (toString . T.replace replacement needle . toText)
           (toString . T.replace needle replacement . toText)
-
-instance CanGenerate CategoryName where
-  generatableRoutes m = CategoryName <$> modelCategories m
+  generatableRoutes m =
+    CategoryName <$> modelCategories m
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

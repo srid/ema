@@ -23,7 +23,7 @@ data R
   | R_Store Ex02.Route
   | R_Clock Ex03.Route
   deriving stock (Show, Ord, Eq, GHC.Generic)
-  deriving anyclass (Generic, HasDatatypeInfo, IsRoute, CanGenerate)
+  deriving anyclass (Generic, HasDatatypeInfo, IsRoute)
 
 -- The Generic deriving of `IsRoute` automatically determines the model type.
 -- Here we use an alias to refer to it. Note that `Ex01.Route` has an unit model

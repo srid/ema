@@ -17,7 +17,7 @@ data Route
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute, CanGenerate)
+    (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute)
 
 instance CanRender Route where
   routeAsset enc m r =

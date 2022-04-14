@@ -4,11 +4,9 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Ema.Route.Class (
-  IsRoute (RouteModel, routeEncoder),
+  IsRoute (RouteModel, routeEncoder, generatableRoutes),
   gRouteEncoder,
   SingleModelRoute (..),
-  ShowReadable (ShowReadable),
-  Stringable (Stringable),
 
   -- * Sub routes
   innerRouteEncoder,
@@ -25,6 +23,8 @@ module Ema.Route.Class (
 ) where
 
 import Data.List ((!!))
+import Data.SOP.NP (cpure_POP)
+import Data.Set qualified as Set
 import Ema.Route.Encoder
 import Ema.Route.Generic
 import GHC.TypeLits (
@@ -67,6 +67,52 @@ class IsRoute r where
     ) =>
     RouteEncoder (RouteModel r) r
   routeEncoder = gRouteEncoder
+  generatableRoutes :: RouteModel r -> [r]
+  -- The default implementation uses generics to compute the enumeration
+  -- recursively, while ignoring the model.
+  default generatableRoutes ::
+    ( All2 IsRoute (Code r)
+    , All2 (IsRouteIn ms) (Code r)
+    , HasDatatypeInfo r
+    , ms ~ GRouteModel (Code r)
+    , All (IsRouteProd ms) (Code r)
+    , RouteModel r ~ NP I ms
+    , Ord r
+    ) =>
+    RouteModel r ->
+    [r]
+  generatableRoutes = gGeneratableRoutes
+
+gGeneratableRoutes ::
+  forall r ms.
+  ( All2 IsRoute (Code r)
+  , All2 (IsRouteIn ms) (Code r)
+  , HasDatatypeInfo r
+  , ms ~ GRouteModel (Code r)
+  , All (IsRouteProd ms) (Code r)
+  , Ord r
+  ) =>
+  NP I ms ->
+  [r]
+gGeneratableRoutes m =
+  let pop =
+        cpure_POP
+          (Proxy @(IsRouteIn ms))
+          insideRoutes
+      -- FIXME: Can we use traverse due to Applicative instance list.
+      pops =
+        hcfor
+          (Proxy @IsRoute)
+          pop
+          id
+      -- Workaround duplicates routes frmo the FIXME above.
+      removeDups = Set.toList . Set.fromList
+   in removeDups $ to <$> concatMap apInjs_POP pops
+  where
+    insideRoutes :: forall b. (IsRouteIn ms b) => [b]
+    insideRoutes =
+      let m' = view (npIso @_ @(RouteModel b)) m
+       in generatableRoutes m'
 
 {- | DerivingVia repr for routes that use a single model for all inner routes.
 
@@ -95,7 +141,9 @@ instance
   , NPConst I ms m
   , HasDatatypeInfo r
   , All2 IsRoute (Code r)
+  , All2 (IsRouteIn ms) (Code r)
   , All (IsRouteProd ms) (Code r)
+  , Ord r
   ) =>
   IsRoute (SingleModelRoute m r)
   where
@@ -106,28 +154,13 @@ instance
         equality
         coercedTo
         (npConstFrom . I)
-
-newtype ShowReadable a = ShowReadable a
-  deriving newtype (Show, Read)
-
-newtype Stringable a = Stringable a
-  deriving newtype (ToString, IsString)
-
-instance (Show a, Read a) => IsRoute (ShowReadable a) where
-  type RouteModel (ShowReadable a) = ()
-  routeEncoder = showReadRouteEncoder
-
-instance (IsString a, ToString a) => IsRoute (Stringable a) where
-  type RouteModel (Stringable a) = ()
-  routeEncoder = stringRouteEncoder
-
-deriving via (Stringable Text) instance IsRoute Text
-
-deriving via (Stringable String) instance IsRoute String
+  generatableRoutes m =
+    SingleModelRoute <$> gGeneratableRoutes @r (npConstFrom . I $ m)
 
 instance IsRoute () where
   type RouteModel () = ()
   routeEncoder = singletonRouteEncoder
+  generatableRoutes () = [()]
 
 type family GRouteModel (xss :: [[Type]]) :: [Type] where
   GRouteModel '[] = '[]

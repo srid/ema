@@ -12,7 +12,7 @@ import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
-import Ema.Asset (CanGenerate, CanRender)
+import Ema.Asset (CanRender)
 import Ema.CLI (Cli, getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
@@ -31,7 +31,7 @@ import System.Directory (getCurrentDirectory)
 -}
 runSite ::
   forall r.
-  (Show r, Eq r, IsRoute r, CanRender r, HasModel r, CanGenerate r) =>
+  (Show r, Eq r, IsRoute r, CanRender r, HasModel r) =>
   -- | The input required to create the `Dynamic` of the `ModelRoute`
   ModelInput r ->
   IO (DSum CLI.Action Identity)
@@ -45,7 +45,7 @@ runSite input = do
 -}
 runSiteWithCli ::
   forall r.
-  (Show r, Eq r, IsRoute r, CanRender r, HasModel r, CanGenerate r) =>
+  (Show r, Eq r, IsRoute r, CanRender r, HasModel r) =>
   Cli ->
   ModelInput r ->
   IO (RouteModel r, DSum CLI.Action Identity)

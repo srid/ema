@@ -35,7 +35,6 @@ data Route
   deriving anyclass
     (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
-  deriving (CanGenerate) via (SingleModelRoute Model Route)
 
 instance HasModel Route where
   modelDynamic _ _ () = do
