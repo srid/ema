@@ -39,13 +39,13 @@ data Route
 instance HasModel Route where
   modelDynamic _ _ () = do
     t0 <- liftIO getCurrentTime
-    pure . Dynamic . (t0,) $ \send -> do
+    pure . Dynamic . (t0,) $ \setModel -> do
       logInfoNS "Ex03" "Starting clock..."
       forever $ do
         liftIO $ threadDelay 1000000
         t <- liftIO getCurrentTime
         logDebugNS "Ex03" "Updating clock..."
-        send t
+        setModel t
 
 instance CanRender Route where
   routeAsset enc m r =

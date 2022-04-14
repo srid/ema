@@ -3,16 +3,22 @@
 
 {- | A simple web store for products
 
- TODO: rewrite this to load store.json and display that, with individual page for books too.
+ TODO: This should be Ex03
 -}
 module Ema.Example.Ex02_Store where
 
+import Control.Concurrent (readChan)
+import Control.Exception (throwIO)
+import Control.Monad.Logger (MonadLogger, logInfoNS)
+import Data.Aeson (FromJSON, eitherDecodeFileStrict')
 import Data.Text qualified as T
 import Ema
-import Ema.Example.Common (tailwindLayout)
+import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
 import Generics.SOP qualified as SOP
 import Optics.Core (Iso', iso)
+import System.FSNotify qualified as FSNotify
+import System.FilePath (takeFileName, (</>))
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -21,6 +27,8 @@ data Model = Model
   { modelProducts :: [Text]
   , modelCategories :: [Text]
   }
+  deriving stock (Generic)
+  deriving anyclass (FromJSON)
 
 data Route
   = Route_Index
@@ -31,9 +39,33 @@ data Route
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
 
+data StoreFileError = StoreFileMalformed String
+  deriving stock (Show, Eq)
+  deriving anyclass (Exception)
+
 instance HasModel Route where
-  modelDynamic _ _ _ = do
-    pure $ pure $ Model ["egg", "sausage", "bacon"] ["Fresh Meat", "Processed Meat"]
+  modelDynamic _ _ () = do
+    store0 <- readStoreFile
+    pure . Dynamic . (store0,) $ \setModel -> do
+      ch <- liftIO $ watchDirForked dataDir
+      let loop = do
+            log "Waiting for fs event ..."
+            evt <- liftIO $ readChan ch
+            log $ "Got fs event: " <> show evt
+            when (takeFileName (FSNotify.eventPath evt) == "store.json") $ do
+              setModel =<< readStoreFile
+            loop
+      loop
+    where
+      dataDir = "src/Ema/Example/Ex02_Store"
+      readStoreFile :: (MonadIO m, MonadLogger m) => m Model
+      readStoreFile = do
+        log "Reading Store file"
+        liftIO (eitherDecodeFileStrict' $ dataDir </> "store.json") >>= \case
+          Left err -> liftIO $ throwIO $ StoreFileMalformed err
+          Right store -> pure store
+      log :: MonadLogger m => Text -> m ()
+      log = logInfoNS "Ex02_Store"
 
 -- TODO: Use DerivingVia to specify options, to disable extra /product/ in URL.
 data ProductRoute

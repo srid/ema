@@ -1,7 +1,10 @@
 module Ema.Example.Common (
   tailwindLayout,
+  watchDirForked,
 ) where
 
+import Control.Concurrent (Chan, forkIO, newChan, threadDelay)
+import System.FSNotify qualified as FSNotify
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
@@ -34,3 +37,14 @@ tailwindLayout h b =
         ! A.href "https://unpkg.com/tailwindcss@2/dist/tailwind.min.css"
         ! A.rel "stylesheet"
         ! A.type_ "text/css"
+
+-- Observe changes to a directory path, and return the `Chan` of its events.
+watchDirForked :: FilePath -> IO (Chan FSNotify.Event)
+watchDirForked path = do
+  ch <- newChan
+  -- FIXME: We should be using race_, not forkIO.
+  void . forkIO $
+    FSNotify.withManager $ \mgr -> do
+      _stopListening <- FSNotify.watchDirChan mgr path (const True) ch
+      threadDelay maxBound
+  pure ch

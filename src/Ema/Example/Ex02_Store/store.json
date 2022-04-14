@@ -1,0 +1,11 @@
+{
+    "modelProducts": [
+        "egg",
+        "sausage",
+        "bacon"
+    ],
+    "modelCategories": [
+        "Fresh Meat",
+        "Processed Meat"
+    ]
+}

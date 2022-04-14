@@ -67,6 +67,7 @@ library
     build-depends:
       , blaze-html
       , blaze-markup
+      , fsnotify
       , time
 
   mixins:
