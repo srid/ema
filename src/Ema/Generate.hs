@@ -9,7 +9,7 @@ import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
 import Ema.Asset
-import Ema.Route.Class (IsRoute (RouteModel, generatableRoutes, routeEncoder))
+import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
 import Ema.Route.Encoder (RouteEncoder, checkRouteEncoderForSingleRoute, encodeRoute)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -57,7 +57,7 @@ generate ::
 generate dest enc model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     error $ "Destination does not exist: " <> toText dest
-  let routes = generatableRoutes @r model
+  let routes = allRoutes @r model
   when (null routes) $
     error "allRoutes is empty; nothing to generate"
   forM_ routes $ \route -> do

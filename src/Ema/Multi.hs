@@ -36,7 +36,7 @@ instance IsRoute (MultiRoute '[]) where
       impossibleEncoder :: RouteEncoder (NP I '[]) (MultiRoute '[])
       impossibleEncoder = mkRouteEncoder $ \Nil ->
         prism' (\case {}) (const Nothing)
-  generatableRoutes Nil = mempty
+  allRoutes Nil = mempty
 
 instance
   ( IsRoute r
@@ -49,9 +49,9 @@ instance
   routeEncoder =
     routeEncoder @r
       `hMergeRouteEncoder` routeEncoder @(MultiRoute rs)
-  generatableRoutes (I m :* ms) =
-    fmap (toNS . Left) (generatableRoutes @r m)
-      <> fmap (toNS . Right) (generatableRoutes @(MultiRoute rs) ms)
+  allRoutes (I m :* ms) =
+    fmap (toNS . Left) (allRoutes @r m)
+      <> fmap (toNS . Right) (allRoutes @(MultiRoute rs) ms)
 
 instance HasModel (MultiRoute '[]) where
   type ModelInput (MultiRoute '[]) = NP I '[]

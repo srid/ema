@@ -4,7 +4,7 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Ema.Route.Class (
-  IsRoute (RouteModel, routeEncoder, generatableRoutes),
+  IsRoute (RouteModel, routeEncoder, allRoutes),
   gRouteEncoder,
   SingleModelRoute (..),
 
@@ -13,11 +13,6 @@ module Ema.Route.Class (
   innerModel,
 
   -- * Generic helpers
-  IsRouteProd,
-  IsRouteIn,
-  GRouteModel,
-  Contains (npIso),
-  NPConst (npConstFrom),
   here,
   there,
 ) where
@@ -53,6 +48,14 @@ import System.FilePath (
  )
 import Prelude hiding (All, Generic)
 
+{- | Class of Ema routes
+
+  An Ema route has an encoder, that knows how to convert it to/from filepaths.
+  As well as an universe function, `allRoutes`, that gives all possible route
+  values in a static site.
+
+  Both the encoder and the universe function take the associated model as an argument.
+-}
 class IsRoute r where
   type RouteModel r :: Type
   type RouteModel r = NP I (GRouteModel (Code r))
@@ -67,10 +70,10 @@ class IsRoute r where
     ) =>
     RouteEncoder (RouteModel r) r
   routeEncoder = gRouteEncoder
-  generatableRoutes :: RouteModel r -> [r]
+  allRoutes :: RouteModel r -> [r]
   -- The default implementation uses generics to compute the enumeration
-  -- recursively, while ignoring the model.
-  default generatableRoutes ::
+  -- recursively.
+  default allRoutes ::
     ( All2 IsRoute (Code r)
     , All2 (IsRouteIn ms) (Code r)
     , HasDatatypeInfo r
@@ -81,9 +84,9 @@ class IsRoute r where
     ) =>
     RouteModel r ->
     [r]
-  generatableRoutes = gGeneratableRoutes
+  allRoutes = gallRoutes
 
-gGeneratableRoutes ::
+gallRoutes ::
   forall r ms.
   ( All2 IsRoute (Code r)
   , All2 (IsRouteIn ms) (Code r)
@@ -94,7 +97,7 @@ gGeneratableRoutes ::
   ) =>
   NP I ms ->
   [r]
-gGeneratableRoutes m =
+gallRoutes m =
   let pop =
         cpure_POP
           (Proxy @(IsRouteIn ms))
@@ -112,7 +115,7 @@ gGeneratableRoutes m =
     insideRoutes :: forall b. (IsRouteIn ms b) => [b]
     insideRoutes =
       let m' = view (npIso @_ @(RouteModel b)) m
-       in generatableRoutes m'
+       in allRoutes m'
 
 {- | DerivingVia repr for routes that use a single model for all inner routes.
 
@@ -154,13 +157,13 @@ instance
         equality
         coercedTo
         (npConstFrom . I)
-  generatableRoutes m =
-    SingleModelRoute <$> gGeneratableRoutes @r (npConstFrom . I $ m)
+  allRoutes m =
+    SingleModelRoute <$> gallRoutes @r (npConstFrom . I $ m)
 
 instance IsRoute () where
   type RouteModel () = ()
   routeEncoder = singletonRouteEncoder
-  generatableRoutes () = [()]
+  allRoutes () = [()]
 
 type family GRouteModel (xss :: [[Type]]) :: [Type] where
   GRouteModel '[] = '[]

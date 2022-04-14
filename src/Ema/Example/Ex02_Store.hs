@@ -59,7 +59,7 @@ instance IsRoute ProductName where
   routeEncoder =
     stringRouteEncoder
       & anyModelRouteEncoder
-  generatableRoutes m =
+  allRoutes m =
     ProductName <$> modelProducts m
 
 newtype CategoryName = CategoryName Text
@@ -84,7 +84,7 @@ instance IsRoute CategoryName where
         iso
           (toString . T.replace replacement needle . toText)
           (toString . T.replace needle replacement . toText)
-  generatableRoutes m =
+  allRoutes m =
     CategoryName <$> modelCategories m
 
 main :: IO ()

@@ -50,4 +50,4 @@ instance (Show r, KnownSymbol prefix) => Show (PrefixedRoute prefix r) where
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) where
   type RouteModel (PrefixedRoute prefix r) = RouteModel r
   routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
-  generatableRoutes m = PrefixedRoute <$> generatableRoutes @r m
+  allRoutes m = PrefixedRoute <$> allRoutes @r m
