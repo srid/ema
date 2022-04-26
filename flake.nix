@@ -1,7 +1,7 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/c48167590e3258daac6ab12a41bc2b7341e9b2ec";
+    nixpkgs.url = "github:nixos/nixpkgs/2ea2f7b6d0cb7ce0712f2aa80303cda08deb0de2";
     flake-utils.url = "github:numtide/flake-utils";
     flake-utils.inputs.nixpkgs.follows = "nixpkgs";
     flake-compat.url = "github:edolstra/flake-compat";
@@ -9,7 +9,7 @@
     lint-utils = {
       type = "git";
       url = "https://gitlab.homotopic.tech/nix/lint-utils.git";
-      ref = "parameterized";
+      ref = "overengineered";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -42,25 +42,14 @@
                   ]);
             };
 
-          fourmoluOpts = "-o-XTypeApplications -o-XImportQualifiedPost";
-
-          # Checks the shell script using ShellCheck
-          checkedShellScript = name: text:
-            (pkgs.writeShellApplication {
-              inherit name text;
-            }) + "/bin/${name}";
-
-          # Concat a list of Flake apps to produce a new app that runs all of them
-          # in sequence.
-          concatApps = apps:
-            {
-              type = "app";
-              program = checkedShellScript "concatApps"
-                (pkgs.lib.strings.concatMapStringsSep
-                  "\n"
-                  (app: app.program)
-                  apps);
+          lintSpec = {
+            nixpkgs-fmt = { };
+            cabal-fmt = { };
+            fourmolu = {
+              ghcOpts = "-o-XTypeApplications -o-XImportQualifiedPost";
             };
+          };
+
         in
         rec {
           # Used by `nix build`
@@ -76,19 +65,12 @@
 
           # Used by `nix run ...`
           apps = {
-            format = concatApps [
-              (inputs.lint-utils.apps.${system}.fourmolu fourmoluOpts)
-              inputs.lint-utils.apps.${system}.cabal-fmt
-              inputs.lint-utils.apps.${system}.nixpkgs-fmt
-            ];
+            format = inputs.lint-utils.mkApp.${system} lintSpec;
           };
 
           # Used by `nix flake check` (but see next attribute)
           checks = {
-            format-haskell = inputs.lint-utils.linters.${system}.fourmolu ./. fourmoluOpts;
-            format-cabal = inputs.lint-utils.linters.${system}.cabal-fmt ./.;
-            format-nix = inputs.lint-utils.linters.${system}.nixpkgs-fmt ./.;
-            hls = checkedShellScript "hls" "${hp.haskell-language-server}/bin/haskell-language-server";
+            format = inputs.lint-utils.mkChecks.${system} lintSpec;
           };
 
           # We need this hack because `nix flake check` won't work for Haskell
