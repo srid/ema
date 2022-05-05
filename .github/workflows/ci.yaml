@@ -20,6 +20,9 @@ jobs:
       - name: Format check
         run: |
           nix develop -j auto -c treefmt --fail-on-change
+      - name: Hlint
+        run: |
+          nix develop -j auto -c hlint src
       - name: Build 🔧
         run: |
           nix build -j4 --no-link

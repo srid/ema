@@ -4,7 +4,7 @@
 
 module Ema.Generate (generateSite) where
 
-import Control.Exception (throw)
+import Control.Exception (throwIO)
 import Control.Monad.Logger
 import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
@@ -96,7 +96,7 @@ noBirdbrainedJekyll :: (MonadIO m, MonadLoggerIO m) => FilePath -> m ()
 noBirdbrainedJekyll dest = do
   let nojekyll = dest </> ".nojekyll"
   liftIO (doesFileExist nojekyll) >>= \case
-    True -> pure ()
+    True -> pass
     False -> do
       log LevelInfo $ "Disabling Jekyll by writing " <> toText nojekyll
       writeFileLBS nojekyll ""
@@ -127,7 +127,7 @@ copyDirRecursively srcRel srcAbs destParent = do
     False ->
       liftIO (doesDirectoryExist srcAbs) >>= \case
         False ->
-          throw $ StaticAssetMissing srcAbs
+          liftIO $ throwIO $ StaticAssetMissing srcAbs
         True -> do
           fs <- liftIO $ getDirectoryFiles srcAbs ["**"]
           forM_ fs $ \fp -> do

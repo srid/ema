@@ -70,7 +70,7 @@ runServerWithWebSocketHotReload host port model = do
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO
       lift $
-        WS.withPingThread conn 30 (pure ()) $
+        WS.withPingThread conn 30 pass $
           flip runLoggingT logger $ do
             subId <- LVar.addListener model
             let log lvl (s :: Text) =
@@ -130,7 +130,7 @@ runServerWithWebSocketHotReload host port model = do
                         sendRouteHtmlToClient mNextRoute =<< LVar.get model
                         lift loop
             liftIO (try loop) >>= \case
-              Right () -> pure ()
+              Right () -> pass
               Left (connExc :: ConnectionException) -> do
                 case connExc of
                   WS.CloseRequest _ (decodeUtf8 -> reason) ->

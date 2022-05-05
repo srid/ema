@@ -10,7 +10,6 @@ module Ema.Route.Url (
 
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
-import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
 import Ema.Route.Encoder (RouteEncoder, encodeRoute)
 import Network.URI.Slug qualified as Slug
@@ -38,8 +37,8 @@ routeUrlWith urlStrategy enc model =
       where
         removeLastIfOneOf :: Eq a => [a] -> NonEmpty a -> [a]
         removeLastIfOneOf x xs =
-          if NE.last xs `elem` x
-            then NE.init xs
+          if last xs `elem` x
+            then init xs
             else toList xs
         urlStrategySuffix = \case
           UrlPretty -> ".html"

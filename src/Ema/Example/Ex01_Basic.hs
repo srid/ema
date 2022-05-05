@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | A very simple site in three parts: route types, `main` and rendering implementation.
 module Ema.Example.Ex01_Basic where

@@ -2,7 +2,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use camelCase" #-}
+{-# HLINT ignore "Use infinitely" #-}
 
 {- | A very simple site with routes, but based on dynamically changing values
 
@@ -78,8 +78,7 @@ render enc now r =
           Route_OnlyTime -> do
             routeElem Route_Index "Show day?"
   where
-    routeElem r' w =
-      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r' $ w
+    routeElem r' = H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r'
     routeHref r' =
       A.href (fromString . toString $ Ema.routeUrl enc now r')
     randomColor t =

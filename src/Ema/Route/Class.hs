@@ -20,7 +20,6 @@ module Ema.Route.Class (
 import Data.List ((!!))
 import Data.SOP.Extra
 import Data.SOP.NP (cpure_POP)
-import Data.Set qualified as Set
 import Ema.Route.Encoder
 import GHC.TypeLits (
   ErrorMessage (ShowType, Text, (:$$:)),
@@ -109,7 +108,7 @@ gallRoutes m =
           pop
           id
       -- Workaround duplicates routes frmo the FIXME above.
-      removeDups = Set.toList . Set.fromList
+      removeDups = sortNub
    in removeDups $ to <$> concatMap apInjs_POP pops
   where
     insideRoutes :: forall b. (IsRouteIn ms b) => [b]

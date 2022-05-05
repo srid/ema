@@ -96,4 +96,4 @@ getLogger cli =
     allowLogLevelFrom minLevel (Logger f) = Logger $ \loc src level msg ->
       if level >= minLevel
         then f loc src level msg
-        else pure ()
+        else pass

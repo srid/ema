@@ -29,7 +29,7 @@ instance Functor (Dynamic m) where
       )
 
 instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
-  pure x = Dynamic (x, \_ -> pure ())
+  pure x = Dynamic (x, const pass)
   liftA2 f (Dynamic (x0, xf)) (Dynamic (y0, yf)) =
     Dynamic
       ( f x0 y0

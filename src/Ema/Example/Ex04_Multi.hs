@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Demonstration of merging multiple sites
 module Ema.Example.Ex04_Multi where

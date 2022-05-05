@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Helpers for generics-sop
 module Data.SOP.Extra where
@@ -33,8 +34,8 @@ datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
 ctorStripPrefix :: forall a. HasDatatypeInfo a => ConstructorName -> String
 ctorStripPrefix ctorName =
   let name = datatypeName $ datatypeInfo (Proxy @a)
-   in maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (T.unpack . T.toLower) $
-        T.stripPrefix (T.pack $ name <> "_") (T.pack ctorName)
+   in maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (toString . T.toLower) $
+        T.stripPrefix (toText $ name <> "_") (toText ctorName)
 
 -- | Like `mcana_NS` but returns a Maybe
 mcana_NS ::
