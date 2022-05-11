@@ -46,30 +46,6 @@ data StoreFileError = StoreFileMalformed String
   deriving stock (Show, Eq)
   deriving anyclass (Exception)
 
-instance HasModel Route where
-  modelDynamic _ _ () = do
-    store0 <- readStoreFile
-    pure . Dynamic . (store0,) $ \setModel -> do
-      ch <- liftIO $ watchDirForked dataDir
-      let loop = do
-            log "Waiting for fs event ..."
-            evt <- liftIO $ readChan ch
-            log $ "Got fs event: " <> show evt
-            when (takeFileName (FSNotify.eventPath evt) == "store.json") $ do
-              setModel =<< readStoreFile
-            loop
-      loop
-    where
-      dataDir = "src/Ema/Example/Ex02_Store"
-      readStoreFile :: (MonadIO m, MonadLogger m) => m Model
-      readStoreFile = do
-        log "Reading Store file"
-        liftIO (eitherDecodeFileStrict' $ dataDir </> "store.json") >>= \case
-          Left err -> liftIO $ throwIO $ StoreFileMalformed err
-          Right store -> pure store
-      log :: MonadLogger m => Text -> m ()
-      log = logInfoNS "Ex02_Store"
-
 -- TODO: Use DerivingVia to specify options, to disable extra /product/ in URL.
 data ProductRoute
   = ProductRoute_Index
@@ -123,8 +99,30 @@ instance IsRoute CategoryName where
 main :: IO ()
 main = void $ Ema.runSite @Route ()
 
-instance CanRender Route where
-  routeAsset enc m@(Model ps cats) r =
+instance EmaSite Route where
+  siteInput _ _ () = do
+    store0 <- readStoreFile
+    pure . Dynamic . (store0,) $ \setModel -> do
+      ch <- liftIO $ watchDirForked dataDir
+      let loop = do
+            log "Waiting for fs event ..."
+            evt <- liftIO $ readChan ch
+            log $ "Got fs event: " <> show evt
+            when (takeFileName (FSNotify.eventPath evt) == "store.json") $ do
+              setModel =<< readStoreFile
+            loop
+      loop
+    where
+      dataDir = "src/Ema/Example/Ex02_Store"
+      readStoreFile :: (MonadIO m, MonadLogger m) => m Model
+      readStoreFile = do
+        log "Reading Store file"
+        liftIO (eitherDecodeFileStrict' $ dataDir </> "store.json") >>= \case
+          Left err -> liftIO $ throwIO $ StoreFileMalformed err
+          Right store -> pure store
+      log :: MonadLogger m => Text -> m ()
+      log = logInfoNS "Ex02_Store"
+  siteOutput enc m@(Model ps cats) r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Store example (Ema)" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do

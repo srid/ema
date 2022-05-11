@@ -10,8 +10,7 @@ module Ema.Multi (
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))
-import Ema.Asset (CanRender (..))
-import Ema.Model (HasModel (..))
+import Ema.Model (EmaSite (..))
 import Ema.Route.Class (IsRoute (..), here, there)
 import Ema.Route.Encoder
 import Optics.Core (equality, iso, prism', review)
@@ -25,9 +24,9 @@ type family MultiModel (rs :: [Type]) :: [Type] where
   MultiModel '[] = '[]
   MultiModel (r ': rs) = RouteModel r : MultiModel rs
 
-type family MultiModelInput (rs :: [Type]) :: [Type] where
-  MultiModelInput '[] = '[]
-  MultiModelInput (r ': rs) = ModelInput r : MultiModel rs
+type family MultiSiteArg (rs :: [Type]) :: [Type] where
+  MultiSiteArg '[] = '[]
+  MultiSiteArg (r ': rs) = SiteArg r : MultiModel rs
 
 instance IsRoute (MultiRoute '[]) where
   type RouteModel (MultiRoute '[]) = NP I '[]
@@ -53,39 +52,29 @@ instance
     fmap (toNS . Left) (allRoutes @r m)
       <> fmap (toNS . Right) (allRoutes @(MultiRoute rs) ms)
 
-instance HasModel (MultiRoute '[]) where
-  type ModelInput (MultiRoute '[]) = NP I '[]
-  modelDynamic _ _ Nil = pure $ pure Nil
+instance EmaSite (MultiRoute '[]) where
+  type SiteArg (MultiRoute '[]) = NP I '[]
+  siteInput _ _ Nil = pure $ pure Nil
+  siteOutput _ Nil = \case {}
 
 instance
-  ( HasModel r
-  , HasModel (MultiRoute rs)
-  , ModelInput (MultiRoute rs) ~ NP I (MultiModelInput rs)
+  ( EmaSite r
+  , EmaSite (MultiRoute rs)
+  , SiteArg (MultiRoute rs) ~ NP I (MultiSiteArg rs)
   , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
   ) =>
-  HasModel (MultiRoute (r ': rs))
+  EmaSite (MultiRoute (r ': rs))
   where
-  type ModelInput (MultiRoute (r ': rs)) = NP I (ModelInput r ': MultiModelInput rs)
-  modelDynamic cliAct enc (I i :* is) = do
-    m <- modelDynamic @r cliAct (headEncoder enc) i
-    ms <- modelDynamic @(MultiRoute rs) cliAct (tailEncoder enc) is
+  type SiteArg (MultiRoute (r ': rs)) = NP I (SiteArg r ': MultiSiteArg rs)
+  siteInput cliAct enc (I i :* is) = do
+    m <- siteInput @r cliAct (headEncoder enc) i
+    ms <- siteInput @(MultiRoute rs) cliAct (tailEncoder enc) is
     pure $ curry toNP <$> m <*> ms
-
-instance CanRender (MultiRoute '[]) where
-  routeAsset _ Nil = \case {}
-
-instance
-  ( CanRender r
-  , CanRender (MultiRoute rs)
-  , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
-  ) =>
-  CanRender (MultiRoute (r ': rs))
-  where
-  routeAsset enc (I m :* ms) =
+  siteOutput enc (I m :* ms) =
     fromNS
       >>> either
-        (routeAsset @r (headEncoder enc) m)
-        (routeAsset @(MultiRoute rs) (tailEncoder enc) ms)
+        (siteOutput @r (headEncoder enc) m)
+        (siteOutput @(MultiRoute rs) (tailEncoder enc) ms)
 
 tailEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (NP I (MultiModel rs)) (MultiRoute rs)
 tailEncoder =

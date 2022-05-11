@@ -18,10 +18,10 @@ data Route
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo, HasModel, IsRoute)
+    (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
 
-instance CanRender Route where
-  routeAsset enc m r =
+instance EmaSite Route where
+  siteOutput enc m r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do

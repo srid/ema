@@ -3,13 +3,8 @@
 module Ema.Asset (
   Asset (..),
   Format (..),
-  CanRender (..),
 ) where
 
-import Ema.Route.Class (
-  IsRoute (RouteModel),
- )
-import Ema.Route.Encoder (RouteEncoder)
 import Prelude hiding (All)
 
 -- | The type of assets that can be bundled in a static site.
@@ -30,12 +25,3 @@ data Format
   | -- | Other assets are served by the server as static files.
     Other
   deriving stock (Eq, Show, Ord, Generic)
-
-{- | Class of routes that can be rendered as assets.
-
-  All routes should have this instance, derived manually indicating how to
-  render them.
--}
-class IsRoute r => CanRender r where
-  -- | Produce the asset for the given route.
-  routeAsset :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString

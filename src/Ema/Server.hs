@@ -13,6 +13,7 @@ import Data.LVar qualified as LVar
 import Data.Text qualified as T
 import Ema.Asset
 import Ema.CLI
+import Ema.Model
 import Ema.Route.Class
 import Ema.Route.Encoder (
   checkRouteEncoderForSingleRoute,
@@ -41,7 +42,7 @@ runServerWithWebSocketHotReload ::
   , MonadLoggerIO m
   , Eq r
   , IsRoute r
-  , CanRender r
+  , EmaSite r
   ) =>
   Host ->
   Port ->
@@ -166,7 +167,7 @@ runServerWithWebSocketHotReload host port model = do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (routeAsset enc m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteOutput enc m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err

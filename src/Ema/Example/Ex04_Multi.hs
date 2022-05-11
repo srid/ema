@@ -37,23 +37,21 @@ main = do
 
 -- Can we do generic of this too?
 -- Can demo in 'mergeSite' (of two Emanotes?)
-instance HasModel R where
-  modelDynamic cliAct enc () = do
-    x1 :: Dynamic m Ex02.Model <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Store") enc) ()
-    x2 :: Dynamic m Ex03.Model <- modelDynamic cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
+instance EmaSite R where
+  siteInput cliAct enc () = do
+    x1 :: Dynamic m Ex02.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Store") enc) ()
+    x2 :: Dynamic m Ex03.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
     pure $ liftA2 (\x y -> I x :* I y :* Nil) x1 x2
-
-instance CanRender R where
-  routeAsset enc m = \case
+  siteOutput enc m = \case
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex enc m
     -- Can all of these be generalized? (constructor with 1 encoder; delegate)
     R_Basic r ->
-      routeAsset (innerRouteEncoder (_As @"R_Basic") enc) (innerModel m) r
+      siteOutput (innerRouteEncoder (_As @"R_Basic") enc) (innerModel m) r
     R_Store r ->
-      routeAsset (innerRouteEncoder (_As @"R_Store") enc) (innerModel m) r
+      siteOutput (innerRouteEncoder (_As @"R_Store") enc) (innerModel m) r
     R_Clock r ->
-      routeAsset (innerRouteEncoder (_As @"R_Clock") enc) (innerModel m) r
+      siteOutput (innerRouteEncoder (_As @"R_Clock") enc) (innerModel m) r
 
 renderIndex :: RouteEncoder M R -> M -> LByteString
 renderIndex enc m@(I _store :* I clockTime :* Nil) =

@@ -12,28 +12,27 @@ import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
-import Ema.Asset (CanRender)
 import Ema.CLI (Cli, getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
-import Ema.Model (HasModel (ModelInput, modelDynamic))
+import Ema.Model (EmaSite (SiteArg, siteInput))
 import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
 import System.Directory (getCurrentDirectory)
 
 {- | Run the given Ema site,
 
-  Takes as argument the associated `ModelInput`.
+  Takes as argument the associated `SiteArg`.
 
   In generate mode, return the generated files.  On live-server mode, this
   function will never return.
 -}
 runSite ::
   forall r.
-  (Show r, Eq r, IsRoute r, CanRender r, HasModel r) =>
+  (Show r, Eq r, IsRoute r, EmaSite r) =>
   -- | The input required to create the `Dynamic` of the `ModelRoute`
-  ModelInput r ->
+  SiteArg r ->
   IO (DSum CLI.Action Identity)
 runSite input = do
   cli <- CLI.cliAction
@@ -45,15 +44,15 @@ runSite input = do
 -}
 runSiteWithCli ::
   forall r.
-  (Show r, Eq r, IsRoute r, CanRender r, HasModel r) =>
+  (Show r, Eq r, IsRoute r, EmaSite r) =>
   Cli ->
-  ModelInput r ->
+  SiteArg r ->
   IO (RouteModel r, DSum CLI.Action Identity)
 runSiteWithCli cli input = do
   flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
     logInfoNS "ema" $ "Launching Ema under: " <> toText cwd
-    Dynamic (model0 :: RouteModel r, cont) <- modelDynamic @r (CLI.action cli) (routeEncoder @r) input
+    Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) (routeEncoder @r) input
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
         fs <- generateSite @r dest model0

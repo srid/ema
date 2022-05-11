@@ -2,12 +2,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Model (
-  HasModel (..),
+  EmaSite (..),
 ) where
 
 import Control.Monad.Logger (MonadLoggerIO)
 import Data.SOP
 import Data.Some (Some)
+import Ema.Asset
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
 import Ema.Route.Class (IsRoute (RouteModel))
@@ -18,30 +19,30 @@ import UnliftIO (MonadUnliftIO)
 
   The default implementation works with generic deriving of `IsRoute`.
 -}
-class IsRoute r => HasModel r where
+class IsRoute r => EmaSite r where
   {- Arguments to the model runner. Default: nothing (hence, `()`)
 
-    The value of `ModelInput` should be passed to `Ema.runSite`. It is whatever
-    data that is required to create the model `Dynamic` using `modelDynamic`.
+    The value of `SiteArg` should be passed to `Ema.runSite`. It is whatever
+    data that is required to create the model `Dynamic` using `siteInput`.
 
   -}
-  type ModelInput r :: Type
+  type SiteArg r :: Type
 
-  type ModelInput r = ()
+  type SiteArg r = ()
 
   {- Get the model's time-varying value as a `Dynamic`.
 
     If your model is not time-varying, use `pure` to produce a constant value.
   -}
-  modelDynamic ::
+  siteInput ::
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
     Some CLI.Action ->
     -- | The `RouteEncoder` associated with `r`
     RouteEncoder (RouteModel r) r ->
-    ModelInput r ->
+    SiteArg r ->
     m (Dynamic m (RouteModel r))
-  default modelDynamic ::
+  default siteInput ::
     forall m.
     ( MonadIO m
     , MonadUnliftIO m
@@ -50,9 +51,12 @@ class IsRoute r => HasModel r where
     ) =>
     Some CLI.Action ->
     RouteEncoder (RouteModel r) r ->
-    ModelInput r ->
+    SiteArg r ->
     m (Dynamic m (RouteModel r))
-  modelDynamic _ _ _ =
+  siteInput _ _ _ =
     -- The default implementation assumes the constant unit model which cannot
     -- be time-varying.
     pure $ pure Nil
+
+  -- | Produce the asset for the given route.
+  siteOutput :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString

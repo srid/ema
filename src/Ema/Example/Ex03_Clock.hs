@@ -36,8 +36,8 @@ data Route
     (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
 
-instance HasModel Route where
-  modelDynamic _ _ () = do
+instance EmaSite Route where
+  siteInput _ _ () = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \setModel -> do
       logInfoNS "Ex03" "Starting clock..."
@@ -46,9 +46,7 @@ instance HasModel Route where
         t <- liftIO getCurrentTime
         logDebugNS "Ex03" "Updating clock..."
         setModel t
-
-instance CanRender Route where
-  routeAsset enc m r =
+  siteOutput enc m r =
     Ema.AssetGenerated Ema.Html $ render enc m r
 
 main :: IO ()
