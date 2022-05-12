@@ -66,13 +66,15 @@ cliParser = do
   where
     run :: Parser (Some Action)
     run =
-      Some . Run
-        <$> ( (,) <$> strOption (long "host" <> short 'h' <> metavar "HOST" <> help "Host to bind to" <> value def)
-                <*> option auto (long "port" <> short 'p' <> metavar "PORT" <> help "Port to bind to" <> value def)
-            )
+      Some . Run <$> hostPortParser
     generate :: Parser (Some Action)
     generate =
       Some . Generate <$> argument str (metavar "DEST...")
+
+hostPortParser :: Parser (Host, Port)
+hostPortParser =
+  (,) <$> strOption (long "host" <> short 'h' <> metavar "HOST" <> help "Host to bind to" <> value def)
+    <*> option auto (long "port" <> short 'p' <> metavar "PORT" <> help "Port to bind to" <> value def)
 
 cliAction :: IO Cli
 cliAction = do
