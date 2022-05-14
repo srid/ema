@@ -3,6 +3,7 @@
 module Ema.App (
   runSite,
   runSiteWithCli,
+  runSiteLiveServerOnly,
 ) where
 
 import Control.Concurrent (threadDelay)
@@ -12,7 +13,7 @@ import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
-import Ema.CLI (Cli, getLogger)
+import Ema.CLI (Action (Run), Cli (Cli), getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
@@ -74,3 +75,21 @@ runSiteWithCli cli input = do
                 Server.runServerWithWebSocketHotReload @r host port model
             )
         pure (model0, act :=> Identity ())
+
+{- | Like `runSiteWithCli` but only runs the live server.
+
+Also discards the result, inasmuch as live server never returns.
+
+Note that static generation is evidently disabled. Useful for apps that need a
+live view, but do not care about actually generating the files.
+-}
+runSiteLiveServerOnly ::
+  forall r.
+  (Show r, Eq r, EmaSite r) =>
+  CLI.Host ->
+  CLI.Port ->
+  SiteArg r ->
+  IO ()
+runSiteLiveServerOnly host port siteArg =
+  let emaCli = Cli (Some $ Run (host, port)) False
+   in void $ runSiteWithCli @r emaCli siteArg
