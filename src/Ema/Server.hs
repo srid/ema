@@ -7,7 +7,6 @@ module Ema.Server where
 import Control.Concurrent.Async (race)
 import Control.Exception (catch, try)
 import Control.Monad.Logger
-import Control.Monad.Writer (runWriter)
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Text qualified as T
@@ -15,11 +14,7 @@ import Ema.Asset
 import Ema.CLI
 import Ema.Model
 import Ema.Route.Class
-import Ema.Route.Encoder (
-  checkRouteEncoderForSingleRoute,
-  decodeRoute,
-  encodeRoute,
- )
+import Ema.Route.Encoder
 import Ema.Route.Url (urlToFilePath)
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
@@ -30,7 +25,6 @@ import Network.Wai.Handler.WebSockets qualified as WaiWs
 import Network.Wai.Middleware.Static qualified as Static
 import Network.WebSockets (ConnectionException)
 import Network.WebSockets qualified as WS
-import System.FilePath ((</>))
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 
@@ -184,17 +178,10 @@ runServerWithWebSocketHotReload host port model = do
     -- This function is used only in live server. If the route is not
     -- isomoprhic, this returns a Left, with the mismatched encoding.
     decodeUrlRoute :: RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
-    decodeUrlRoute m (urlToFilePath -> s) =
-      let candidates = [s, s <> ".html", s </> "index.html"]
-       in case asum (decodeRoute enc m <$> candidates) of
-            Nothing -> pure Nothing
-            Just r ->
-              let checks = flip fmap candidates $ \c ->
-                    let (res, log) = runWriter $ checkRouteEncoderForSingleRoute enc m r c
-                     in (res, (c, log))
-               in if or (fst <$> checks)
-                    then pure $ Just r
-                    else Left $ BadRouteEncoding (snd <$> checks) r (encodeRoute enc m r)
+    decodeUrlRoute m (urlToFilePath -> s) = do
+      case checkRouteEncoderGivenFilePath enc m s of
+        Left ((candidate, r), log) -> Left $ BadRouteEncoding s candidate r log
+        Right mr -> Right mr
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
@@ -205,9 +192,9 @@ emaErrorHtmlResponse err =
 mkHtmlErrorMsg :: Text -> LByteString
 mkHtmlErrorMsg s =
   encodeUtf8 $
-    "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body class=\"overflow-y: scroll;\"><h1>Ema App threw an exception</h1><div style=\"font-family: monospace; border: 1px solid; padding: 1em 1em 1em 1em; overflow-wrap: anywhere;\">"
+    "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body class=\"overflow-y: scroll;\"><h1>Ema App threw an exception</h1><pre style=\"font-family: monospace; border: 1px solid; padding: 1em 1em 1em 1em; overflow-wrap: anywhere;\">"
       <> s
-      <> "</div><p>Once you fix the source of the error, this page will automatically refresh.</body>"
+      <> "</pre><p>Once you fix the source of the error, this page will automatically refresh.</body>"
 
 {- | Return the equivalent of WAI's @pathInfo@, from the raw path string
  (`document.location.pathname`) the browser sends us.
@@ -220,20 +207,23 @@ decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
 data BadRouteEncoding r = BadRouteEncoding
-  { _bre_candidates :: [(FilePath, [Text])]
+  { _bre_urlFilePath :: FilePath
+  , _bre_urlFilePathCandidate :: FilePath
   , _bre_decodedRoute :: r
-  , _bre_routeEncoded :: FilePath
+  , _bre_checkLog :: Text
   }
   deriving stock (Show)
 
 badRouteEncodingMsg :: Show r => BadRouteEncoding r -> Text
 badRouteEncodingMsg BadRouteEncoding {..} =
   toText $
-    "Ema: route '" <> show _bre_decodedRoute
-      <> "' encodes to '"
-      <> _bre_routeEncoded
-      <> "' but it is not isomporphic. \n"
-      <> show _bre_candidates
+    "Ema: URL '" <> show _bre_urlFilePath
+      <> "' decodes to '"
+      <> show _bre_decodedRoute
+      <> "' but it is not isomporphic on '"
+      <> show _bre_urlFilePathCandidate
+      <> "'. \n"
+      <> _bre_checkLog
       <> " \nYou should fix your `RouteEncoder`."
 
 -- Browser-side JavaScript code for interacting with the Haskell server

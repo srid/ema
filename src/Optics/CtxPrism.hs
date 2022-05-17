@@ -5,7 +5,7 @@ module Optics.CtxPrism (
   -- * Construction
   fromPrism,
 
-  -- * Conversion
+  -- * Functions
   cpreview,
   creview,
 
@@ -26,38 +26,27 @@ import Optics.Core (
  )
 
 {- | A `Prism` with a context
- This can't actually be a prism due to coercion problems. Use `toPrism` & `fromPrism`.
- See https://stackoverflow.com/q/71489589/55246
+
+ NOTE: This can't actually be a prism itself due to coercion problems. Use
+ `toPrism` & `fromPrism`.  See https://stackoverflow.com/q/71489589/55246
 -}
 type CtxPrism ctx s a =
-  -- FIXME: ought to be `ctx -> Prism' s a`
+  -- FIXME: ought to be `ctx -> Prism' s a`. See the NOTE above.
   ctx -> (a -> s, s -> Maybe a)
 
 toPrism :: CtxPrism ctx s a -> ctx -> Prism' s a
-toPrism f' ctx = let (x, y) = f' ctx in prism' x y
+toPrism f ctx = let (x, y) = f ctx in prism' x y
 
 fromPrism :: (ctx -> Prism' s a) -> CtxPrism ctx s a
 fromPrism f ctx = let p = f ctx in (review p, preview p)
 
+-- | Like `review` but for a @CtxPrism@
 creview :: CtxPrism ctx t b -> ctx -> b -> t
 creview p ctx = review (toPrism p ctx)
 
+-- | Like `preview` but for a @CtxPrism@
 cpreview :: CtxPrism ctx s a -> ctx -> s -> Maybe a
 cpreview p ctx = preview (toPrism p ctx)
-
-ctxPrismIsLawfulFor :: forall ctx s a. (Eq a, Eq s, Show a, ToText s) => CtxPrism ctx s a -> ctx -> a -> s -> Writer [Text] Bool
-ctxPrismIsLawfulFor (toPrism -> p') ctx a s = do
-  let p = p' ctx
-  tell . one $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
-  let s' :: s = review p a
-  tell . one $ "Route's actual encoding: " <> toText s'
-  let ma' :: Maybe a = preview p s'
-  tell . one $ "Decoding of that encoding: " <> show ma'
-  unless (s == s') $
-    tell . one $ "ERR: " <> toText s <> " /= " <> toText s'
-  unless (Just a == ma') $
-    tell . one $ "ERR: " <> show (Just a) <> " /= " <> show ma'
-  pure $ (s == s') && (Just a == ma')
 
 -- | Map a `CtxPrism`
 cpmap ::
@@ -67,4 +56,36 @@ cpmap ::
   (y -> x) ->
   CtxPrism x a c ->
   CtxPrism y b d
-cpmap p q f (toPrism -> r) = fromPrism $ \ctx -> p % r (f ctx) % q
+cpmap p q f (toPrism -> r) =
+  fromPrism $ \ctx -> p % r (f ctx) % q
+
+{- | Check if the @CtxPrism@ is lawful.
+
+  A @CtxPrism@ is lawful if its conversions both the ways form an isomorphism
+  for a given value.
+
+  Returns a Writer reporting logs.
+-}
+ctxPrismIsLawfulFor ::
+  forall ctx s a.
+  (Eq a, Eq s, Show a, ToText s) =>
+  CtxPrism ctx s a ->
+  ctx ->
+  a ->
+  s ->
+  Writer [Text] Bool
+ctxPrismIsLawfulFor (toPrism -> cp) ctx a s = do
+  let p = cp ctx
+  -- TODO: The logging here could be improved.
+  log $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
+  let s' :: s = review p a
+  log $ "CtxPrism actual encoding: " <> toText s'
+  let ma' :: Maybe a = preview p s'
+  log $ "Decoding of that encoding: " <> show ma'
+  unless (s == s') $
+    log $ "ERR(encoded): " <> toText s <> " /= " <> toText s'
+  unless (Just a == ma') $
+    log $ "ERR(decoded): " <> show (Just a) <> " /= " <> show ma'
+  pure $ (s == s') && (Just a == ma')
+  where
+    log = tell . one

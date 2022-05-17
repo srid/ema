@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
--- | Demonstration of merging multiple sites
+{- | Demonstration of merging multiple sites
+
+  For an alternative (easier) approach, see `Ema.Multi`.
+-}
 module Ema.Example.Ex04_Multi where
 
 import Data.Generics.Sum.Any (AsAny (_As))
@@ -35,7 +37,7 @@ main :: IO ()
 main = do
   void $ Ema.runSite @R ()
 
--- Can we do generic of this too?
+-- TODO: Can we do generic of this too?
 -- Can demo in 'mergeSite' (of two Emanotes?)
 instance EmaSite R where
   siteInput cliAct enc () = do
@@ -45,7 +47,7 @@ instance EmaSite R where
   siteOutput enc m = \case
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex enc m
-    -- Can all of these be generalized? (constructor with 1 encoder; delegate)
+    -- TODO: Can all of these be generalized? (constructor with 1 encoder; delegate)
     R_Basic r ->
       siteOutput (innerRouteEncoder (_As @"R_Basic") enc) (innerModel m) r
     R_Store r ->

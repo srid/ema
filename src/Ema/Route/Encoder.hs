@@ -1,7 +1,7 @@
 -- | TODO: Export only what's necessary.
 module Ema.Route.Encoder where
 
-import Control.Monad.Writer (Writer)
+import Control.Monad.Writer (runWriter)
 import Data.Text qualified as T
 import Optics.Core (
   A_Prism,
@@ -22,6 +22,7 @@ import Optics.CtxPrism (
   ctxPrismIsLawfulFor,
   fromPrism,
  )
+import System.FilePath ((</>))
 
 {- | An encoder cum decoder that knows how to convert routes to and from
  filepaths. The conversion depends on the context `a`.
@@ -90,8 +91,38 @@ singletonRouteEncoder :: RouteEncoder a ()
 singletonRouteEncoder =
   singletonRouteEncoderFrom "index.html"
 
-checkRouteEncoderForSingleRoute :: (Eq route, Show route) => RouteEncoder model route -> model -> route -> FilePath -> Writer [Text] Bool
-checkRouteEncoderForSingleRoute (RouteEncoder piso) = ctxPrismIsLawfulFor piso
+checkRouteEncoderGivenRoute :: (HasCallStack, Eq r, Show r) => RouteEncoder a r -> a -> r -> Either Text ()
+checkRouteEncoderGivenRoute enc a r =
+  let s = encodeRoute enc a r
+   in checkRouteEncoder enc a r s
+
+checkRouteEncoderGivenFilePath ::
+  (HasCallStack, Eq r, Show r) =>
+  RouteEncoder a r ->
+  a ->
+  FilePath ->
+  Either ((FilePath, r), Text) (Maybe r)
+checkRouteEncoderGivenFilePath enc a s = do
+  -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
+  let candidates = [s, s <> ".html", s </> "index.html"]
+  case asum (decodeRouteWithInput enc a <$> candidates) of
+    Nothing -> pure Nothing
+    Just (candidate, r) -> do
+      case checkRouteEncoder enc a r candidate of
+        Left err -> Left ((candidate, r), err)
+        Right () -> pure (Just r)
+  where
+    decodeRouteWithInput enc' a' s' = do
+      r <- decodeRoute enc' a' s'
+      pure (s', r)
+
+checkRouteEncoder :: (Eq r, Show r) => RouteEncoder a r -> a -> r -> FilePath -> Either Text ()
+checkRouteEncoder (RouteEncoder p) a r s =
+  let (valid, checkLog) =
+        runWriter $ ctxPrismIsLawfulFor p a r s
+   in if valid
+        then Right ()
+        else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
 
 -- | Returns a new route encoder that supports either of the input routes.
 mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)

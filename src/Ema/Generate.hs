@@ -6,12 +6,10 @@ module Ema.Generate (generateSite) where
 
 import Control.Exception (throwIO)
 import Control.Monad.Logger
-import Control.Monad.Writer (runWriter)
-import Data.Text qualified as T
 import Ema.Asset
 import Ema.Model
 import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
-import Ema.Route.Encoder (RouteEncoder, checkRouteEncoderForSingleRoute, encodeRoute)
+import Ema.Route.Encoder
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -61,10 +59,10 @@ generate dest enc model render = do
   let routes = allRoutes @r model
   when (null routes) $
     error "allRoutes is empty; nothing to generate"
-  forM_ routes $ \route -> do
-    let (valid, checkLog) = runWriter $ checkRouteEncoderForSingleRoute enc model route $ encodeRoute enc model route
-    unless valid $
-      error $ "Encoding for route '" <> show route <> "' is not isomorphic; " <> T.intercalate ". " checkLog
+  forM_ routes $ \route ->
+    case checkRouteEncoderGivenRoute enc model route of
+      Left s -> error s
+      Right () -> pass
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   let (staticPaths, generatedPaths) =
         lefts &&& rights $
