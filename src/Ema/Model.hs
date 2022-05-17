@@ -15,10 +15,7 @@ import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Encoder (RouteEncoder)
 import UnliftIO (MonadUnliftIO)
 
-{- | Class of routes with an associated model
-
-  The default implementation works with generic deriving of `IsRoute`.
--}
+-- | Class of routes with an associated model
 class IsRoute r => EmaSite r where
   {- Arguments to the model runner. Default: nothing (hence, `()`)
 
@@ -33,6 +30,8 @@ class IsRoute r => EmaSite r where
   {- Get the model's time-varying value as a `Dynamic`.
 
     If your model is not time-varying, use `pure` to produce a constant value.
+
+    The default implementation works with generic deriving of `IsRoute`.
   -}
   siteInput ::
     forall m.
@@ -54,8 +53,6 @@ class IsRoute r => EmaSite r where
     SiteArg r ->
     m (Dynamic m (RouteModel r))
   siteInput _ _ _ =
-    -- The default implementation assumes the constant unit model which cannot
-    -- be time-varying.
     pure $ pure Nil
 
   -- | Produce the asset for the given route.

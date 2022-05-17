@@ -31,7 +31,7 @@ import System.Directory (getCurrentDirectory)
 -}
 runSite ::
   forall r.
-  (Show r, Eq r, IsRoute r, EmaSite r) =>
+  (Show r, Eq r, EmaSite r) =>
   -- | The input required to create the `Dynamic` of the `ModelRoute`
   SiteArg r ->
   IO (DSum CLI.Action Identity)
@@ -45,7 +45,7 @@ runSite input = do
 -}
 runSiteWithCli ::
   forall r.
-  (Show r, Eq r, IsRoute r, EmaSite r) =>
+  (Show r, Eq r, EmaSite r) =>
   Cli ->
   SiteArg r ->
   IO (RouteModel r, DSum CLI.Action Identity)
