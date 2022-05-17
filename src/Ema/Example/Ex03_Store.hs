@@ -36,7 +36,7 @@ data Route
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model Route)
 
-data StoreFileError = StoreFileMalformed String
+newtype StoreFileError = StoreFileMalformed String
   deriving stock (Show, Eq)
   deriving anyclass (Exception)
 

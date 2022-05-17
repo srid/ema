@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-# HLINT ignore "Use infinitely" #-}
+
 {- | A very simple site with routes, but based on dynamically changing values
 
  The current time is computed in the server every second, and the resultant
