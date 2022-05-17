@@ -108,7 +108,7 @@ checkRouteEncoderGivenFilePath enc a s = do
   -- The order here matters: The .html ending ones must be checked, inasmuch as
   -- that is what a legitimate route encoder would encode to (i.e, a HTML
   -- filepath).
-  let candidates = [s <> ".html", s </> "index.html", s]
+  let candidates = [s </> "index.html", s <> ".html", s]
   case asum (decodeRouteWithInput enc a <$> candidates) of
     Nothing -> pure Nothing
     Just (candidate, r) -> do
