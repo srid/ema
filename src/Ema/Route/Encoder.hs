@@ -104,7 +104,11 @@ checkRouteEncoderGivenFilePath ::
   Either ((FilePath, r), Text) (Maybe r)
 checkRouteEncoderGivenFilePath enc a s = do
   -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
-  let candidates = [s, s <> ".html", s </> "index.html"]
+  --
+  -- The order here matters: The .html ending ones must be checked, inasmuch as
+  -- that is what a legitimate route encoder would encode to (i.e, a HTML
+  -- filepath).
+  let candidates = [s <> ".html", s </> "index.html", s]
   case asum (decodeRouteWithInput enc a <$> candidates) of
     Nothing -> pure Nothing
     Just (candidate, r) -> do
