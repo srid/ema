@@ -101,24 +101,24 @@ checkRouteEncoderGivenFilePath ::
   RouteEncoder a r ->
   a ->
   FilePath ->
-  Either ((FilePath, r), Text) (Maybe r)
+  Either (r, [(FilePath, Text)]) (Maybe r)
 checkRouteEncoderGivenFilePath enc a s = do
   -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
-  --
-  -- The order here matters: The .html ending ones must be checked, inasmuch as
-  -- that is what a legitimate route encoder would encode to (i.e, a HTML
-  -- filepath).
-  let candidates = [s </> "index.html", s <> ".html", s]
-  case asum (decodeRouteWithInput enc a <$> candidates) of
+  let candidates = [s, s <> ".html", s </> "index.html"]
+  case asum (decodeRoute enc a <$> candidates) of
     Nothing -> pure Nothing
-    Just (candidate, r) -> do
-      case checkRouteEncoder enc a r candidate of
-        Left err -> Left ((candidate, r), err)
-        Right () -> pure (Just r)
-  where
-    decodeRouteWithInput enc' a' s' = do
-      r <- decodeRoute enc' a' s'
-      pure (s', r)
+    Just r -> do
+      -- All candidates must be checked, and if even one passes - we let this
+      -- route go through.
+      let (failed, passed) =
+            partitionEithers $
+              candidates <&> \candidate ->
+                case checkRouteEncoder enc a r candidate of
+                  Left err -> Left (candidate, err)
+                  Right () -> Right ()
+      if null passed
+        then Left (r, failed)
+        else Right (Just r)
 
 checkRouteEncoder :: (Eq r, Show r) => RouteEncoder a r -> a -> r -> FilePath -> Either Text ()
 checkRouteEncoder (RouteEncoder p) a r s =

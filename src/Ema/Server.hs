@@ -180,7 +180,7 @@ runServerWithWebSocketHotReload host port model = do
     decodeUrlRoute :: RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
     decodeUrlRoute m (urlToFilePath -> s) = do
       case checkRouteEncoderGivenFilePath enc m s of
-        Left ((candidate, r), log) -> Left $ BadRouteEncoding s candidate r log
+        Left (r, log) -> Left $ BadRouteEncoding s r log
         Right mr -> Right mr
 
 -- | A basic error response for displaying in the browser
@@ -208,9 +208,8 @@ decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
 
 data BadRouteEncoding r = BadRouteEncoding
   { _bre_urlFilePath :: FilePath
-  , _bre_urlFilePathCandidate :: FilePath
   , _bre_decodedRoute :: r
-  , _bre_checkLog :: Text
+  , _bre_checkLog :: [(FilePath, Text)]
   }
   deriving stock (Show)
 
@@ -220,10 +219,8 @@ badRouteEncodingMsg BadRouteEncoding {..} =
     "Ema: URL '" <> show _bre_urlFilePath
       <> "' decodes to '"
       <> show _bre_decodedRoute
-      <> "' but it is not isomporphic on '"
-      <> show _bre_urlFilePathCandidate
-      <> "'. \n"
-      <> _bre_checkLog
+      <> "' but it is not isomporphic on any candidates: \n"
+      <> T.intercalate "\n" (_bre_checkLog <&> \(candidate, log) -> show candidate <> ": " <> log)
       <> " \nYou should fix your `RouteEncoder`."
 
 -- Browser-side JavaScript code for interacting with the Haskell server
