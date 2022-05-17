@@ -1,14 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use newtype instead of data" #-}
-
-{- | A simple web store for products
-
- TODO: This should be Ex03
--}
-module Ema.Example.Ex02_Store where
+-- | A simple web store for products
+module Ema.Example.Ex03_Store where
 
 import Control.Concurrent (readChan)
 import Control.Exception (throwIO)
@@ -113,7 +107,7 @@ instance EmaSite Route where
             loop
       loop
     where
-      dataDir = "src/Ema/Example/Ex02_Store"
+      dataDir = "src/Ema/Example/Ex03_Store"
       readStoreFile :: (MonadIO m, MonadLogger m) => m Model
       readStoreFile = do
         log "Reading Store file"
@@ -121,7 +115,7 @@ instance EmaSite Route where
           Left err -> liftIO $ throwIO $ StoreFileMalformed err
           Right store -> pure store
       log :: MonadLogger m => Text -> m ()
-      log = logInfoNS "Ex02_Store"
+      log = logInfoNS "Ex03_Store"
   siteOutput enc m@(Model ps cats) r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Store example (Ema)" >> H.base ! A.href "/") $

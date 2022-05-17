@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use infinitely" #-}
 
@@ -11,7 +10,7 @@
  usually we render HTML based on files on disk or something accessible outside
  of the browser. More advanced examples will demonstrate that.
 -}
-module Ema.Example.Ex03_Clock where
+module Ema.Example.Ex02_Clock where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.Logger (logDebugNS, logInfoNS)
@@ -40,11 +39,11 @@ instance EmaSite Route where
   siteInput _ _ () = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \setModel -> do
-      logInfoNS "Ex03" "Starting clock..."
+      logInfoNS "Ex02" "Starting clock..."
       forever $ do
         liftIO $ threadDelay 1000000
         t <- liftIO getCurrentTime
-        logDebugNS "Ex03" "Updating clock..."
+        logDebugNS "Ex02" "Updating clock..."
         setModel t
   siteOutput enc m r =
     Ema.AssetGenerated Ema.Html $ render enc m r

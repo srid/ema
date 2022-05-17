@@ -142,8 +142,8 @@ library
     other-modules:
       Ema.Example.Common
       Ema.Example.Ex01_Basic
-      Ema.Example.Ex02_Store
-      Ema.Example.Ex03_Clock
+      Ema.Example.Ex03_Store
+      Ema.Example.Ex02_Clock
       Ema.Example.Ex04_Multi
 
   hs-source-dirs:     src

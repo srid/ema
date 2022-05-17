@@ -8,8 +8,8 @@ import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex01_Basic qualified as Ex01
-import Ema.Example.Ex02_Store qualified as Ex02
-import Ema.Example.Ex03_Clock qualified as Ex03
+import Ema.Example.Ex02_Clock qualified as Ex02
+import Ema.Example.Ex03_Store qualified as Ex03
 import Ema.Route.Encoder (RouteEncoder)
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo, I (I), NP (Nil, (:*)))
@@ -21,8 +21,8 @@ import Prelude hiding (Generic)
 data R
   = R_Index
   | R_Basic Ex01.Route
-  | R_Store Ex02.Route
-  | R_Clock Ex03.Route
+  | R_Clock Ex02.Route
+  | R_Store Ex03.Route
   deriving stock (Show, Ord, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo, IsRoute)
 
@@ -39,8 +39,8 @@ main = do
 -- Can demo in 'mergeSite' (of two Emanotes?)
 instance EmaSite R where
   siteInput cliAct enc () = do
-    x1 :: Dynamic m Ex02.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Store") enc) ()
-    x2 :: Dynamic m Ex03.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
+    x1 :: Dynamic m Ex02.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Clock") enc) ()
+    x2 :: Dynamic m Ex03.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Store") enc) ()
     pure $ liftA2 (\x y -> I x :* I y :* Nil) x1 x2
   siteOutput enc m = \case
     R_Index ->
@@ -54,14 +54,14 @@ instance EmaSite R where
       siteOutput (innerRouteEncoder (_As @"R_Clock") enc) (innerModel m) r
 
 renderIndex :: RouteEncoder M R -> M -> LByteString
-renderIndex enc m@(I _store :* I clockTime :* Nil) =
+renderIndex enc m@(I clockTime :* I _store :* Nil) =
   tailwindLayout (H.title "MultiSite" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are three sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
         H.li $ routeElem (R_Basic Ex01.Route_Index) "Ex01_Basic"
-        H.li $ routeElem (R_Store Ex02.Route_Index) "Ex02_Store"
-        H.li $ routeElem (R_Clock Ex03.Route_Index) "Ex03_Clock"
+        H.li $ routeElem (R_Clock Ex02.Route_Index) "Ex02_Clock"
+        H.li $ routeElem (R_Store Ex03.Route_Index) "Ex03_Store"
       H.p $ do
         "The current time is: "
         -- This illustrates how we can access a sub-model from the top-level
