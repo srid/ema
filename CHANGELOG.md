@@ -4,12 +4,11 @@
 
 - GHC 9.0 support
 - Better handling of URL anchors (#83; #87)
-- Fix bug in `Ex02_Basic.hs` (wasn't generating HTML files)
-- Fix `runEmaPure` not generating routes
-- Multisite
-  - Typeclass is gone, replaced by `Site` datatype that can easily be composed
-  - Main thread can now exit (if no model updates are necessary); no need for `threadDelay maxBound` hacks.
-- Route encoding isomorphism checks
+- Multisite rewrite (Ema is rewritten)
+  - Add `IsRoute` class to define route encoders
+    - Generic deriving of route encoders, so you do not have to hand-write them.
+    - Route encoding isomorphism checks
+  - Composable Ema apps (Extend another Ema to build new ones)
 
 ## 0.6.0.0 -- 2022-02-05
 
