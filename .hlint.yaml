@@ -1,5 +1,7 @@
 # Ours
 - ignore: {name: Use camelCase }
+# `forever` is useful in siteInput.
+- ignore: {name: Use infinitely }
 
 
 # Relude's hlint.yaml
