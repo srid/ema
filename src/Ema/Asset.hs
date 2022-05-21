@@ -20,8 +20,8 @@ data Asset a
 
 -- | The format of a generated asset.
 data Format
-  = -- | Html assets are served by the server with hot-reload
+  = -- | Html assets are served by the live server with hot-reload
     Html
-  | -- | Other assets are served by the server as static files.
+  | -- | Other assets are served by the live server as static files.
     Other
   deriving stock (Eq, Show, Ord, Generic)

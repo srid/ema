@@ -6,25 +6,42 @@ module Ema.Site (
 ) where
 
 import Control.Monad.Logger (MonadLoggerIO)
-import Data.SOP
+import Data.SOP (I, NP (Nil))
 import Data.Some (Some)
-import Ema.Asset
+import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
 import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Encoder (RouteEncoder)
 import UnliftIO (MonadUnliftIO)
 
--- | Class of routes with an associated model
+{- | Typeclass to orchestrate an Ema site
+
+  Given a route `r` from the class of `IsRoute` types, instantiating EmaSite
+  on it enables defining the static site pipeline as follows:
+
+  @
+  SiteArg -> siteInput -> Dynamic model --[r, model]--> siteOutput
+  @
+
+  - `SiteArg` is typically not used, but it can be used to pass command line
+  arguments and other such settings.
+  - `siteInput` returns a time-varying value (Dynamic) representing the data for
+  your static site.
+  - `siteOutput` takes this data model (oneshot value) and returns the generated
+  content (usually HTML) for the given route.
+
+  Finally, `Ema.App.runSite @r arg` (where `arg` is of type `SiteArg`) is run
+  from the `main` entry point to run your Ema site.
+-}
 class IsRoute r => EmaSite r where
-  {- Arguments to the model runner. Default: nothing (hence, `()`)
-
-    The value of `SiteArg` should be passed to `Ema.runSite`. It is whatever
-    data that is required to create the model `Dynamic` using `siteInput`.
-
+  {- `SiteArg` is typically settings from the environment (config file, or
+    command-line arguments) that your Dynamic-producing `siteInput` function
+    consumes as argument.
   -}
   type SiteArg r :: Type
 
+  -- By default Ema sites have no site arguments.
   type SiteArg r = ()
 
   {- Get the model's time-varying value as a `Dynamic`.
@@ -39,7 +56,10 @@ class IsRoute r => EmaSite r where
     Some CLI.Action ->
     -- | The `RouteEncoder` associated with `r`
     RouteEncoder (RouteModel r) r ->
+    -- | The value passed by the programmer to `Ema.App.runSite`
     SiteArg r ->
+    -- | Time-varying value of the model. If your model is not time-varying, use
+    -- `pure` to produce a constant value.
     m (Dynamic m (RouteModel r))
   default siteInput ::
     forall m.
@@ -55,5 +75,5 @@ class IsRoute r => EmaSite r where
   siteInput _ _ _ =
     pure $ pure Nil
 
-  -- | Produce the asset for the given route.
+  -- | Return the generated asset for the given route and model.
   siteOutput :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
