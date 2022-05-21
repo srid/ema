@@ -6,7 +6,7 @@
         {
             "label": "Ema Example Server",
             "type": "shell",
-            "command": "bin/run-via-tmux",
+            "command": "bin/run",
             "args": [],
             "problemMatcher": [],
             "group": {
