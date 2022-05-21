@@ -1,7 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Helpers for generics-sop
 module Data.SOP.Extra where
