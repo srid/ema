@@ -7,9 +7,9 @@ module Ema.Generate (generateSite) where
 import Control.Exception (throwIO)
 import Control.Monad.Logger
 import Ema.Asset
-import Ema.Model
 import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
 import Ema.Route.Encoder
+import Ema.Site
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)

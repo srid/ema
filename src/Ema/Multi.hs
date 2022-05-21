@@ -10,9 +10,9 @@ module Ema.Multi (
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))
-import Ema.Model (EmaSite (..))
 import Ema.Route.Class (IsRoute (..), here, there)
 import Ema.Route.Encoder
+import Ema.Site (EmaSite (..))
 import Optics.Core (equality, iso, prism', review)
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the

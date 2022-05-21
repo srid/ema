@@ -4,13 +4,13 @@ module Ema.Route.Prefixed (
 ) where
 
 import Data.Text qualified as T
-import Ema.Model
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
   RouteEncoder,
   mapRouteEncoder,
   mapRouteEncoderRoute,
  )
+import Ema.Site
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism')
 import System.FilePath ((</>))

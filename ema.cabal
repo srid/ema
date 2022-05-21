@@ -129,13 +129,13 @@ library
     Ema.CLI
     Ema.Dynamic
     Ema.Generate
-    Ema.Model
     Ema.Multi
     Ema.Route.Class
     Ema.Route.Encoder
     Ema.Route.Prefixed
     Ema.Route.Url
     Ema.Server
+    Ema.Site
     Optics.CtxPrism
 
   if flag(with-examples)

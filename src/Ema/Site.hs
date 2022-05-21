@@ -1,7 +1,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Ema.Model (
+module Ema.Site (
   EmaSite (..),
 ) where
 

@@ -17,9 +17,9 @@ import Ema.CLI (Action (Run), Cli (Cli), getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
-import Ema.Model (EmaSite (SiteArg, siteInput))
 import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
+import Ema.Site (EmaSite (SiteArg, siteInput))
 import System.Directory (getCurrentDirectory)
 
 {- | Run the given Ema site,
