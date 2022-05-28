@@ -20,6 +20,7 @@ import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
 import Network.Wai qualified as Wai
+import Network.Wai.Handler.Warp (Port)
 import Network.Wai.Handler.Warp qualified as Warp
 import Network.Wai.Handler.WebSockets qualified as WaiWs
 import Network.Wai.Middleware.Static qualified as Static
@@ -27,6 +28,7 @@ import Network.WebSockets (ConnectionException)
 import Network.WebSockets qualified as WS
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
+import UnliftIO.Concurrent (threadDelay)
 
 runServerWithWebSocketHotReload ::
   forall r m.
@@ -39,28 +41,40 @@ runServerWithWebSocketHotReload ::
   , EmaSite r
   ) =>
   Host ->
-  Port ->
+  Maybe Port ->
   LVar (RouteModel r) ->
   m ()
-runServerWithWebSocketHotReload host port model = do
-  let settings =
-        Warp.defaultSettings
-          & Warp.setPort (unPort port)
-          & Warp.setHost (fromString . toString . unHost $ host)
+runServerWithWebSocketHotReload host mport model = do
   logger <- askLoggerIO
-
-  logInfoNS "ema" "=============================================="
-  logInfoNS "ema" $ "Ema live server running: http://" <> unHost host <> ":" <> show port
-  logInfoNS "ema" "=============================================="
-  liftIO $
-    Warp.runSettings settings $
-      assetsMiddleware $
-        WaiWs.websocketsOr
-          WS.defaultConnectionOptions
-          (flip runLoggingT logger . wsApp)
-          (httpApp logger)
+  let runM = flip runLoggingT logger
+      settings =
+        Warp.defaultSettings
+          & Warp.setHost (fromString . toString . unHost $ host)
+      app =
+        assetsMiddleware $
+          WaiWs.websocketsOr
+            WS.defaultConnectionOptions
+            (runM . wsApp)
+            (httpApp logger)
+      banner port = do
+        logInfoNS "ema" "=============================================="
+        logInfoNS "ema" $ "Ema live server running: http://" <> unHost host <> ":" <> show port
+        logInfoNS "ema" "=============================================="
+  liftIO $ warpRunSettings settings mport (runM . banner) app
   where
     enc = routeEncoder @r
+    -- Like Warp.runSettings but takes *optional* port. When no port is set, a
+    -- free (random) port is used.
+    warpRunSettings :: Warp.Settings -> Maybe Port -> (Port -> IO a) -> Wai.Application -> IO ()
+    warpRunSettings settings mPort banner app = do
+      case mPort of
+        Nothing ->
+          Warp.withApplicationSettings settings (pure app) $ \port -> do
+            void $ banner port
+            threadDelay maxBound
+        Just port -> do
+          void $ banner port
+          Warp.runSettings (settings & Warp.setPort port) app
     wsApp pendingConn = do
       conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
       logger <- askLoggerIO

@@ -20,6 +20,7 @@ import Ema.Generate (generateSite)
 import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
 import Ema.Site (EmaSite (SiteArg, siteInput))
+import Network.Wai.Handler.Warp (Port)
 import System.Directory (getCurrentDirectory)
 
 {- | Run the given Ema site,
@@ -58,7 +59,7 @@ runSiteWithCli cli input = do
       Some act@(CLI.Generate dest) -> do
         fs <- generateSite @r dest model0
         pure (model0, act :=> Identity fs)
-      Some act@(CLI.Run (host, port)) -> do
+      Some act@(CLI.Run (host, mport)) -> do
         model <- LVar.empty
         LVar.set model model0
         logger <- askLoggerIO
@@ -72,7 +73,7 @@ runSiteWithCli cli input = do
                 liftIO $ threadDelay maxBound
             )
             ( flip runLoggingT logger $ do
-                Server.runServerWithWebSocketHotReload @r host port model
+                Server.runServerWithWebSocketHotReload @r host mport model
             )
         pure (model0, act :=> Identity ())
 
@@ -87,7 +88,7 @@ runSiteLiveServerOnly ::
   forall r.
   (Show r, Eq r, EmaSite r) =>
   CLI.Host ->
-  CLI.Port ->
+  Maybe Port ->
   SiteArg r ->
   IO ()
 runSiteLiveServerOnly host port siteArg =
