@@ -18,26 +18,20 @@ import Data.GADT.Compare.TH (
  )
 import Data.GADT.Show.TH (DeriveGShow (deriveGShow))
 import Data.Some (Some (..))
+import Network.Wai.Handler.Warp (Port)
 import Options.Applicative hiding (action)
 
 -- | Host string to start the server on.
 newtype Host = Host {unHost :: Text}
   deriving newtype (Eq, Show, Ord, IsString)
 
--- | Port number to bind the server on.
-newtype Port = Port {unPort :: Int}
-  deriving newtype (Eq, Show, Ord, Num, Read)
-
 instance Default Host where
   def = "127.0.0.1"
-
-instance Default Port where
-  def = 8000
 
 -- | CLI subcommand
 data Action res where
   Generate :: FilePath -> Action [FilePath]
-  Run :: (Host, Port) -> Action ()
+  Run :: (Host, Maybe Port) -> Action ()
 
 $(deriveGEq ''Action)
 $(deriveGShow ''Action)
@@ -71,9 +65,9 @@ cliParser = do
     generate =
       Some . Generate <$> argument str (metavar "DEST...")
 
-hostPortParser :: Parser (Host, Port)
+hostPortParser :: Parser (Host, Maybe Port)
 hostPortParser =
-  (,) <$> hostParser <*> portParser
+  (,) <$> hostParser <*> optional portParser
 
 hostParser :: Parser Host
 hostParser =
