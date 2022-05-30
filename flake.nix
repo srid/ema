@@ -13,7 +13,7 @@
         haskell-flake.flakeModule
       ];
       perSystem = { self', pkgs, ... }: {
-        haskellProjects.ema = {
+        haskellProjects.default = {
           buildTools = hp: {
             inherit (pkgs)
               treefmt
