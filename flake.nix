@@ -2,54 +2,27 @@
   description = "Ema project";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils/v1.0.0";
-    flake-utils.inputs.nixpkgs.follows = "nixpkgs";
-    flake-compat.url = "github:edolstra/flake-compat";
-    flake-compat.flake = false;
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
+    haskell-flake.url = "github:srid/haskell-flake";
   };
-  outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem
-      (system:
-        let
-          name = "ema";
-          pkgs = nixpkgs.legacyPackages.${system};
-          hp = pkgs.haskellPackages;
-          emaProject = returnShellEnv:
-            hp.developPackage {
-              inherit name returnShellEnv;
-              root = ./.;
-              withHoogle = false;
-              overrides = self: super: with pkgs.haskell.lib; {
-                # lvar = self.callCabal2nix "lvar" inputs.lvar { };
-                # url-slug = inputs.url-slug.defaultPackage.${system};
-              };
-              modifier = drv:
-                pkgs.haskell.lib.addBuildTools drv
-                  (with hp; pkgs.lib.lists.optionals returnShellEnv [
-                    # Specify your build/dev dependencies here. 
-                    cabal-fmt
-                    cabal-install
-                    ghcid
-                    haskell-language-server
-                    ormolu
-                    pkgs.nixpkgs-fmt
-                    pkgs.treefmt
-                  ]);
-            };
-        in
-        rec {
-          # Used by `nix build`
-          defaultPackage = packages.default;
-          # Used by `nix run`
-          defaultApp = packages.default;
-          # Used by `nix develop`
-          devShell = emaProject true;
-
-          packages = {
-            default = emaProject false;
+  outputs = { self, nixpkgs, flake-parts, haskell-flake, ... }:
+    flake-parts.lib.mkFlake { inherit self; } {
+      systems = nixpkgs.lib.systems.flakeExposed;
+      imports = [
+        haskell-flake.flakeModule
+      ];
+      perSystem = { self', pkgs, ... }: {
+        haskellProjects.ema = {
+          buildTools = hp: {
+            inherit (pkgs)
+              treefmt
+              nixpkgs-fmt;
+            inherit (hp)
+              cabal-fmt
+              ormolu;
           };
-
-        }) // {
-      herculesCI.ciSystems = [ "x86_64-linux" ];
+        };
+      };
     };
 }
