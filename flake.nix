@@ -14,6 +14,7 @@
       ];
       perSystem = { self', pkgs, ... }: {
         haskellProjects.default = {
+          root = ./.;
           buildTools = hp: {
             inherit (pkgs)
               treefmt
