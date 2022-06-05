@@ -75,7 +75,7 @@ hostParser =
 
 portParser :: Parser Port
 portParser =
-  option auto (long "port" <> short 'p' <> metavar "PORT" <> help "Port to bind to" <> value def)
+  option auto (long "port" <> short 'p' <> metavar "PORT" <> help "Port to bind to")
 
 cliAction :: IO Cli
 cliAction = do
