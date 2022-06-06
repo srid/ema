@@ -23,14 +23,13 @@ import Ema.Site (EmaSite (siteOutput))
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
-import UnliftIO (MonadUnliftIO)
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
 log = logWithoutLoc "Generate"
 
 generateSite ::
   forall r m.
-  (MonadIO m, MonadUnliftIO m, MonadLoggerIO m, MonadFail m, Eq r, Show r, IsRoute r, EmaSite r) =>
+  (MonadIO m, MonadLoggerIO m, MonadFail m, Eq r, Show r, IsRoute r, EmaSite r) =>
   FilePath ->
   RouteModel r ->
   m [FilePath]
@@ -50,10 +49,8 @@ generateSite dest model = do
 generate ::
   forall r m.
   ( MonadIO m
-  , MonadUnliftIO m
   , MonadLoggerIO m
   , MonadFail m
-  , HasCallStack
   , Eq r
   , Show r
   , EmaSite r
@@ -117,9 +114,7 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
 
 copyDirRecursively ::
   ( MonadIO m
-  , MonadUnliftIO m
   , MonadLoggerIO m
-  , HasCallStack
   ) =>
   -- | Source file path relative to CWD
   FilePath ->
