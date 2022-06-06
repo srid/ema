@@ -48,6 +48,9 @@ data Cli = Cli
   }
   deriving stock (Eq, Show)
 
+instance Default Cli where
+  def = Cli (Some (Run (def, Nothing))) False
+
 cliParser :: Parser Cli
 cliParser = do
   action <-
