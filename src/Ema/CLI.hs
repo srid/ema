@@ -4,7 +4,7 @@
 
 module Ema.CLI where
 
-import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo), MonadLoggerIO, logErrorN)
+import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo), LogSource, MonadLoggerIO, logErrorNS)
 import Control.Monad.Logger.Extras (
   Logger (Logger),
   colorize,
@@ -29,7 +29,7 @@ instance Default Host where
   def = "127.0.0.1"
 
 -- | CLI subcommand
-data Action res where
+data Action result where
   Generate :: FilePath -> Action [FilePath]
   Run :: (Host, Maybe Port) -> Action ()
 
@@ -63,7 +63,7 @@ cliParser = do
       Some . Run <$> hostPortParser
     generate :: Parser (Some Action)
     generate =
-      Some . Generate <$> argument str (metavar "DEST...")
+      Some . Generate <$> argument str (metavar "DEST")
 
 hostPortParser :: Parser (Host, Maybe Port)
 hostPortParser =
@@ -105,7 +105,7 @@ getLogger cli =
 
  First log the message using Error level, and then exit using `fail`.
 -}
-crash :: (MonadLoggerIO m, MonadFail m) => Text -> m a
-crash msg = do
-  logErrorN msg
+crash :: (MonadLoggerIO m, MonadFail m) => LogSource -> Text -> m a
+crash source msg = do
+  logErrorNS source msg
   fail $ toString msg

@@ -5,12 +5,21 @@
 module Ema.Generate (generateSite) where
 
 import Control.Exception (throwIO)
-import Control.Monad.Logger
-import Ema.Asset
+import Control.Monad.Logger (
+  LogLevel (LevelInfo, LevelWarn),
+  MonadLogger,
+  MonadLoggerIO,
+  logWithoutLoc,
+ )
+import Ema.Asset (Asset (..))
 import Ema.CLI (crash)
 import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
-import Ema.Route.Encoder
-import Ema.Site
+import Ema.Route.Encoder (
+  RouteEncoder,
+  checkRouteEncoderGivenRoute,
+  encodeRoute,
+ )
+import Ema.Site (EmaSite (siteOutput))
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -57,13 +66,13 @@ generate ::
   m [FilePath]
 generate dest enc model render = do
   unlessM (liftIO $ doesDirectoryExist dest) $ do
-    crash $ "Destination does not exist: " <> toText dest
+    crash "ema" $ "Destination does not exist: " <> toText dest
   let routes = allRoutes @r model
   when (null routes) $
-    crash "allRoutes is empty; nothing to generate"
+    crash "ema" "allRoutes is empty; nothing to generate"
   forM_ routes $ \route ->
     case checkRouteEncoderGivenRoute enc model route of
-      Left s -> crash s
+      Left s -> crash "ema" s
       Right () -> pass
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   let (staticPaths, generatedPaths) =
