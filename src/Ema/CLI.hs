@@ -30,7 +30,10 @@ instance Default Host where
 
 -- | CLI subcommand
 data Action result where
+  -- | Generate static files at the given output directory, returning the list
+  -- of generated files.
   Generate :: FilePath -> Action [FilePath]
+  -- | Run the live server
   Run :: (Host, Maybe Port) -> Action ()
 
 $(deriveGEq ''Action)
@@ -42,14 +45,18 @@ isLiveServer :: Some Action -> Bool
 isLiveServer (Some (Run _)) = True
 isLiveServer _ = False
 
+-- | Ema's command-line interface options
 data Cli = Cli
-  { action :: Some Action
-  , verbose :: Bool
+  { -- | The Ema action to run
+    action :: Some Action
+  , -- | Logging verbosity
+    verbose :: Bool
   }
   deriving stock (Eq, Show)
 
 instance Default Cli where
-  def = Cli (Some (Run (def, Nothing))) False
+  -- By default, run the live server on random port.
+  def = Cli (Some (Run def)) False
 
 cliParser :: Parser Cli
 cliParser = do
@@ -63,14 +70,10 @@ cliParser = do
   where
     run :: Parser (Some Action)
     run =
-      Some . Run <$> hostPortParser
+      fmap (Some . Run) $ (,) <$> hostParser <*> optional portParser
     generate :: Parser (Some Action)
     generate =
       Some . Generate <$> argument str (metavar "DEST")
-
-hostPortParser :: Parser (Host, Maybe Port)
-hostPortParser =
-  (,) <$> hostParser <*> optional portParser
 
 hostParser :: Parser Host
 hostParser =
@@ -80,6 +83,7 @@ portParser :: Parser Port
 portParser =
   option auto (long "port" <> short 'p' <> metavar "PORT" <> help "Port to bind to")
 
+-- | Parse Ema CLI arguments passed by the user.
 cliAction :: IO Cli
 cliAction = do
   execParser opts

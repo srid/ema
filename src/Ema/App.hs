@@ -3,7 +3,6 @@
 module Ema.App (
   runSite,
   runSiteWithCli,
-  runSiteLiveServerOnly,
 ) where
 
 import Control.Concurrent (threadDelay)
@@ -13,48 +12,59 @@ import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
-import Ema.CLI (Action (Run), Cli (Cli), getLogger)
+import Ema.CLI (getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSite)
 import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
 import Ema.Site (EmaSite (SiteArg, siteInput))
-import Network.Wai.Handler.Warp (Port)
 import System.Directory (getCurrentDirectory)
 
 {- | Run the given Ema site,
 
   Takes as argument the associated `SiteArg`.
 
-  In generate mode, return the generated files.  On live-server mode, this
+  In generate mode, return the generated files.  In live-server mode, this
   function will never return.
 -}
 runSite ::
   forall r.
   (Show r, Eq r, EmaSite r) =>
-  -- | The input required to create the `Dynamic` of the `ModelRoute`
+  -- | The input required to create the `Dynamic` of the `RouteModel`
   SiteArg r ->
-  IO (DSum CLI.Action Identity)
+  IO [FilePath]
 runSite input = do
   cli <- CLI.cliAction
-  snd <$> runSiteWithCli @r cli input
+  result <- snd <$> runSiteWithCli @r cli input
+  case result of
+    CLI.Run _ :=> Identity () ->
+      flip runLoggerLoggingT (getLogger cli) $
+        CLI.crash "ema" "Live server unexpectedly stopped"
+    CLI.Generate _ :=> Identity fs ->
+      pure fs
 
-{- | Like @runSite@ but takes the CLI action
+{- | Like @runSite@ but takes the CLI action. Also returns more information.
 
  Useful if you are handling the CLI arguments yourself.
+
+ Use "void $ Ema.runSiteWithCli def ..." if you are running live-server only.
 -}
 runSiteWithCli ::
   forall r.
   (Show r, Eq r, EmaSite r) =>
-  Cli ->
+  CLI.Cli ->
   SiteArg r ->
-  IO (RouteModel r, DSum CLI.Action Identity)
-runSiteWithCli cli input = do
+  IO
+    ( -- The initial model value.
+      RouteModel r
+    , DSum CLI.Action Identity
+    )
+runSiteWithCli cli siteArg = do
   flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
     logInfoNS "ema" $ "Launching Ema under: " <> toText cwd
-    Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) (routeEncoder @r) input
+    Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) (routeEncoder @r) siteArg
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
         fs <- generateSite @r dest model0
@@ -76,21 +86,3 @@ runSiteWithCli cli input = do
                 Server.runServerWithWebSocketHotReload @r host mport model
             )
         pure (model0, act :=> Identity ())
-
-{- | Like `runSiteWithCli` but only runs the live server.
-
-Also discards the result, inasmuch as live server never returns.
-
-Note that static generation is evidently disabled. Useful for apps that need a
-live view, but do not care about actually generating the files.
--}
-runSiteLiveServerOnly ::
-  forall r.
-  (Show r, Eq r, EmaSite r) =>
-  CLI.Host ->
-  Maybe Port ->
-  SiteArg r ->
-  IO ()
-runSiteLiveServerOnly host port siteArg =
-  let emaCli = Cli (Some $ Run (host, port)) False
-   in void $ runSiteWithCli @r emaCli siteArg
