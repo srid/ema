@@ -9,20 +9,29 @@ Make sure that you have have followed [the previous section](start.md) in order 
 ```haskell
 module Main where
 
-import qualified Ema
+import Ema
+import Generics.SOP qualified as SOP
+
+data Route = Route_Index
+  deriving stock (Show, Eq, Ord)
+deriveGeneric ''Route
+deriving anyclass instance IsRoute Route
+
+instance EmaSite Route where
+  siteOutput _enc _m Route_Index =
+    Ema.AssetGenerated Ema.Html "<b>Hello</b>, Ema"
 
 main :: IO ()
-main = do
-  let speaker :: Text = "Ema"
-  Ema.runEmaPure $ \_ ->
-    encodeUtf8 $ "<b>Hello</b>, from " <> speaker
+main = void $ Ema.runSite @Route ()
 ```
 
 This is the *minimum* amount of code necessary to run an Ema site. Notice that as you replace and save this file, your browser (which is at <http://locahost:9001>) will [hot reload](concepts/hot-reload.md) to display "Hello, Ema". Congratulations, you just created your first website! 
 
+TODO: change below.
+
 ## Expanding on Hello World
 
-Okay, but that's just *one* page. But we want to add a second page. And might as well add more content than "Hello, Ema". Let's do that next. The first step is define the [route](guide/routes.md) type that corresponds to our site's pages. Add the following:
+Okay, but that's just *one* page. But we want to add a second page. And we might as well add more content than "Hello, Ema". Let's do that next. The first step is define the [route](guide/routes.md) type that corresponds to our site's pages. Add the following:
 
 ```haskell
 data Route

@@ -9,6 +9,7 @@ module Ema.Example.Ex04_Multi where
 import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
 import Ema.Example.Common (tailwindLayout)
+import Ema.Example.Ex00_Hello qualified as Ex00
 import Ema.Example.Ex01_Basic qualified as Ex01
 import Ema.Example.Ex02_Clock qualified as Ex02
 import Ema.Example.Ex03_Store qualified as Ex03
@@ -22,6 +23,7 @@ import Prelude hiding (Generic)
 
 data R
   = R_Index
+  | R_Hello Ex00.Route
   | R_Basic Ex01.Route
   | R_Clock Ex02.Route
   | R_Store Ex03.Route
@@ -48,6 +50,8 @@ instance EmaSite R where
     R_Index ->
       Ema.AssetGenerated Ema.Html $ renderIndex enc m
     -- TODO: Can all of these be generalized? (constructor with 1 encoder; delegate)
+    R_Hello r ->
+      siteOutput (innerRouteEncoder (_As @"R_Hello") enc) (innerModel m) r
     R_Basic r ->
       siteOutput (innerRouteEncoder (_As @"R_Basic") enc) (innerModel m) r
     R_Store r ->
@@ -61,6 +65,7 @@ renderIndex enc m@(I clockTime :* I _store :* Nil) =
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are three sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
+        H.li $ routeElem (R_Hello Ex00.Route_Index) "Ex00_Hello"
         H.li $ routeElem (R_Basic Ex01.Route_Index) "Ex01_Basic"
         H.li $ routeElem (R_Clock Ex02.Route_Index) "Ex02_Clock"
         H.li $ routeElem (R_Store Ex03.Route_Index) "Ex03_Store"

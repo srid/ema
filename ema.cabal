@@ -141,6 +141,7 @@ library
   if flag(with-examples)
     other-modules:
       Ema.Example.Common
+      Ema.Example.Ex00_Hello
       Ema.Example.Ex01_Basic
       Ema.Example.Ex02_Clock
       Ema.Example.Ex03_Store
