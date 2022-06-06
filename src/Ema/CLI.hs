@@ -4,7 +4,7 @@
 
 module Ema.CLI where
 
-import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo))
+import Control.Monad.Logger (LogLevel (LevelDebug, LevelInfo), MonadLoggerIO, logErrorN)
 import Control.Monad.Logger.Extras (
   Logger (Logger),
   colorize,
@@ -100,3 +100,12 @@ getLogger cli =
       if level >= minLevel
         then f loc src level msg
         else pass
+
+{- | Crash the program with the given error message
+
+ First log the message using Error level, and then exit using `fail`.
+-}
+crash :: (MonadLoggerIO m, MonadFail m) => Text -> m a
+crash msg = do
+  logErrorN msg
+  fail $ toString msg
