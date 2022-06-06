@@ -12,7 +12,7 @@
       imports = [
         haskell-flake.flakeModule
       ];
-      perSystem = { self', pkgs, ... }: {
+      perSystem = { pkgs, ... }: {
         haskellProjects.default = {
           root = ./.;
           buildTools = hp: {
