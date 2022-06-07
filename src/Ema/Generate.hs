@@ -28,7 +28,7 @@ import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
-log = logWithoutLoc "Generate"
+log = logWithoutLoc "ema.generate"
 
 {- | Generate the static site at `dest`
 
