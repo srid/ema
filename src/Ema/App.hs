@@ -15,7 +15,7 @@ import Data.Some (Some (Some))
 import Ema.CLI (getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
-import Ema.Generate (generateSite)
+import Ema.Generate (generateSiteFromModel)
 import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Server qualified as Server
 import Ema.Site (EmaSite (SiteArg, siteInput))
@@ -67,7 +67,7 @@ runSiteWithCli cli siteArg = do
     Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) (routeEncoder @r) siteArg
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
-        fs <- generateSite @r dest model0
+        fs <- generateSiteFromModel @r dest model0
         pure (model0, act :=> Identity fs)
       Some act@(CLI.Run (host, mport)) -> do
         model <- LVar.empty
