@@ -2,6 +2,7 @@
 
 module Ema.App (
   runSite,
+  runSite_,
   runSiteWithCli,
 ) where
 
@@ -43,6 +44,10 @@ runSite input = do
         CLI.crash "ema" "Live server unexpectedly stopped"
     CLI.Generate _ :=> Identity fs ->
       pure fs
+
+-- | Like @runSite@ but discards the result
+runSite_ :: forall r. (Show r, Eq r, EmaSite r) => SiteArg r -> IO ()
+runSite_ = void . runSite @r
 
 {- | Like @runSite@ but takes the CLI action. Also returns more information.
 
