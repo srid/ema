@@ -84,14 +84,17 @@ instance (NPConst f xs x) => NPConst f (x ': xs) x where
 datatypeCtors :: forall a. HasDatatypeInfo a => NP ConstructorInfo (Code a)
 datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
 
-ctorStripPrefix :: forall a. HasDatatypeInfo a => ConstructorName -> String
-ctorStripPrefix ctorName =
+{- | Strip datatype name from constructor name
+
+  For eg., in `data Foo = Foo_Bar`, calling `ctorStripPrefix @Foo (Foo_Bar)`
+  will return "Bar".
+-}
+ctorStripPrefix :: forall a. HasDatatypeInfo a => ConstructorName -> Maybe String
+ctorStripPrefix ctorName = do
   let name = datatypeName $ datatypeInfo (Proxy @a)
-   in -- TODO: The error message here should be a compile time error
-      maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (toString . T.toLower) $ do
-        suffix <- T.stripPrefix (toText $ name <> "_") (toText ctorName)
-        guard $ not $ T.null suffix -- Disallow `data Foo = Foo_` type constructors, because we don't yet know how to deal with it.
-        pure suffix
+  suffix <- T.stripPrefix (toText $ name <> "_") (toText ctorName)
+  guard $ not $ T.null suffix -- Disallow `data Foo = Foo_` type constructors, because we don't yet know how to deal with it.
+  pure $ toString $ T.toLower suffix
 
 -- | Like `mcana_NS` but returns a Maybe
 mcana_NS ::

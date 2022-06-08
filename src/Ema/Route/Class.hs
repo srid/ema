@@ -113,7 +113,6 @@ type family ModelCons x xs where
   ModelCons (NP I '[]) xs = xs
   ModelCons x xs = x ': xs
 
--- TODO: Fail in compile time, if ctor naming is bad.
 -- TODO: Can I simplify this using `prefixRouteEncoder`?
 gRouteEncoder ::
   forall r ms.
@@ -153,7 +152,7 @@ gEncodeRoute m r' =
   let r = unSOP $ from @r r'
       ctorNames :: [ConstructorName] =
         hcollapse $ hmap (K . constructorName) $ datatypeCtors @r
-      ctorSuffix = ctorStripPrefix @r (ctorNames !! hindex r)
+      ctorSuffix = ctorStripPrefixMust @r $ ctorNames !! hindex r
    in case hcollapse $ hcmap (Proxy @(IsSubRouteIn ms)) encProd r of
         Nothing -> ctorSuffix <> ".html"
         Just p -> ctorSuffix </> p
@@ -188,7 +187,7 @@ gDecodeRoute m fp = do
     anamorphismSum :: forall xs xss. IsSubRouteIn ms xs => FilePath -> [FilePath] -> NP ConstructorInfo (xs ': xss) -> Either (Maybe (NP I xs)) (NP ConstructorInfo xss)
     anamorphismSum base rest (p :* ps) =
       fromMaybe (Right ps) $ do
-        let ctorSuffix = ctorStripPrefix @r (constructorName p)
+        let ctorSuffix = ctorStripPrefixMust @r (constructorName p)
         Left <$> case sList @xs of
           SNil -> do
             -- Constructor without arguments
@@ -214,6 +213,11 @@ gDecodeRoute m fp = do
           SCons ->
             -- Not reachable, due to HCollapseMaybe constraint
             Nothing
+
+-- TODO: Instead of falling back to original ctorName, raise a compile
+-- error on Nothing.
+ctorStripPrefixMust :: forall r. HasDatatypeInfo r => ConstructorName -> String
+ctorStripPrefixMust ctorName = fromMaybe ctorName $ ctorStripPrefix @r ctorName
 
 gAllRoutes ::
   forall r ms.
