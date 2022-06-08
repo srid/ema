@@ -33,8 +33,11 @@ datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
 ctorStripPrefix :: forall a. HasDatatypeInfo a => ConstructorName -> String
 ctorStripPrefix ctorName =
   let name = datatypeName $ datatypeInfo (Proxy @a)
-   in maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (toString . T.toLower) $
-        T.stripPrefix (toText $ name <> "_") (toText ctorName)
+   in -- TODO: The error message here should be a compile time error
+      maybe (error $ toText $ "ctor: bad naming: " <> ctorName) (toString . T.toLower) $ do
+        suffix <- T.stripPrefix (toText $ name <> "_") (toText ctorName)
+        guard $ not $ T.null suffix -- Disallow `data Foo = Foo_` type constructors, because we don't yet know how to deal with it.
+        pure suffix
 
 -- | Like `mcana_NS` but returns a Maybe
 mcana_NS ::

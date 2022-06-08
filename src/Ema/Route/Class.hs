@@ -119,6 +119,9 @@ gallRoutes m =
 {- | DerivingVia repr for routes that use a single model for all inner routes.
 
  This uses NPConst to support >1 constr with same model.
+
+ NOTE: Perhaps we want to replace this with deriving-aeson like `CustomJSON`
+ type, for customizing other things (like striping prefixes).
 -}
 newtype SingleModelRoute (m :: Type) r = SingleModelRoute {unSingleModelRoute :: r}
 
