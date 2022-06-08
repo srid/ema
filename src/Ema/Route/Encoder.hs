@@ -43,6 +43,10 @@ encodeRoute (RouteEncoder enc) = creview enc
 decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (RouteEncoder enc) = cpreview enc
 
+{- | fmap over the filepath, route and model in a `RouteEncoder`
+
+  Typically you want to use one of the specific variants below.
+-}
 mapRouteEncoder ::
   (pr `Is` A_Prism, pf `Is` A_Prism) =>
   Optic' pf NoIx FilePath FilePath ->
@@ -84,7 +88,10 @@ stringRouteEncoder =
 -- | An encoder that uses the ".html" suffix
 htmlSuffixEncoder :: RouteEncoder a FilePath
 htmlSuffixEncoder =
-  prismRouteEncoder $ prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . toText)
+  prismRouteEncoder htmlSuffixPrism
+
+htmlSuffixPrism :: Prism' FilePath FilePath
+htmlSuffixPrism = prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . toText)
 
 singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
 singletonRouteEncoderFrom fp =
