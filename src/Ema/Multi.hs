@@ -10,7 +10,8 @@ module Ema.Multi (
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))
-import Ema.Route.Class (IsRoute (..), here, there)
+import Data.SOP.Extra (here, there)
+import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Site (EmaSite (..))
 import Optics.Core (equality, iso, prism', review)

@@ -2,6 +2,8 @@
 module Ema.Route.Encoder where
 
 import Control.Monad.Writer (runWriter)
+import Data.SOP (I, NP)
+import Data.SOP.Extra (NPContains (npIso), willNotBeUsed)
 import Data.Text qualified as T
 import Optics.Core (
   A_Prism,
@@ -13,6 +15,8 @@ import Optics.Core (
   equality,
   iso,
   prism',
+  review,
+  view,
  )
 import Optics.CtxPrism (
   CtxPrism,
@@ -159,6 +163,18 @@ rightRouteEncoder =
     (prism' Right rightToMaybe)
     (willNotBeUsed,)
 
--- FIXME: a design hack necessitates it.
-willNotBeUsed :: HasCallStack => a
-willNotBeUsed = error "This value will not be used"
+{- | Extract the inner RouteEncoder.
+ TODO: avoid having to specify Prism
+-}
+innerRouteEncoder ::
+  forall m o i (ms :: [Type]) pf.
+  pf `Is` A_Prism =>
+  NPContains ms m =>
+  Optic' pf NoIx o i ->
+  RouteEncoder (NP I ms) o ->
+  RouteEncoder m i
+innerRouteEncoder r =
+  mapRouteEncoder equality r (review npIso)
+
+innerModel :: NPContains ms m => NP I ms -> m
+innerModel = view npIso
