@@ -1,14 +1,23 @@
 # Revision history for ema
 
-## Unreleased
+## 0.8.0.0 (Unreleased)
+
+This is a significant release. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/guide/upgrade
 
 - GHC 9.0 support
 - Better handling of URL anchors (#83; #87)
 - Multisite rewrite (Ema is rewritten)
-  - Add `IsRoute` class to define route encoders
+  - Add the notion of `RouteEncoder` (first-class values), along with a `IsRoute` class to define them.
     - Generic deriving of route encoders, so you do not have to hand-write them.
-    - Route encoding isomorphism checks
-  - Composable Ema apps (Extend another Ema to build new ones)
+    - Automatic isomorphism checks ensures that encoding and decoding are isomorphic.
+  - Composable Ema apps 
+    - There are two ways of composing Ema apps. Using heterogenous lists (see `Ema.Multi`), or by defining a top-level route type (see `Ex04_Multi.hs`).
+  - Replace `LVar` with `Dynamic`.
+    - Ema still uses `LVar` internally (for live server updates), but on the user-side one only needs to provide a `Dynamic` which is a tuple of initial value and an updating function. The [unionmount](https://github.com/srid/unionmount/pull/1) library was changed to provide this tuple.
+  - Add `EmaSite` typeclass to "connect them all"
+    - `SiteArg`: Type of value to pass from the environment.
+    - `siteInput`: Define the `Dynamic` model for the site.
+    - `siteOutput`: Asset (eg: HTML) to produce for each route.
 
 ## 0.6.0.0 -- 2022-02-05
 
