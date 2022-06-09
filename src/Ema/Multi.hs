@@ -48,7 +48,7 @@ instance
   type RouteModel (MultiRoute (r ': rs)) = NP I (RouteModel r ': MultiModel rs)
   routeEncoder =
     routeEncoder @r
-      `hMergeRouteEncoder` routeEncoder @(MultiRoute rs)
+      `nsRouteEncoder` routeEncoder @(MultiRoute rs)
   allRoutes (I m :* ms) =
     fmap (toNS . Left) (allRoutes @r m)
       <> fmap (toNS . Right) (allRoutes @(MultiRoute rs) ms)
@@ -85,13 +85,13 @@ headEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs))
 headEncoder =
   mapRouteEncoder equality (prism' (toNS . Left) (fromNS >>> leftToMaybe)) (review here)
 
--- | Like `mergRouteEncoder` but uses sop-core types instead of Either/Product.
-hMergeRouteEncoder ::
+-- | Like `eitherRouteEncoder` but uses sop-core types instead of Either/Product.
+nsRouteEncoder ::
   RouteEncoder a r ->
   RouteEncoder (NP I as) (NS I rs) ->
   RouteEncoder (NP I (a ': as)) (NS I (r ': rs))
-hMergeRouteEncoder a b =
-  mergeRouteEncoder a b
+nsRouteEncoder a b =
+  eitherRouteEncoder a b
     & mapRouteEncoderRoute (iso toNS fromNS)
     & mapRouteEncoderModel fromNP
 

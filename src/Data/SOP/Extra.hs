@@ -12,7 +12,7 @@ import GHC.TypeLits (
   TypeError,
  )
 import Generics.SOP
-import Optics.Core
+import Optics.Core (Iso', iso, (%))
 import Prelude hiding (All)
 
 -- | Like `HCollapse`, but limited to 0 or 1 products in a n-ary structure.
@@ -30,7 +30,7 @@ instance (ps ~ TypeError ( 'Text "Expected at most 1 product")) => HCollapseMayb
 
 {- | `x` is contained in `xs`
 
-  Gives a free `Iso` into the `NP I xs`.
+  Gives a free partial `Iso` between `NP I xs` and the contained element.
 
   TODO: Can this be simplified?
 -}
@@ -48,7 +48,7 @@ here = iso (unI . hd) (\x -> I x :* willNotBeUsed)
 willNotBeUsed :: HasCallStack => a
 willNotBeUsed = error "This value will not be used"
 
--- Could probably replace this lens-sop:
+-- Could probably replace this with lens-sop:
 -- with https://hackage.haskell.org/package/lens-sop-0.2.0.3/docs/Generics-SOP-Lens.html#v:np
 instance {-# OVERLAPPING #-} NPContains '[] () where
   -- () is always contained in any structure.
@@ -70,6 +70,7 @@ instance {-# OVERLAPPABLE #-} NPContains xs x => NPContains (x' ': xs) x where
  Each of `xs` is equivalent to `a`.
 -}
 class NPConst (f :: k -> Type) (xs :: [k]) (a :: k) where
+  -- | Create a `NP` given the constant element.
   npConstFrom :: f a -> NP f xs
 
 instance NPConst I '[] a where

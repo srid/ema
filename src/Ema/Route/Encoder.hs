@@ -3,7 +3,7 @@ module Ema.Route.Encoder where
 
 import Control.Monad.Writer (runWriter)
 import Data.SOP (I, NP)
-import Data.SOP.Extra (NPContains (npIso), willNotBeUsed)
+import Data.SOP.Extra (NPContains (npIso))
 import Data.Text qualified as T
 import Optics.Core (
   A_Prism,
@@ -139,9 +139,12 @@ checkRouteEncoder (RouteEncoder p) a r s =
         then Right ()
         else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
 
--- | Returns a new route encoder that supports either of the input routes.
-mergeRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
-mergeRouteEncoder enc1 enc2 =
+{- | Returns a new @RouteEncoder@ that supports *either* of the input routes.
+
+  The resulting @RouteEncoder@'s model type becomes the *product* of the input models.
+-}
+eitherRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
+eitherRouteEncoder enc1 enc2 =
   -- TODO: this can be made safe, using lens composition.
   mkRouteEncoder $ \m ->
     prism'
@@ -156,19 +159,28 @@ mergeRouteEncoder enc1 enc2 =
             ]
       )
 
-leftRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder a r1
-leftRouteEncoder =
-  mapRouteEncoder
-    equality
-    (prism' Left leftToMaybe)
-    (,willNotBeUsed)
+{- | Combine two `RouteEncoder`s into a single one
 
-rightRouteEncoder :: RouteEncoder (a, b) (Either r1 r2) -> RouteEncoder b r2
-rightRouteEncoder =
-  mapRouteEncoder
-    equality
-    (prism' Right rightToMaybe)
-    (willNotBeUsed,)
+  Use the given mapping functions to transform to (or from) resultant model and
+  route types.
+
+  This is equivalent to `eitherRouteEncoder` except the resultant RouteEncoder
+  can use arbitrary model and route types (instead of `(,)` and `Either`) .
+-}
+combineRouteEncoder ::
+  forall m r pr m1 m2 r1 r2.
+  Is pr A_Prism =>
+  -- | Isomorphism between either of the input routes and the output route.
+  Optic' pr NoIx (Either r1 r2) r ->
+  -- | How to retrieve the input models given the output model.
+  (m -> (m1, m2)) ->
+  RouteEncoder m1 r1 ->
+  RouteEncoder m2 r2 ->
+  RouteEncoder m r
+combineRouteEncoder rf mf enc1 enc2 =
+  eitherRouteEncoder enc1 enc2
+    & mapRouteEncoderRoute rf
+    & mapRouteEncoderModel mf
 
 {- | Extract the inner RouteEncoder.
  TODO: avoid having to specify Prism
