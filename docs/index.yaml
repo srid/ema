@@ -22,6 +22,5 @@ page:
   headHtml: |
     <link rel="manifest" href="/static/manifest.json" />
     <meta name="theme-color" content="#DB2777" />
-    <!-- Syntax highlighting -->
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/combine/npm/prismjs@1.23.0/prism.min.js,npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <snippet var="js.highlightjs" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/haskell.min.js" integrity="sha512-byZkqR8FeRucjNQnEDNvbtUWMmtJqmNGfwXMRwjGgSbtgo7cvqGkYLdjgSO3ig11xUjKhdP7AhFXPvTTUpaGYQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
