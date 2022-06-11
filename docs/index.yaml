@@ -22,5 +22,9 @@ page:
   headHtml: |
     <link rel="manifest" href="/static/manifest.json" />
     <meta name="theme-color" content="#DB2777" />
-    <snippet var="js.highlightjs" />
+    <!-- highlight.js -->
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/hybrid.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/haskell.min.js" integrity="sha512-byZkqR8FeRucjNQnEDNvbtUWMmtJqmNGfwXMRwjGgSbtgo7cvqGkYLdjgSO3ig11xUjKhdP7AhFXPvTTUpaGYQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>hljs.highlightAll();</script>
