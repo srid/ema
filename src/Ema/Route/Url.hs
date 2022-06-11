@@ -54,7 +54,7 @@ urlToFilePath =
 
 routeUrl :: RouteEncoder a r -> a -> r -> Text
 routeUrl =
-  routeUrlWith UrlPretty
+  routeUrlWith UrlDirect
 
 -- | How to produce URL paths from routes
 data UrlStrategy

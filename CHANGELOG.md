@@ -6,6 +6,7 @@ This is a significant release. If you choose to upgrade your apps from 0.6, see 
 
 - GHC 9.0 support
 - Better handling of URL anchors (#83; #87)
+- `routeUrl` uses `UrlDirect` by default. Use `routeUrlWith` if you want to change that.
 - Multisite rewrite (Ema is rewritten)
   - Add the notion of `RouteEncoder` (first-class values), along with a `IsRoute` class to define them.
     - Generic deriving of route encoders, so you do not have to hand-write them.
