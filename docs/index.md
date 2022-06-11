@@ -10,15 +10,15 @@ page:
 :::
 
 {.text-xl .mb-8}
-[Ema](https://github.com/srid/ema) is a next-gen [**Haskell**](https://www.srid.ca/haskell) library for building [jamstack-style](https://jamstack.org/) static sites. An Ema site is *change-aware*; in addition to good ol' static site generation, it provides a live server supporting **fast hot-reload** in the browser, on code *or* data change. 
+[Ema](https://github.com/srid/ema) is a next-gen [**Haskell**](https://www.srid.ca/haskell) library for building [jamstack-style](https://jamstack.org/) static sites. An Ema site is *change-aware*; in addition to good ol' static site generation, Ema provides a live server supporting **fast hot-reload** in the browser, on code *or* data change. 
 
 {.text-gray-600}
-The ultimate goal of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/), or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view of your data on desktop & mobile.
+The ultimate goal of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/), or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view of your data on desktop & mobile. A classic static site just happens one of the kind of such apps. 
 
 :::{.my-8}
-* [Getting Started](start.md)
-* [Guide](guide.md)
-* [Concepts](concepts.md)
+* [[start]]
+* [[topics]]
+* [[howto]]
 * [Ema News](https://srid.ca/ema)
 :::
 
@@ -27,8 +27,4 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
   <source src="static/ema-demo.mp4" />
   <p>Your browser doesn't support HTML5 video. Here is a <a href="static/ema-demo.mp4">link to the video</a> instead.</p>
 </video>
-:::
-
-:::{.flex .justify-center .items-center}
-[![FAIR](https://img.shields.io/badge/FAIR-pledge-blue)](https://www.fairforall.org/about/)
 :::

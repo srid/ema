@@ -14,6 +14,7 @@ pandoc:
     # For description of items in guide listing
     item-intro: text-gray-500
     note: bg-gray-100 px-4 py-1 rounded italic
+    stepback: border-2 border-gray-400 shadow-lg rounded px-4 pt-2 m-2 italic bg-gray-200 text-gray-600
 
 # Put page-specific metadata here. Override them in Markdown frontmatter or
 # per-folder YAML as necessary.

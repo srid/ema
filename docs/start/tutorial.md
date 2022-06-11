@@ -2,13 +2,14 @@
 
 Make sure that you have have followed [[start|the previous section]] in order to have the [template repo](https://github.com/srid/ema-template) checked out and running locally. Here, **our goal** is to replace the source code of the template repo and write a basic site from scratch.
 
+## Hello World
+
 1. Follow the template repo's [README](https://github.com/srid/ema-template#getting-started) and have it open in Visual Studio Code while running the dev server. Your website should be viewable at <http://localhost:9001/>
 1. Open `src/Main.hs`
 1. Delete everything in it, and replace it with the following
 
 ```haskell
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module Main where
 
@@ -16,9 +17,10 @@ import Ema
 import Generics.SOP qualified as SOP
 
 data Route = Route_Index
-  deriving stock (Show, Eq, Ord)
-deriveGeneric ''Route
-deriving anyclass instance IsRoute Route
+  deriving stock
+    (Show, Eq, Ord, Generic)
+  deriving anyclass
+    (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
 
 instance EmaSite Route where
   siteOutput _enc _m Route_Index =
@@ -32,7 +34,7 @@ The above is the *minimum* amount of code necessary to run an Ema site. Notice t
 
 ## Expanding on Hello World
 
-Okay, but that's just *one* page. But we want to add a second page. And we might as well add more content than "Hello, Ema". Let's do that next. The first step is define the [[routes|route]] type that corresponds to our site's pages. Add the following:
+The above was a trivial static site with *one* page only. Let's say we want to add a second page. And we might as well add more content than "Hello, Ema". Let's do that next. The first step is define the [[routes|route]] type that corresponds to our site's two pages. Replace the existing `Route` type with the following:
 
 ```haskell
 data Route
@@ -41,38 +43,49 @@ data Route
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
+    (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (IsRoute) via (SingleModelRoute Model Route)
 ```
 
-Note that we derive `IsRoute` generically (via SOP instances) which in turn gives us free route encoding and decoding. Here, `Route_Foo` encodes to `/foo.html`.
+:::{.stepback}
+Note that we derive `IsRoute` generically (via SOP instances) which in turn gives us free route encoding and decoding. Here, `Route_Foo` encodes to `/foo.html`. TODO: Link to guide parts
+:::
 
-Next, let's define a [[model|model]]. A model will hold the state of our website used to render its HTML. Let's put the `speaker` variable in it, as that's all we are using:
+Next, let's define a [[model|model]]. A model will hold the state of our website used to render its HTML. To demonstrate that this model can change over time, we will put the current in it:
 
 ```haskell
-data Model = Model { speaker :: Text }
+import Data.Time 
+
+data Model = Model { currentTime :: UTCTime }
 ```
 
-Now that we have defined both our `Route` and `Model` types, it is time to connect everything up to define the site pipeline. This is done by creating an instance of the `EmaSite` [[class|typeclass]].
+Now that we have defined both our `Route` and `Model` types, it is time to connect everything up to define the site pipeline. This is done by creating an instance of the `EmaSite` [[class|typeclass]]. Replace the existing instance with this:
 
 ```haskell
 instance EmaSite Route where
   siteInput _ _ () = do
-    let model0 = Model "me"
+    t0 <- liftIO getCurrentTime
+    let model0 = Model t0
     pure $ Dynamic $ (model0,) $ \setModel -> do
       -- A long-running IO action that updates the model.
       forever $ do
         liftIO $ threadDelay 1000000
         t <- liftIO getCurrentTime
-        setModel $ Model $ show t
+        setModel $ Model t
   siteOutput enc m r =
     Ema.AssetGenerated Ema.Html $ render enc m r
 ```
 
-The `EmaSite` typeclass provides two methods: `siteInput` and `siteOutput`, each definitning the input data and output asset respectively. `siteInput` provides a `Dynamic` (ie., time-varying) of the `Model` value that in turn is passed to the `siteOutput` function which also takes the `Route` value for which we are to generate the content to write to. Since our `Route` type represent a HTML page, we will write HTML bytestring that will be returned by the `render` function.
+:::{.stepback}
+The `EmaSite` typeclass provides two methods: `siteInput` and `siteOutput`, each defining the input data and output asset respectively. `siteInput` provides a `Dynamic` (ie., time-varying) of the `Model` value that in turn is passed to the `siteOutput` function which also takes the `Route` value for which we are to generate the content to write to. Since our `Route` type represent a HTML page, we will write HTML bytestring that will be returned by the `render` function.
+:::
+
+All that's left to do is to define the `render` function.
 
 ```haskell
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 qualified as H
+import Text.Blaze.Html5 ((!))
 
 render :: RouteEncoder Model Route -> Model -> Route -> LByteString
 render enc model r = do
@@ -105,4 +118,4 @@ nix run . -- gen $HOME/output
 2. What happens if you `throw` an exception or use `error` in the `render` function?
 
 {.last}
-[Next]{.next}, checkout the [[guide]] series for information on specific topics.
+[Next]{.next}, checkout the [[topics]] series for information on specific topics.

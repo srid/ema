@@ -2,7 +2,7 @@
 order: 10
 ---
 
-# 💻 Showcase 
+# 💻 Examples 
 
 ## Websites that use Ema
 
