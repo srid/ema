@@ -10,12 +10,18 @@ import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Text qualified as T
-import Ema.Asset
-import Ema.CLI
-import Ema.Route.Class
-import Ema.Route.Encoder
+import Ema.Asset (
+  Asset (AssetGenerated, AssetStatic),
+  Format (Html, Other),
+ )
+import Ema.CLI (Host (unHost))
+import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
+import Ema.Route.Encoder (
+  checkRouteEncoderGivenFilePath,
+  encodeRoute,
+ )
 import Ema.Route.Url (urlToFilePath)
-import Ema.Site
+import Ema.Site (EmaSite (siteOutput))
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
@@ -57,9 +63,9 @@ runServerWithWebSocketHotReload host mport model = do
             (runM . wsApp)
             (httpApp logger)
       banner port = do
-        logInfoNS "ema" "=============================================="
-        logInfoNS "ema" $ "Ema live server running: http://" <> unHost host <> ":" <> show port
-        logInfoNS "ema" "=============================================="
+        logInfoNS "ema" "==============================================="
+        logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port
+        logInfoNS "ema" "==============================================="
   liftIO $ warpRunSettings settings mport (runM . banner) app
   where
     enc = routeEncoder @r
