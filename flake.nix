@@ -13,6 +13,7 @@
         haskell-flake.flakeModule
       ];
       perSystem = { pkgs, ... }: {
+        # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects.default = {
           root = ./.;
           buildTools = hp: {
