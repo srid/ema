@@ -10,4 +10,3 @@ After having familiarized yourself with Ema by following the [earlier section](s
 * [Working with routes](guide/routes.md) -- [Unless you site has a single page (`index.html`), you will need to manage a set of routes]{.item-intro}
 * [Defining Ema instance](guide/class.md) -- [Constrain your `model` and `route` to work with static sites]{.item-intro}
 * [Rendering HTML](guide/render.md) -- [You could use plain strings to build HTML, or use templates, or use one of the delightful Haskell DSLs]{.item-intro}
-* [[howto]] -- [How to do common static-site things]{.item-intro}

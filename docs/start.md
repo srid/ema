@@ -17,6 +17,6 @@ That should start the Ema dev server displaying a simple website. Go ahead and t
 {.last}
 [Next]{.next}, [in the tutorial](start/tutorial.md) let's try using this template repo to create a basic website.
 
-[^nix]: Nix is optional. The [template repository][ema-template] will work with plain `cabal`.
+[^nix]: Nix is optional, though it provides the best development experience. The [template repository][ema-template] may work with plain `cabal`, but this is not officially tested.
 
 [ema-template]: https://github.com/srid/ema-template
