@@ -19,7 +19,7 @@ import Network.URI.Slug qualified as Slug
  As the returned URL is relative, you will have to either make it absolute (by
  prepending with `/`) or set the `<base>` URL in your HTML head element.
 -}
-routeUrlWith :: UrlStrategy -> RouteEncoder a r -> a -> r -> Text
+routeUrlWith :: HasCallStack => UrlStrategy -> RouteEncoder a r -> a -> r -> Text
 routeUrlWith urlStrategy enc model =
   relUrlFromPath . encodeRoute enc model
   where
@@ -52,7 +52,7 @@ urlToFilePath :: Text -> FilePath
 urlToFilePath =
   toString . T.intercalate "/" . fmap (Slug.unSlug . Slug.decodeSlug) . T.splitOn "/"
 
-routeUrl :: RouteEncoder a r -> a -> r -> Text
+routeUrl :: HasCallStack => RouteEncoder a r -> a -> r -> Text
 routeUrl =
   routeUrlWith UrlDirect
 

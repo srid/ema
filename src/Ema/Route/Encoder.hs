@@ -37,10 +37,10 @@ newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
 mkRouteEncoder = RouteEncoder . fromPrism
 
-encodeRoute :: RouteEncoder model r -> model -> r -> FilePath
+encodeRoute :: HasCallStack => RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (RouteEncoder enc) = creview enc
 
-decodeRoute :: RouteEncoder model r -> model -> FilePath -> Maybe r
+decodeRoute :: HasCallStack => RouteEncoder model r -> model -> FilePath -> Maybe r
 decodeRoute (RouteEncoder enc) = cpreview enc
 
 {- | fmap over the filepath, route and model in a `RouteEncoder`
