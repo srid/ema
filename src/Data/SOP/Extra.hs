@@ -82,6 +82,9 @@ instance {-# OVERLAPPING #-} NPConst f (x ': '[]) x where
 instance (NPConst f xs x) => NPConst f (x ': xs) x where
   npConstFrom x = x :* npConstFrom @_ @f @xs @x x
 
+instance {-# OVERLAPPABLE #-} (TypeError ( 'Text "The NP type " ':$$: 'ShowType xs ':$$: 'Text " has elements distinct from " ':$$: 'ShowType x)) => NPConst f xs x where
+  npConstFrom = undefined
+
 datatypeCtors :: forall a. HasDatatypeInfo a => NP ConstructorInfo (Code a)
 datatypeCtors = constructorInfo $ datatypeInfo (Proxy @a)
 
