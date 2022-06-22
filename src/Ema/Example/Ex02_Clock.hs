@@ -34,12 +34,13 @@ data Route
   deriving (IsRoute) via (SingleModelRoute Model Route)
 
 instance EmaSite Route where
-  siteInput _ _ () = do
+  type SiteArg Route = Int -- Delay between clock refresh
+  siteInput _ _ timerDelay = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \setModel -> do
       logInfoNS "Ex02" "Starting clock..."
       forever $ do
-        liftIO $ threadDelay 1000000
+        liftIO $ threadDelay timerDelay
         t <- liftIO getCurrentTime
         logDebugNS "Ex02" "Updating clock..."
         setModel t
@@ -48,7 +49,13 @@ instance EmaSite Route where
 
 main :: IO ()
 main = do
-  void $ Ema.runSite @Route ()
+  void $ Ema.runSite @Route delayNormal
+
+delayNormal :: Int
+delayNormal = 1000000 -- 1 second
+
+delayFast :: Int
+delayFast = 10000
 
 render :: RouteEncoder UTCTime Route -> UTCTime -> Route -> LByteString
 render enc now r =
@@ -63,7 +70,7 @@ render enc now r =
         H.pre ! A.class_ "text-6xl font-bold mt-2" $ do
           H.span ! A.class_ ("text-" <> randomColor now <> "-500") $ do
             let fmt = case r of
-                  Route_Index -> "%Y/%m/%d %H:%M:%S"
+                  Route_Index -> "%Y/%m/%d %H:%M:%S%Q"
                   Route_OnlyTime -> "%H:%M:%S"
             H.toMarkup $ formatTime defaultTimeLocale fmt now
       H.div ! A.class_ "mt-4 text-center" $ do
