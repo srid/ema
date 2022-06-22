@@ -13,7 +13,7 @@ page:
 [Ema](https://github.com/srid/ema) is a next-gen [**Haskell**](https://www.srid.ca/haskell) library for building [jamstack-style](https://jamstack.org/) static sites. An Ema site is *change-aware*; in addition to good ol' static site generation, Ema provides a live server supporting **fast hot-reload** in the browser, on code *or* data change. 
 
 {.text-gray-600}
-The ultimate goal of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/), or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view of your data on desktop & mobile. A classic static site just happens one of the kind of such apps. 
+The ultimate goal of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/),[^emanote] or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view of your data on desktop & mobile. A classic static site is just one type of such [*kind*]{title="See what we did there?"} of apps. 
 
 :::{.my-8}
 * [[start]]
@@ -28,3 +28,5 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
   <p>Your browser doesn't support HTML5 video. Here is a <a href="static/ema-demo.mp4">link to the video</a> instead.</p>
 </video>
 :::
+
+[^emanote]: This ultimate goal was already realized in regards to neuron; see [Emanote](https://emanote.srid.ca/), which is built on top of Ema.

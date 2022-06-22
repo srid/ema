@@ -2,7 +2,7 @@
 
 ## 0.8.0.0 (Unreleased)
 
-This releases brings a significant rewrite of Ema. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/guide/upgrade for guidance.
+This releases brings a significant rewrite of Ema. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/howto/upgrade for guidance.
 
 - GHC 9.0 support
 - Better handling of URL anchors (#83; #87)

@@ -1,8 +1,10 @@
 # Tutorial
 
-Make sure that you have have followed [[start|the previous section]] in order to have the [template repo](https://github.com/srid/ema-template) checked out and running locally. Here, **our goal** is to replace the source code of the template repo and write a basic site from scratch.
+We assume that you have followed [[start|the previous section]] to have the [template repo](https://github.com/srid/ema-template) checked out and running locally. Here, **our goal** is to replace the source of that template repo and write a basic site from scratch.
 
 ## Hello World
+
+We will start with "hello world" Ema app.
 
 1. Follow the template repo's [README](https://github.com/srid/ema-template#getting-started) and have it open in Visual Studio Code while running the dev server. Your website should be viewable at <http://localhost:9001/>
 1. Open `src/Main.hs`
@@ -30,11 +32,11 @@ main :: IO ()
 main = void $ Ema.runSite @Route ()
 ```
 
-The above is the *minimum* amount of code necessary to run an Ema site. Notice that as you replace and save this file, your browser (which is at <http://locahost:9001>) will [[hot-reload|hot reload]] to display "Hello, Ema". Congratulations, you just created your first website! 
+The above is the *minimum* amount of code necessary to run an Ema site. Notice that as you replace and save this file, your browser (which is pointing at <http://locahost:9001>) will [[hot-reload|hot reload]] to display "Hello, Ema". Congratulations, you just created your first website! 
 
 ## Expanding on Hello World
 
-The above was a trivial static site with *one* page only. Let's say we want to add a second page. And we might as well add more content than "Hello, Ema". Let's do that next. The first step is define the [[routes|route]] type that corresponds to our site's two pages. Replace the existing `Route` type with the following:
+The above was a trivial static site with *one* page only. And there's nothing, umm, dynamic about it. Let's say we want to add a second page. And we might as well add more (dynamic; ie., time-varying) content than "Hello, Ema". Let's do that next. The first step is define the [[routes|route]] type that corresponds to our site's two pages. Replace the existing `Route` type with the following:
 
 ```haskell
 data Route
@@ -51,7 +53,7 @@ data Route
 Note that we derive `IsRoute` generically (via SOP instances) which in turn gives us free route encoding and decoding. Here, `Route_Foo` encodes to `/foo.html`. TODO: Link to guide parts
 :::
 
-Next, let's define a [[model|model]]. A model will hold the state of our website used to render its HTML. To demonstrate that this model can change over time, we will put the current in it:
+Next, let's define a [[model|model]]. A model will hold the state of our website used to render its HTML. To demonstrate that this model can change over time, we will put the current time in it:
 
 ```haskell
 import Data.Time 
