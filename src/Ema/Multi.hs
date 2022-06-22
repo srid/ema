@@ -27,7 +27,7 @@ type family MultiModel (rs :: [Type]) :: [Type] where
 
 type family MultiSiteArg (rs :: [Type]) :: [Type] where
   MultiSiteArg '[] = '[]
-  MultiSiteArg (r ': rs) = SiteArg r : MultiModel rs
+  MultiSiteArg (r ': rs) = SiteArg r : MultiSiteArg rs
 
 instance IsRoute (MultiRoute '[]) where
   type RouteModel (MultiRoute '[]) = NP I '[]
@@ -66,7 +66,7 @@ instance
   ) =>
   EmaSite (MultiRoute (r ': rs))
   where
-  type SiteArg (MultiRoute (r ': rs)) = NP I (SiteArg r ': MultiSiteArg rs)
+  type SiteArg (MultiRoute (r ': rs)) = NP I (MultiSiteArg (r ': rs))
   siteInput cliAct enc (I i :* is) = do
     m <- siteInput @r cliAct (headEncoder enc) i
     ms <- siteInput @(MultiRoute rs) cliAct (tailEncoder enc) is
