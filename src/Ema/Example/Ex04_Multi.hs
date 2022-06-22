@@ -2,7 +2,7 @@
 
 {- | Demonstration of merging multiple sites
 
-  For an alternative (easier) approach, see `Ema.Multi`.
+  For an alternative (easier) approach, see `Ema.Multi` (used by Ex05_MultiGeneric.hs).
 -}
 module Ema.Example.Ex04_Multi where
 
@@ -61,7 +61,7 @@ instance EmaSite R where
 
 renderIndex :: RouteEncoder M R -> M -> LByteString
 renderIndex enc m@(I clockTime :* I _store :* Nil) =
-  tailwindLayout (H.title "MultiSite" >> H.base ! A.href "/") $
+  tailwindLayout (H.title "Ex04_Multi" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are three sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
