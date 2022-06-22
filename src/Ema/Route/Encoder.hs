@@ -79,7 +79,7 @@ showReadRouteEncoder =
   htmlSuffixEncoder
     & mapRouteEncoderRoute (prism' show readMaybe)
 
--- | A route encoder that uses toString/fromString to encode/decode.
+-- | A route encoder that uses @toString@ and @fromString@ to encode and decode respectively.
 stringRouteEncoder :: (IsString r, ToString r) => RouteEncoder a r
 stringRouteEncoder =
   htmlSuffixEncoder

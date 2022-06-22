@@ -19,13 +19,20 @@ import System.FilePath (takeFileName, (</>))
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
+import Prelude hiding (Product)
 
 data Model = Model
-  { modelProducts :: [Text]
-  , modelCategories :: [Text]
+  { modelProducts :: [Product]
+  , modelCategories :: [Category]
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
+
+newtype Product = Product {unProduct :: Text}
+  deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON)
+
+newtype Category = Category {unCategory :: Text}
+  deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON)
 
 data Route
   = Route_Index
@@ -43,35 +50,27 @@ newtype StoreFileError = StoreFileMalformed String
 -- TODO: Use DerivingVia to specify options, to disable extra /product/ in URL.
 data ProductRoute
   = ProductRoute_Index
-  | ProductRoute_Product ProductName
+  | ProductRoute_Product Product
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
 
 data CategoryRoute
   = CategoryRoute_Index
-  | CategoryRoute_Category CategoryName
+  | CategoryRoute_Category Category
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (IsRoute) via (SingleModelRoute Model CategoryRoute)
 
-newtype ProductName = ProductName Text
-  deriving stock (Show, Eq, Ord)
-  deriving newtype (IsString, ToString)
-
-instance IsRoute ProductName where
-  type RouteModel ProductName = Model
+instance IsRoute Product where
+  type RouteModel Product = Model
   routeEncoder =
     stringRouteEncoder
-  allRoutes m =
-    ProductName <$> modelProducts m
+  allRoutes =
+    modelProducts
 
-newtype CategoryName = CategoryName Text
-  deriving stock (Show, Eq, Ord)
-  deriving newtype (IsString, ToString)
-
-instance IsRoute CategoryName where
-  type RouteModel CategoryName = Model
+instance IsRoute Category where
+  type RouteModel Category = Model
   routeEncoder =
     stringRouteEncoder
       -- Since category names can contain whitespace, we replace them in URLs
@@ -87,8 +86,8 @@ instance IsRoute CategoryName where
         iso
           (toString . T.replace replacement needle . toText)
           (toString . T.replace needle replacement . toText)
-  allRoutes m =
-    CategoryName <$> modelCategories m
+  allRoutes =
+    modelCategories
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()
@@ -137,7 +136,7 @@ instance EmaSite Route where
               case pr of
                 ProductRoute_Index -> do
                   H.p "List of products go here"
-                  forM_ ps $ \p -> do
+                  forM_ ps $ \(Product p) -> do
                     H.li $ routeElem (Route_Products $ ProductRoute_Product $ fromString . toString $ p) $ H.toHtml p
                   routeElem Route_Index "Back to index"
                 ProductRoute_Product name -> do
@@ -148,7 +147,7 @@ instance EmaSite Route where
               case cr of
                 CategoryRoute_Index -> do
                   H.p "List of categories go here"
-                  forM_ cats $ \c -> do
+                  forM_ cats $ \(Category c) -> do
                     H.li $ routeElem (Route_Category $ CategoryRoute_Category $ fromString . toString $ c) $ H.toHtml c
                   routeElem Route_Index "Back to index"
                 CategoryRoute_Category name -> do
