@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | WIP https://github.com/srid/ema/issues/92
@@ -8,7 +9,6 @@ import Ema.Multi
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Route.Extra
-import GHC.TypeLits (ErrorMessage (Text), TypeError)
 import Optics.Core (iso)
 import Optics.Prism (prism')
 
@@ -20,27 +20,38 @@ type family RCode (xss :: [[Type]]) :: [Type] where
   RCode (_ ': rest) = TypeError ( 'Text "MultiRoute: too many arguments")
 -}
 
--- | Class of routes (with their associated model) that are MultiRoute's
-class AsMulti r a where
-  type AsMultiSubRoutes r a :: [Type]
-  toMultiR :: Proxy a -> r -> MultiRoute (AsMultiSubRoutes r a)
-  fromMultiR :: Proxy a -> MultiRoute (AsMultiSubRoutes r a) -> r
-  toMultiM :: Proxy r -> a -> NP I (MultiModel (AsMultiSubRoutes r a))
-  fromMultiM :: Proxy r -> NP I (MultiModel (AsMultiSubRoutes r a)) -> a
+{- | Motley is a class of routes with an underlying MultiRoute (and MultiModel) representation.
 
+ The idea is that by deriving Motley, we get IsRoute for free (based on MultiRoute).
+
+ TODO: Rename this class, or change the API.
+-}
+class Motley r where
+  -- | The model associated with `r`
+  type MotleyModel r :: Type
+
+  type MotleySubRoutes r :: [Type]
+  toMultiR :: r -> MultiRoute (MotleySubRoutes r)
+  fromMultiR :: MultiRoute (MotleySubRoutes r) -> r
+  toMultiM :: MotleyModel r -> NP I (MultiModel (MotleySubRoutes r))
+  fromMultiM :: NP I (MultiModel (MotleySubRoutes r)) -> MotleyModel r
+
+-- | Mark a route as associated with a model type.
 newtype WithModel r a = WithModel r
 
-instance AsMulti r a => AsMulti (WithModel r a) a where
-  type AsMultiSubRoutes (WithModel r a) a = AsMultiSubRoutes r a
-  toMultiR p (WithModel r) = toMultiR @r p r
-  fromMultiR p = WithModel . fromMultiR @r p
-  toMultiM _ = toMultiM @r Proxy
-  fromMultiM _ = fromMultiM @r Proxy
+instance Motley r => Motley (WithModel r a) where
+  type MotleyModel (WithModel r a) = MotleyModel r
+  type MotleySubRoutes (WithModel r a) = MotleySubRoutes r
+  toMultiR (WithModel r) = toMultiR @r r
+  fromMultiR = WithModel . fromMultiR @r
+  toMultiM = toMultiM @r
+  fromMultiM = fromMultiM @r
 
 instance
-  ( AsMulti r a
-  , mr ~ MultiRoute (AsMultiSubRoutes r a)
-  , mm ~ MultiModel (AsMultiSubRoutes r a)
+  ( Motley r
+  , mr ~ MultiRoute (MotleySubRoutes r)
+  , mm ~ MultiModel (MotleySubRoutes r)
+  , a ~ MotleyModel r
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
@@ -49,11 +60,11 @@ instance
   type RouteModel (WithModel r a) = a
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoderRoute (iso (fromMultiR $ Proxy @a) (toMultiR $ Proxy @a))
-      & mapRouteEncoderModel (toMultiM $ Proxy @r)
+      & mapRouteEncoderRoute (iso fromMultiR toMultiR)
+      & mapRouteEncoderModel (toMultiM @r)
   allRoutes m =
-    WithModel . fromMultiR (Proxy @a)
-      <$> allRoutes (toMultiM (Proxy @r) m)
+    WithModel . fromMultiR
+      <$> allRoutes (toMultiM @r m)
 
 -- ----------
 -- Examples
@@ -62,7 +73,7 @@ instance
 type M = (Int, Int)
 
 data R = R_Main | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
-  deriving (IsRoute) via (WithModel R M)
+  deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModel R ~ M
 
 data NumRoute = NumRoute
 
@@ -74,27 +85,28 @@ instance IsRoute NumRoute where
       pure NumRoute
   allRoutes _ = [NumRoute]
 
--- TODO: We want to derive this generically.
-instance AsMulti R M where
+-- TODO: We want to derive Motley generically.
+instance Motley R where
+  type MotleyModel R = M
   type
-    AsMultiSubRoutes R M =
+    MotleySubRoutes R =
       '[ SingletonRoute "main.html"
        , SingletonRoute "foo.html"
        , PrefixedRoute "bar" NumRoute
        , PrefixedRoute "bar2" NumRoute
        ]
-  toMultiR _ = \case
+  toMultiR = \case
     R_Main -> Z $ I SingletonRoute
     R_Foo -> S $ Z $ I SingletonRoute
     R_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
     R_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
-  fromMultiR _ = \case
+  fromMultiR = \case
     Z (I SingletonRoute) -> R_Main
     S (Z (I SingletonRoute)) -> R_Foo
     S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
     S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
     S (S (S (S _))) -> error "FIXME" -- not reachable
-  toMultiM _ (a, b) =
+  toMultiM (a, b) =
     I () :* I () :* I a :* I b :* Nil
-  fromMultiM _ (I () :* I () :* I a :* I b :* Nil) =
+  fromMultiM (I () :* I () :* I a :* I b :* Nil) =
     (a, b)
