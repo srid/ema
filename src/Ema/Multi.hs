@@ -7,6 +7,7 @@
 -}
 module Ema.Multi (
   MultiRoute,
+  MultiModel,
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))

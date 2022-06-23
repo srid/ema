@@ -132,6 +132,7 @@ library
     Ema.Dynamic
     Ema.Generate
     Ema.Multi
+    Ema.Multi.Generic
     Ema.Route.Class
     Ema.Route.Encoder
     Ema.Route.Extra
