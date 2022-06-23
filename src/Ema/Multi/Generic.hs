@@ -4,6 +4,7 @@
 -- | WIP https://github.com/srid/ema/issues/92
 module Ema.Multi.Generic where
 
+import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (..), NS (..))
 import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
@@ -140,5 +141,40 @@ instance EmaSite R where
 
 -- --warnings -c "cabal repl ema -f with-examples" -T Ema.Multi.Generic.main  --setup ":set args gen /tmp"
 main :: IO ()
-main =
-  Ema.runSite_ @R ()
+main = Ema.runSite_ @R ()
+
+-- ---
+-- Let's try defining a top-level route using `R`
+-- --
+
+data TR = TR_Index | TR_Inner R
+  deriving stock (Show, Eq, Generic)
+  deriving (IsRoute) via (WithModel TR M) -- This only works if MotleyModelType R ~ M
+
+instance MotleyRoute TR where
+  type MotleyRouteSubRoutes TR = '[SingletonRoute "index.html", PrefixedRoute "inner" R]
+  toMultiR = \case
+    TR_Index -> Z $ I SingletonRoute
+    TR_Inner r -> S $ Z $ I $ PrefixedRoute r
+  fromMultiR = \case
+    Z (I SingletonRoute) -> TR_Index
+    S (Z (I (PrefixedRoute r))) -> TR_Inner r
+    _ -> error "FIXME"
+
+instance MotleyModel TR where
+  type MotleyModelType TR = M
+  toMultiM m =
+    I () :* I m :* Nil
+  _fromMultiM (I () :* I m :* Nil) =
+    m
+
+instance EmaSite TR where
+  siteInput x enc () =
+    let innerEnc =
+          enc
+            & mapRouteEncoderRoute (_As @"TR_Inner")
+     in siteInput @R x innerEnc ()
+  siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
+
+mainTop :: IO ()
+mainTop = Ema.runSite_ @TR ()
