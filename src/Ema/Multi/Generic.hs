@@ -80,7 +80,7 @@ instance
 
 type M = (Int, Int, String)
 
-data R = R_Main | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
+data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq)
   deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModelType R ~ M
 
@@ -106,12 +106,12 @@ instance MotleyRoute R where
        , PrefixedRoute "bar2" NumRoute
        ]
   toMultiR = \case
-    R_Main -> Z $ I SingletonRoute
+    R_Index -> Z $ I SingletonRoute
     R_Foo -> S $ Z $ I SingletonRoute
     R_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
     R_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
   fromMultiR = \case
-    Z (I SingletonRoute) -> R_Main
+    Z (I SingletonRoute) -> R_Index
     S (Z (I SingletonRoute)) -> R_Foo
     S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
     S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
@@ -123,6 +123,8 @@ instance MotleyRoute R where
 -- Unlike sub-type, we must support a `NP` as the 'super'-type (not records).
 instance MotleyModel R where
   type MotleyModelType R = M
+
+  -- TODO: rename this to `subModels`?
   toMultiM (a, b, _) =
     -- In the single-model case this would be roughly same as: npConstFrom
     I () :* I () :* I a :* I b :* Nil
@@ -136,6 +138,7 @@ instance EmaSite R where
   siteInput _ _ () = pure $ pure (42, 21, "random")
   siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
 
+-- --warnings -c "cabal repl ema -f with-examples" -T Ema.Multi.Generic.main  --setup ":set args gen /tmp"
 main :: IO ()
 main =
   Ema.runSite_ @R ()
