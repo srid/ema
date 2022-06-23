@@ -134,7 +134,7 @@ library
     Ema.Multi
     Ema.Route.Class
     Ema.Route.Encoder
-    Ema.Route.Prefixed
+    Ema.Route.Extra
     Ema.Route.Url
     Ema.Server
     Ema.Site

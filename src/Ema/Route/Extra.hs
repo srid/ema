@@ -1,6 +1,7 @@
-module Ema.Route.Prefixed (
+module Ema.Route.Extra (
   PrefixedRoute (PrefixedRoute, unPrefixedRoute),
   prefixRouteEncoder,
+  SingletonRoute (..),
 ) where
 
 import Data.Text qualified as T
@@ -9,8 +10,9 @@ import Ema.Route.Encoder (
   RouteEncoder,
   mapRouteEncoder,
   mapRouteEncoderRoute,
+  singletonRouteEncoderFrom,
  )
-import Ema.Site
+import Ema.Site (EmaSite (..))
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism')
 import System.FilePath ((</>))
@@ -46,3 +48,18 @@ instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) whe
   type RouteModel (PrefixedRoute prefix r) = RouteModel r
   routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
   allRoutes m = PrefixedRoute <$> allRoutes @r m
+
+{- | A type-level singleton route, whose encoding is given by the symbol parameter.
+
+ SingletonRoute "foo.html" encodes to "foo.html".
+-}
+data SingletonRoute (s :: Symbol) = SingletonRoute
+  deriving stock (Eq, Ord, Show)
+
+instance KnownSymbol s => IsRoute (SingletonRoute s) where
+  type RouteModel (SingletonRoute s) = ()
+  routeEncoder =
+    singletonRouteEncoderFrom (symbolVal (Proxy @s))
+      & mapRouteEncoderRoute (prism' (const ()) (const $ Just SingletonRoute))
+  allRoutes () =
+    [SingletonRoute]
