@@ -136,7 +136,7 @@ instance MotleyModel R where
     (a, b, undefined)
 
 instance EmaSite R where
-  siteInput _ _ () = pure $ pure (42, 21, "random")
+  siteInput _ _ () = pure $ pure (42, 21, "inner")
   siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
 
 -- --warnings -c "cabal repl ema -f with-examples" -T Ema.Multi.Generic.main  --setup ":set args gen /tmp"
@@ -147,9 +147,11 @@ main = Ema.runSite_ @R ()
 -- Let's try defining a top-level route using `R`
 -- --
 
+type TM = (M, String)
+
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
-  deriving (IsRoute) via (WithModel TR M) -- This only works if MotleyModelType R ~ M
+  deriving (IsRoute) via (WithModel TR TM) -- This only works if MotleyModelType R ~ M
 
 instance MotleyRoute TR where
   type MotleyRouteSubRoutes TR = '[SingletonRoute "index.html", PrefixedRoute "inner" R]
@@ -162,19 +164,28 @@ instance MotleyRoute TR where
     _ -> error "FIXME"
 
 instance MotleyModel TR where
-  type MotleyModelType TR = M
-  toMultiM m =
+  type MotleyModelType TR = TM
+  toMultiM (m, _) =
     I () :* I m :* Nil
   _fromMultiM (I () :* I m :* Nil) =
-    m
+    (m, undefined)
 
 instance EmaSite TR where
-  siteInput x enc () =
-    let innerEnc =
-          enc
-            & mapRouteEncoderRoute (_As @"TR_Inner")
-     in siteInput @R x innerEnc ()
-  siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
+  siteInput x enc () = do
+    m1 <- siteInput @R x (trInnerEnc enc) ()
+    let m2 = pure "TOP"
+    pure $ liftA2 (,) m1 m2
+  siteOutput enc m = \case
+    r@TR_Index ->
+      Asset.AssetGenerated Asset.Html $ show r <> show m
+    TR_Inner r ->
+      siteOutput @R (trInnerEnc enc) (fst m) r
+
+-- TODO: General version of this (cf. innerRouteEncoder)
+trInnerEnc enc =
+  enc
+    & mapRouteEncoderRoute (_As @"TR_Inner")
+    & mapRouteEncoderModel (,undefined)
 
 mainTop :: IO ()
 mainTop = Ema.runSite_ @TR ()
