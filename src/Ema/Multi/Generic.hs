@@ -5,10 +5,13 @@
 module Ema.Multi.Generic where
 
 import Data.SOP (I (..), NP (..), NS (..))
+import Ema.App qualified as Ema
+import Ema.Asset qualified as Asset
 import Ema.Multi
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Route.Extra
+import Ema.Site
 import Optics.Core (iso)
 import Optics.Prism (prism')
 
@@ -73,16 +76,19 @@ instance
 type M = (Int, Int, String)
 
 data R = R_Main | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
+  deriving stock (Show, Eq)
   deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModel R ~ M
 
 data NumRoute = NumRoute
+  deriving stock (Show, Eq)
 
 instance IsRoute NumRoute where
   type RouteModel NumRoute = Int
   routeEncoder = mkRouteEncoder $ \n ->
-    prism' (const $ show n <> ".html") $ \s -> do
-      guard $ s == show n <> ".html"
-      pure NumRoute
+    let fp = show n <> ".html"
+     in prism' (const fp) $ \s -> do
+          guard $ s == fp
+          pure NumRoute
   allRoutes _ = [NumRoute]
 
 -- TODO: We want to derive Motley generically.
@@ -90,7 +96,7 @@ instance Motley R where
   type MotleyModel R = M
   type
     MotleySubRoutes R =
-      '[ SingletonRoute "main.html"
+      '[ SingletonRoute "index.html"
        , SingletonRoute "foo.html"
        , PrefixedRoute "bar" NumRoute
        , PrefixedRoute "bar2" NumRoute
@@ -113,3 +119,11 @@ instance Motley R where
   -- note the undefined 'fillers'.
   fromMultiM (I () :* I () :* I a :* I b :* Nil) =
     (a, b, undefined)
+
+instance EmaSite R where
+  siteInput _ _ () = pure $ pure (42, 21, "random")
+  siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
+
+main :: IO ()
+main = do
+  Ema.runSite_ @R ()
