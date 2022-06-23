@@ -70,7 +70,7 @@ instance
 -- Examples
 -- ----------
 
-type M = (Int, Int)
+type M = (Int, Int, String)
 
 data R = R_Main | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModel R ~ M
@@ -106,7 +106,10 @@ instance Motley R where
     S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
     S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
     S (S (S (S _))) -> error "FIXME" -- not reachable
-  toMultiM (a, b) =
+  toMultiM (a, b, _) =
     I () :* I () :* I a :* I b :* Nil
+
+  -- XXX: We may not need this after all (not used so far). But if we do, then
+  -- note the undefined 'fillers'.
   fromMultiM (I () :* I () :* I a :* I b :* Nil) =
-    (a, b)
+    (a, b, undefined)
