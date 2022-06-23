@@ -34,6 +34,7 @@ class MotleyRoute r where
   -- | The model associated with `r`
   type MotleyRouteSubRoutes r :: [Type]
 
+  -- TODO: These should instead be an Iso
   toMultiR :: r -> MultiRoute (MotleyRouteSubRoutes r)
   fromMultiR :: MultiRoute (MotleyRouteSubRoutes r) -> r
 
@@ -179,13 +180,18 @@ instance EmaSite TR where
     r@TR_Index ->
       Asset.AssetGenerated Asset.Html $ show r <> show m
     TR_Inner r ->
-      siteOutput @R (trInnerEnc enc) (fst m) r
+      siteOutput @R (trInnerEnc enc) (trInnerModel m) r
 
 -- TODO: General version of this (cf. innerRouteEncoder)
 trInnerEnc enc =
   enc
     & mapRouteEncoderRoute (_As @"TR_Inner")
     & mapRouteEncoderModel (,undefined)
+
+-- TODO: General version of this (cf. innerModel)
+trInnerModel m =
+  let I () :* I m' :* Nil = toMultiM @TR m
+   in m'
 
 mainTop :: IO ()
 mainTop = Ema.runSite_ @TR ()
