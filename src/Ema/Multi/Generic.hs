@@ -23,38 +23,43 @@ type family RCode (xss :: [[Type]]) :: [Type] where
   RCode (_ ': rest) = TypeError ( 'Text "MultiRoute: too many arguments")
 -}
 
-{- | Motley is a class of routes with an underlying MultiRoute (and MultiModel) representation.
+{- | MotleyRoute is a class of routes with an underlying MultiRoute (and MultiModel) representation.
 
- The idea is that by deriving Motley, we get IsRoute for free (based on MultiRoute).
+ The idea is that by deriving MotleyRoute (and MotleyModel), we get IsRoute for free (based on MultiRoute).
 
  TODO: Rename this class, or change the API.
 -}
-class Motley r where
+class MotleyRoute r where
   -- | The model associated with `r`
-  type MotleyModel r :: Type
+  type MotleyRouteSubRoutes r :: [Type]
 
-  type MotleySubRoutes r :: [Type]
-  toMultiR :: r -> MultiRoute (MotleySubRoutes r)
-  fromMultiR :: MultiRoute (MotleySubRoutes r) -> r
-  toMultiM :: MotleyModel r -> NP I (MultiModel (MotleySubRoutes r))
-  fromMultiM :: NP I (MultiModel (MotleySubRoutes r)) -> MotleyModel r
+  toMultiR :: r -> MultiRoute (MotleyRouteSubRoutes r)
+  fromMultiR :: MultiRoute (MotleyRouteSubRoutes r) -> r
+
+class MotleyRoute r => MotleyModel r where
+  type MotleyModelType r :: Type
+  toMultiM :: MotleyModelType r -> NP I (MultiModel (MotleyRouteSubRoutes r))
+  _fromMultiM :: NP I (MultiModel (MotleyRouteSubRoutes r)) -> MotleyModelType r
 
 -- | Mark a route as associated with a model type.
 newtype WithModel r a = WithModel r
 
-instance Motley r => Motley (WithModel r a) where
-  type MotleyModel (WithModel r a) = MotleyModel r
-  type MotleySubRoutes (WithModel r a) = MotleySubRoutes r
+instance MotleyRoute r => MotleyRoute (WithModel r a) where
+  type MotleyRouteSubRoutes (WithModel r a) = MotleyRouteSubRoutes r
   toMultiR (WithModel r) = toMultiR @r r
   fromMultiR = WithModel . fromMultiR @r
+
+instance MotleyModel r => MotleyModel (WithModel r a) where
+  type MotleyModelType (WithModel r a) = MotleyModelType r
   toMultiM = toMultiM @r
-  fromMultiM = fromMultiM @r
+  _fromMultiM = _fromMultiM @r
 
 instance
-  ( Motley r
-  , mr ~ MultiRoute (MotleySubRoutes r)
-  , mm ~ MultiModel (MotleySubRoutes r)
-  , a ~ MotleyModel r
+  ( MotleyRoute r
+  , MotleyModel r
+  , mr ~ MultiRoute (MotleyRouteSubRoutes r)
+  , mm ~ MultiModel (MotleyRouteSubRoutes r)
+  , a ~ MotleyModelType r
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
@@ -77,7 +82,7 @@ type M = (Int, Int, String)
 
 data R = R_Main | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq)
-  deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModel R ~ M
+  deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModelType R ~ M
 
 data NumRoute = NumRoute
   deriving stock (Show, Eq)
@@ -91,11 +96,10 @@ instance IsRoute NumRoute where
           pure NumRoute
   allRoutes _ = [NumRoute]
 
--- TODO: We want to derive Motley generically.
-instance Motley R where
-  type MotleyModel R = M
+-- TODO: We want to derive MotleyRoute generically.
+instance MotleyRoute R where
   type
-    MotleySubRoutes R =
+    MotleyRouteSubRoutes R =
       '[ SingletonRoute "index.html"
        , SingletonRoute "foo.html"
        , PrefixedRoute "bar" NumRoute
@@ -112,12 +116,20 @@ instance Motley R where
     S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
     S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
     S (S (S (S _))) -> error "FIXME" -- not reachable
+
+-- TODO: In many simple cases (such as single model cases) this can be derived
+-- generically. But allow the user to define this manually if need be. Also cf.
+-- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
+-- Unlike sub-type, we must support a `NP` as the 'super'-type (not records).
+instance MotleyModel R where
+  type MotleyModelType R = M
   toMultiM (a, b, _) =
+    -- In the single-model case this would be roughly same as: npConstFrom
     I () :* I () :* I a :* I b :* Nil
 
   -- XXX: We may not need this after all (not used so far). But if we do, then
   -- note the undefined 'fillers'.
-  fromMultiM (I () :* I () :* I a :* I b :* Nil) =
+  _fromMultiM (I () :* I () :* I a :* I b :* Nil) =
     (a, b, undefined)
 
 instance EmaSite R where
@@ -125,5 +137,5 @@ instance EmaSite R where
   siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
 
 main :: IO ()
-main = do
+main =
   Ema.runSite_ @R ()
