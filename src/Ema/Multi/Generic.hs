@@ -9,7 +9,7 @@ import Data.SOP.Extra (NPConst (npConstFrom))
 import Ema.Multi
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
-import Optics.Core (iso)
+import Optics.Core
 
 {- |
 type family RCode (xss :: [[Type]]) :: [Type] where
@@ -29,13 +29,13 @@ class MotleyRoute r where
   -- | The model associated with `r`
   type MotleyRouteSubRoutes r :: [Type]
 
-  -- TODO: These should instead be an Iso
-  toMultiR :: r -> MultiRoute (MotleyRouteSubRoutes r)
-  fromMultiR :: MultiRoute (MotleyRouteSubRoutes r) -> r
+  motleyRouteIso :: Iso' r (MultiRoute (MotleyRouteSubRoutes r))
 
 class MotleyRoute r => MotleyModel r where
   type MotleyModelType r :: Type
   toMultiM :: MotleyModelType r -> NP I (MultiModel (MotleyRouteSubRoutes r))
+
+  -- TODO: This is probably not requried; remove!
   _fromMultiM :: NP I (MultiModel (MotleyRouteSubRoutes r)) -> MotleyModelType r
 
 -- | Mark a route as associated with a model type.
@@ -43,8 +43,8 @@ newtype WithModel r a = WithModel r
 
 instance MotleyRoute r => MotleyRoute (WithModel r a) where
   type MotleyRouteSubRoutes (WithModel r a) = MotleyRouteSubRoutes r
-  toMultiR (WithModel r) = toMultiR @r r
-  fromMultiR = WithModel . fromMultiR @r
+  motleyRouteIso =
+    coercedTo % motleyRouteIso @r % coercedTo
 
 instance
   ( MotleyRoute r
@@ -60,10 +60,10 @@ instance
   type RouteModel (WithModel r a) = a
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoderRoute (iso fromMultiR toMultiR)
+      & mapRouteEncoderRoute (re motleyRouteIso)
       & mapRouteEncoderModel (toMultiM @r)
   allRoutes m =
-    WithModel . fromMultiR
+    WithModel . review motleyRouteIso
       <$> allRoutes (toMultiM @r m)
 
 -- | Like `WithModel`, but all sub-routes (at any depth) have `a` as their model.
@@ -71,8 +71,8 @@ newtype WithConstModel r (a :: Type) = WithConstModel r
 
 instance MotleyRoute r => MotleyRoute (WithConstModel r a) where
   type MotleyRouteSubRoutes (WithConstModel r a) = MotleyRouteSubRoutes r
-  toMultiR (WithConstModel r) = toMultiR @r r
-  fromMultiR = WithConstModel . fromMultiR @r
+  motleyRouteIso =
+    coercedTo % motleyRouteIso @r % coercedTo
 
 -- Enables derivingVia of MotleyModel
 instance
@@ -100,8 +100,8 @@ instance
   type RouteModel (WithConstModel r a) = a
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoderRoute (iso fromMultiR toMultiR)
+      & mapRouteEncoderRoute (re motleyRouteIso)
       & mapRouteEncoderModel (toMultiM @r)
   allRoutes m =
-    WithConstModel . fromMultiR
+    WithConstModel . review motleyRouteIso
       <$> allRoutes (toMultiM @r m)

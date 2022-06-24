@@ -12,6 +12,7 @@ import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Route.Extra
 import Ema.Site
+import Optics.Core (iso)
 import Optics.Prism (prism')
 
 -- ----------
@@ -45,17 +46,21 @@ instance MotleyRoute R where
        , PrefixedRoute "bar" NumRoute
        , PrefixedRoute "bar2" NumRoute
        ]
-  toMultiR = \case
-    R_Index -> Z $ I SingletonRoute
-    R_Foo -> S $ Z $ I SingletonRoute
-    R_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
-    R_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
-  fromMultiR = \case
-    Z (I SingletonRoute) -> R_Index
-    S (Z (I SingletonRoute)) -> R_Foo
-    S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
-    S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
-    S (S (S (S _))) -> error "FIXME" -- not reachable
+  motleyRouteIso =
+    iso
+      ( \case
+          R_Index -> Z $ I SingletonRoute
+          R_Foo -> S $ Z $ I SingletonRoute
+          R_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
+          R_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
+      )
+      ( \case
+          Z (I SingletonRoute) -> R_Index
+          S (Z (I SingletonRoute)) -> R_Foo
+          S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
+          S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
+          S (S (S (S _))) -> error "FIXME" -- not reachable
+      )
 
 -- TODO: In many simple cases (such as single model cases) this can be derived
 -- generically. But allow the user to define this manually if need be. Also cf.
@@ -94,13 +99,17 @@ data TR = TR_Index | TR_Inner R
 
 instance MotleyRoute TR where
   type MotleyRouteSubRoutes TR = '[SingletonRoute "index.html", PrefixedRoute "inner" R]
-  toMultiR = \case
-    TR_Index -> Z $ I SingletonRoute
-    TR_Inner r -> S $ Z $ I $ PrefixedRoute r
-  fromMultiR = \case
-    Z (I SingletonRoute) -> TR_Index
-    S (Z (I (PrefixedRoute r))) -> TR_Inner r
-    _ -> error "FIXME"
+  motleyRouteIso =
+    iso
+      ( \case
+          TR_Index -> Z $ I SingletonRoute
+          TR_Inner r -> S $ Z $ I $ PrefixedRoute r
+      )
+      ( \case
+          Z (I SingletonRoute) -> TR_Index
+          S (Z (I (PrefixedRoute r))) -> TR_Inner r
+          S (S _) -> error "FIXME" -- not reachable
+      )
 
 instance MotleyModel TR where
   type MotleyModelType TR = TM
@@ -151,26 +160,34 @@ data BarRoute = BarRoute
 
 instance MotleyRoute BarRoute where
   type MotleyRouteSubRoutes BarRoute = '[SingletonRoute "index.html"]
-  toMultiR = \case
-    BarRoute -> Z $ I SingletonRoute
-    _ -> error "FIXME"
-  fromMultiR = \case
-    Z (I SingletonRoute) -> BarRoute
-    _ -> error "FIXME"
+  motleyRouteIso =
+    iso
+      ( \case
+          BarRoute -> Z $ I SingletonRoute
+          _ -> error "FIXME"
+      )
+      ( \case
+          Z (I SingletonRoute) -> BarRoute
+          _ -> error "FIXME"
+      )
 
 instance MotleyRoute R2 where
   type MotleyRouteSubRoutes R2 = '[SingletonRoute "index.html", SingletonRoute "foo", PrefixedRoute "bar" BarRoute, PrefixedRoute "bar2" BarRoute]
-  toMultiR = \case
-    R2_Index -> Z $ I SingletonRoute
-    R2_Foo -> S $ Z $ I SingletonRoute
-    R2_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
-    R2_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
-  fromMultiR = \case
-    Z (I SingletonRoute) -> R2_Index
-    S (Z (I SingletonRoute)) -> R2_Foo
-    S (S (Z (I (PrefixedRoute r)))) -> R2_Bar r
-    S (S (S (Z (I (PrefixedRoute r))))) -> R2_Bar2 r
-    S (S (S (S _))) -> error "FIXME" -- not reachable
+  motleyRouteIso =
+    iso
+      ( \case
+          R2_Index -> Z $ I SingletonRoute
+          R2_Foo -> S $ Z $ I SingletonRoute
+          R2_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
+          R2_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
+      )
+      ( \case
+          Z (I SingletonRoute) -> R2_Index
+          S (Z (I SingletonRoute)) -> R2_Foo
+          S (S (Z (I (PrefixedRoute r)))) -> R2_Bar r
+          S (S (S (Z (I (PrefixedRoute r))))) -> R2_Bar2 r
+          S (S (S (S _))) -> error "FIXME" -- not reachable
+      )
 
 instance EmaSite R2 where
   siteInput _ _ () = pure $ pure (21, "inner")
