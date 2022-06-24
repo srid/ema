@@ -59,7 +59,7 @@ instance MotleyRoute R where
           S (Z (I SingletonRoute)) -> R_Foo
           S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
           S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
-          S (S (S (S _))) -> error "FIXME" -- not reachable
+          S (S (S (S x))) -> case x of {}
       )
 
 -- TODO: In many simple cases (such as single model cases) this can be derived
@@ -108,7 +108,7 @@ instance MotleyRoute TR where
       ( \case
           Z (I SingletonRoute) -> TR_Index
           S (Z (I (PrefixedRoute r))) -> TR_Inner r
-          S (S _) -> error "FIXME" -- not reachable
+          S (S x) -> case x of {}
       )
 
 instance MotleyModel TR where
@@ -164,11 +164,10 @@ instance MotleyRoute BarRoute where
     iso
       ( \case
           BarRoute -> Z $ I SingletonRoute
-          _ -> error "FIXME"
       )
       ( \case
           Z (I SingletonRoute) -> BarRoute
-          _ -> error "FIXME"
+          S x -> case x of {}
       )
 
 instance MotleyRoute R2 where
@@ -186,7 +185,7 @@ instance MotleyRoute R2 where
           S (Z (I SingletonRoute)) -> R2_Foo
           S (S (Z (I (PrefixedRoute r)))) -> R2_Bar r
           S (S (S (Z (I (PrefixedRoute r))))) -> R2_Bar2 r
-          S (S (S (S _))) -> error "FIXME" -- not reachable
+          S (S (S (S x))) -> case x of {}
       )
 
 instance EmaSite R2 where
