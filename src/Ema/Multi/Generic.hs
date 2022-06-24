@@ -6,6 +6,7 @@ module Ema.Multi.Generic where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (..), NS (..))
+import Data.SOP.Extra (NPConst (npConstFrom))
 import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
 import Ema.Multi
@@ -51,11 +52,6 @@ instance MotleyRoute r => MotleyRoute (WithModel r a) where
   toMultiR (WithModel r) = toMultiR @r r
   fromMultiR = WithModel . fromMultiR @r
 
-instance MotleyModel r => MotleyModel (WithModel r a) where
-  type MotleyModelType (WithModel r a) = MotleyModelType r
-  toMultiM = toMultiM @r
-  _fromMultiM = _fromMultiM @r
-
 instance
   ( MotleyRoute r
   , MotleyModel r
@@ -74,6 +70,46 @@ instance
       & mapRouteEncoderModel (toMultiM @r)
   allRoutes m =
     WithModel . fromMultiR
+      <$> allRoutes (toMultiM @r m)
+
+-- | Like `WithModel`, but all sub-routes (at any depth) have `a` as their model.
+newtype WithConstModel r (a :: Type) = WithConstModel r
+
+instance MotleyRoute r => MotleyRoute (WithConstModel r a) where
+  type MotleyRouteSubRoutes (WithConstModel r a) = MotleyRouteSubRoutes r
+  toMultiR (WithConstModel r) = toMultiR @r r
+  fromMultiR = WithConstModel . fromMultiR @r
+
+-- Enables derivingVia of MotleyModel
+instance
+  ( MotleyRoute r
+  , NPConst I (MultiModel (MotleyRouteSubRoutes r)) a
+  ) =>
+  MotleyModel (WithConstModel r a)
+  where
+  type MotleyModelType (WithConstModel r a) = a
+  toMultiM = npConstFrom . I
+  _fromMultiM = undefined -- _fromMultiM @r
+
+instance
+  ( MotleyRoute r
+  , MotleyModel r
+  , mr ~ MultiRoute (MotleyRouteSubRoutes r)
+  , mm ~ MultiModel (MotleyRouteSubRoutes r)
+  , NPConst I mm a -- The only difference
+  , a ~ MotleyModelType r
+  , IsRoute mr
+  , RouteModel mr ~ NP I mm
+  ) =>
+  IsRoute (WithConstModel r a)
+  where
+  type RouteModel (WithConstModel r a) = a
+  routeEncoder =
+    routeEncoder @mr
+      & mapRouteEncoderRoute (iso fromMultiR toMultiR)
+      & mapRouteEncoderModel (toMultiM @r)
+  allRoutes m =
+    WithConstModel . fromMultiR
       <$> allRoutes (toMultiM @r m)
 
 -- ----------
@@ -145,7 +181,7 @@ main :: IO ()
 main = Ema.runSite_ @R ()
 
 -- ---
--- Let's try defining a top-level route using `R`
+-- Let's try defining a top-level route using `R` to see how EmaSite instances compose.
 -- --
 
 type TM = (M, String)
@@ -174,12 +210,13 @@ instance MotleyModel TR where
 instance EmaSite TR where
   siteInput x enc () = do
     m1 <- siteInput @R x (trInnerEnc enc) ()
-    let m2 = pure "TOP"
-    pure $ liftA2 (,) m1 m2
+    -- TODO: (,) can be replaced with _fromMultiM? Nah, not all sub-routes have EmaSite instance.
+    pure $ fmap (,"TOP") m1
   siteOutput enc m = \case
     r@TR_Index ->
       Asset.AssetGenerated Asset.Html $ show r <> show m
     TR_Inner r ->
+      -- Might as well provide a `innerSiteOutput (_As @TR_Inner)`?
       siteOutput @R (trInnerEnc enc) (trInnerModel m) r
 
 -- TODO: General version of this (cf. innerRouteEncoder)
@@ -195,3 +232,47 @@ trInnerModel m =
 
 mainTop :: IO ()
 mainTop = Ema.runSite_ @TR ()
+
+-- ---
+-- Ensure that the constant model case (simple one) still works
+-- --
+
+type M2 = (Int, String)
+
+data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
+  deriving stock (Show, Eq)
+  deriving (IsRoute, MotleyModel) via (WithConstModel R2 M2)
+
+data BarRoute = BarRoute
+  deriving stock (Show, Eq)
+  deriving (IsRoute, MotleyModel) via (WithConstModel BarRoute M2)
+
+instance MotleyRoute BarRoute where
+  type MotleyRouteSubRoutes BarRoute = '[SingletonRoute "index.html"]
+  toMultiR = \case
+    BarRoute -> Z $ I SingletonRoute
+    _ -> error "FIXME"
+  fromMultiR = \case
+    Z (I SingletonRoute) -> BarRoute
+    _ -> error "FIXME"
+
+instance MotleyRoute R2 where
+  type MotleyRouteSubRoutes R2 = '[SingletonRoute "index.html", SingletonRoute "foo", PrefixedRoute "bar" BarRoute, PrefixedRoute "bar2" BarRoute]
+  toMultiR = \case
+    R2_Index -> Z $ I SingletonRoute
+    R2_Foo -> S $ Z $ I SingletonRoute
+    R2_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
+    R2_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
+  fromMultiR = \case
+    Z (I SingletonRoute) -> R2_Index
+    S (Z (I SingletonRoute)) -> R2_Foo
+    S (S (Z (I (PrefixedRoute r)))) -> R2_Bar r
+    S (S (S (Z (I (PrefixedRoute r))))) -> R2_Bar2 r
+    S (S (S (S _))) -> error "FIXME" -- not reachable
+
+instance EmaSite R2 where
+  siteInput _ _ () = pure $ pure (21, "inner")
+  siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
+
+mainConst :: IO ()
+mainConst = Ema.runSite_ @R2 ()

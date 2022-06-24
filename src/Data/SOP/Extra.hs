@@ -73,13 +73,16 @@ class NPConst (f :: k -> Type) (xs :: [k]) (a :: k) where
   -- | Create a `NP` given the constant element.
   npConstFrom :: f a -> NP f xs
 
-instance NPConst I '[] a where
+instance NPConst f '[] a where
   npConstFrom _ = Nil
 
-instance {-# OVERLAPPING #-} NPConst f (x ': '[]) x where
-  npConstFrom x = x :* Nil
+instance {-# OVERLAPPING #-} (NPConst f xs (), f ~ I) => NPConst f (() ': xs) () where
+  npConstFrom x = I () :* npConstFrom @_ @f @xs @() x
 
-instance (NPConst f xs x) => NPConst f (x ': xs) x where
+instance {-# OVERLAPPING #-} (NPConst f xs x, f ~ I) => NPConst f (() ': xs) x where
+  npConstFrom x = I () :* npConstFrom @_ @f @xs @x x
+
+instance {-# OVERLAPPABLE #-} (NPConst f xs x) => NPConst f (x ': xs) x where
   npConstFrom x = x :* npConstFrom @_ @f @xs @x x
 
 instance {-# OVERLAPPABLE #-} (TypeError ( 'Text "The NP type " ':$$: 'ShowType xs ':$$: 'Text " has elements distinct from " ':$$: 'ShowType x)) => NPConst f xs x where
