@@ -133,6 +133,7 @@ library
     Ema.Generate
     Ema.Multi
     Ema.Multi.Generic
+    Ema.Multi.Generic.Example
     Ema.Route.Class
     Ema.Route.Encoder
     Ema.Route.Extra
