@@ -26,17 +26,16 @@ type family RCode (xss :: [[Type]]) :: [Type] where
  TODO: Rename this class, or change the API.
 -}
 class MotleyRoute r where
-  -- | The model associated with `r`
+  -- | The sub-routes in the `r` (for each constructor).
   type MotleyRouteSubRoutes r :: [Type]
 
   motleyRouteIso :: Iso' r (MultiRoute (MotleyRouteSubRoutes r))
 
 class MotleyRoute r => MotleyModel r where
   type MotleyModelType r :: Type
-  toMultiM :: MotleyModelType r -> NP I (MultiModel (MotleyRouteSubRoutes r))
 
-  -- TODO: This is probably not requried; remove!
-  _fromMultiM :: NP I (MultiModel (MotleyRouteSubRoutes r)) -> MotleyModelType r
+  -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
+  motleySubModels :: MotleyModelType r -> NP I (MultiModel (MotleyRouteSubRoutes r))
 
 -- | Mark a route as associated with a model type.
 newtype WithModel r a = WithModel r
@@ -61,10 +60,10 @@ instance
   routeEncoder =
     routeEncoder @mr
       & mapRouteEncoderRoute (re motleyRouteIso)
-      & mapRouteEncoderModel (toMultiM @r)
+      & mapRouteEncoderModel (motleySubModels @r)
   allRoutes m =
     WithModel . review motleyRouteIso
-      <$> allRoutes (toMultiM @r m)
+      <$> allRoutes (motleySubModels @r m)
 
 -- | Like `WithModel`, but all sub-routes (at any depth) have `a` as their model.
 newtype WithConstModel r (a :: Type) = WithConstModel r
@@ -82,8 +81,7 @@ instance
   MotleyModel (WithConstModel r a)
   where
   type MotleyModelType (WithConstModel r a) = a
-  toMultiM = npConstFrom . I
-  _fromMultiM = undefined -- _fromMultiM @r
+  motleySubModels = npConstFrom . I
 
 instance
   ( MotleyRoute r
@@ -101,7 +99,7 @@ instance
   routeEncoder =
     routeEncoder @mr
       & mapRouteEncoderRoute (re motleyRouteIso)
-      & mapRouteEncoderModel (toMultiM @r)
+      & mapRouteEncoderModel (motleySubModels @r)
   allRoutes m =
     WithConstModel . review motleyRouteIso
-      <$> allRoutes (toMultiM @r m)
+      <$> allRoutes (motleySubModels @r m)

@@ -68,16 +68,9 @@ instance MotleyRoute R where
 -- Unlike sub-type, we must support a `NP` as the 'super'-type (not records).
 instance MotleyModel R where
   type MotleyModelType R = M
-
-  -- TODO: rename this to `subModels`?
-  toMultiM (a, b, _) =
+  motleySubModels (a, b, _) =
     -- In the single-model case this would be roughly same as: npConstFrom
     I () :* I () :* I a :* I b :* Nil
-
-  -- XXX: We may not need this after all (not used so far). But if we do, then
-  -- note the undefined 'fillers'.
-  _fromMultiM (I () :* I () :* I a :* I b :* Nil) =
-    (a, b, undefined)
 
 instance EmaSite R where
   siteInput _ _ () = pure $ pure (42, 21, "inner")
@@ -113,15 +106,12 @@ instance MotleyRoute TR where
 
 instance MotleyModel TR where
   type MotleyModelType TR = TM
-  toMultiM (m, _) =
+  motleySubModels (m, _) =
     I () :* I m :* Nil
-  _fromMultiM (I () :* I m :* Nil) =
-    (m, undefined)
 
 instance EmaSite TR where
   siteInput x enc () = do
     m1 <- siteInput @R x (trInnerEnc enc) ()
-    -- TODO: (,) can be replaced with _fromMultiM? Nah, not all sub-routes have EmaSite instance.
     pure $ fmap (,"TOP") m1
   siteOutput enc m = \case
     r@TR_Index ->
@@ -138,7 +128,7 @@ trInnerEnc enc =
 
 -- TODO: General version of this (cf. innerModel)
 trInnerModel m =
-  let I () :* I m' :* Nil = toMultiM @TR m
+  let I () :* I m' :* Nil = motleySubModels @TR m
    in m'
 
 mainTop :: IO ()
