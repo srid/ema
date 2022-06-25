@@ -49,16 +49,16 @@ instance MotleyRoute R where
   motleyRouteIso =
     iso
       ( \case
-          R_Index -> Z $ I SingletonRoute
-          R_Foo -> S $ Z $ I SingletonRoute
-          R_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
-          R_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
+          R_Index -> Z $ coerce ()
+          R_Foo -> S $ Z $ coerce ()
+          R_Bar r -> S $ S $ Z $ coerce r
+          R_Bar2 r -> S $ S $ S $ Z $ coerce r
       )
       ( \case
-          Z (I SingletonRoute) -> R_Index
-          S (Z (I SingletonRoute)) -> R_Foo
-          S (S (Z (I (PrefixedRoute r)))) -> R_Bar r
-          S (S (S (Z (I (PrefixedRoute r))))) -> R_Bar2 r
+          Z (coerce -> ()) -> R_Index
+          S (Z (coerce -> ())) -> R_Foo
+          S (S (Z r)) -> R_Bar $ coerce r
+          S (S (S (Z r))) -> R_Bar2 $ coerce r
           S (S (S (S x))) -> case x of {}
       )
 
@@ -95,12 +95,12 @@ instance MotleyRoute TR where
   motleyRouteIso =
     iso
       ( \case
-          TR_Index -> Z $ I SingletonRoute
-          TR_Inner r -> S $ Z $ I $ PrefixedRoute r
+          TR_Index -> Z $ coerce ()
+          TR_Inner r -> S $ Z $ coerce r
       )
       ( \case
-          Z (I SingletonRoute) -> TR_Index
-          S (Z (I (PrefixedRoute r))) -> TR_Inner r
+          Z (I (coerce -> ())) -> TR_Index
+          S (Z r) -> TR_Inner $ coerce r
           S (S x) -> case x of {}
       )
 
@@ -153,10 +153,10 @@ instance MotleyRoute BarRoute where
   motleyRouteIso =
     iso
       ( \case
-          BarRoute -> Z $ I SingletonRoute
+          BarRoute -> Z $ coerce ()
       )
       ( \case
-          Z (I SingletonRoute) -> BarRoute
+          Z (coerce -> ()) -> BarRoute
           S x -> case x of {}
       )
 
@@ -165,16 +165,16 @@ instance MotleyRoute R2 where
   motleyRouteIso =
     iso
       ( \case
-          R2_Index -> Z $ I SingletonRoute
-          R2_Foo -> S $ Z $ I SingletonRoute
-          R2_Bar r -> S $ S $ Z $ I $ PrefixedRoute r
-          R2_Bar2 r -> S $ S $ S $ Z $ I $ PrefixedRoute r
+          R2_Index -> Z $ coerce ()
+          R2_Foo -> S $ Z $ coerce ()
+          R2_Bar r -> S $ S $ Z $ coerce r
+          R2_Bar2 r -> S $ S $ S $ Z $ coerce r
       )
       ( \case
-          Z (I SingletonRoute) -> R2_Index
-          S (Z (I SingletonRoute)) -> R2_Foo
-          S (S (Z (I (PrefixedRoute r)))) -> R2_Bar r
-          S (S (S (Z (I (PrefixedRoute r))))) -> R2_Bar2 r
+          Z (coerce -> ()) -> R2_Index
+          S (Z (coerce -> ())) -> R2_Foo
+          S (S (Z r)) -> R2_Bar $ coerce r
+          S (S (S (Z r))) -> R2_Bar2 $ coerce r
           S (S (S (S x))) -> case x of {}
       )
 

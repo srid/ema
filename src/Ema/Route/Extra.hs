@@ -52,14 +52,16 @@ instance (IsRoute r, KnownSymbol prefix) => IsRoute (PrefixedRoute prefix r) whe
 {- | A type-level singleton route, whose encoding is given by the symbol parameter.
 
  SingletonRoute "foo.html" encodes to "foo.html".
+
+ TODO: Can this type be simplified? See https://stackoverflow.com/q/72755053/55246
 -}
-data SingletonRoute (s :: Symbol) = SingletonRoute
+newtype SingletonRoute (s :: Symbol) = SingletonRoute ()
   deriving stock (Eq, Ord, Show)
 
 instance KnownSymbol s => IsRoute (SingletonRoute s) where
   type RouteModel (SingletonRoute s) = ()
   routeEncoder =
     singletonRouteEncoderFrom (symbolVal (Proxy @s))
-      & mapRouteEncoderRoute (prism' (const ()) (const $ Just SingletonRoute))
+      & mapRouteEncoderRoute (prism' (const ()) (const $ Just $ SingletonRoute ()))
   allRoutes () =
-    [SingletonRoute]
+    [SingletonRoute ()]
