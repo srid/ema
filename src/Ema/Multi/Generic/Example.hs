@@ -1,10 +1,11 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Multi.Generic.Example where
 
 import Data.Generics.Sum.Any (AsAny (_As))
-import Data.SOP (I (..), NP (..), NS (..))
+import Data.SOP (I (..), NP (..))
 import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
 import Ema.Multi.Generic
@@ -12,7 +13,7 @@ import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Route.Extra
 import Ema.Site
-import Optics.Core (iso)
+import Generics.SOP qualified as SOP
 import Optics.Prism (prism')
 
 -- ----------
@@ -22,7 +23,8 @@ import Optics.Prism (prism')
 type M = (Int, Int, String)
 
 data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (SOP.Generic)
   deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModelType R ~ M
 
 data NumRoute = NumRoute
@@ -46,21 +48,6 @@ instance MotleyRoute R where
        , PrefixedRoute "bar" NumRoute
        , PrefixedRoute "bar2" NumRoute
        ]
-  motleyRouteIso =
-    iso
-      ( \case
-          R_Index -> Z $ coerce ()
-          R_Foo -> S $ Z $ coerce ()
-          R_Bar r -> S $ S $ Z $ coerce r
-          R_Bar2 r -> S $ S $ S $ Z $ coerce r
-      )
-      ( \case
-          Z (coerce -> ()) -> R_Index
-          S (Z (coerce -> ())) -> R_Foo
-          S (S (Z r)) -> R_Bar $ coerce r
-          S (S (S (Z r))) -> R_Bar2 $ coerce r
-          S (S (S (S x))) -> case x of {}
-      )
 
 -- TODO: In many simple cases (such as single model cases) this can be derived
 -- generically. But allow the user to define this manually if need be. Also cf.
@@ -88,21 +75,11 @@ type TM = (M, String)
 
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
+  deriving anyclass (SOP.Generic)
   deriving (IsRoute) via (WithModel TR TM) -- This only works if MotleyModelType R ~ M
 
 instance MotleyRoute TR where
   type MotleyRouteSubRoutes TR = '[SingletonRoute "index.html", PrefixedRoute "inner" R]
-  motleyRouteIso =
-    iso
-      ( \case
-          TR_Index -> Z $ coerce ()
-          TR_Inner r -> S $ Z $ coerce r
-      )
-      ( \case
-          Z (I (coerce -> ())) -> TR_Index
-          S (Z r) -> TR_Inner $ coerce r
-          S (S x) -> case x of {}
-      )
 
 instance MotleyModel TR where
   type MotleyModelType TR = TM
@@ -141,42 +118,20 @@ mainTop = Ema.runSite_ @TR ()
 type M2 = (Int, String)
 
 data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (SOP.Generic)
   deriving (IsRoute, MotleyModel) via (WithConstModel R2 M2)
 
 data BarRoute = BarRoute
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (SOP.Generic)
   deriving (IsRoute, MotleyModel) via (WithConstModel BarRoute M2)
 
 instance MotleyRoute BarRoute where
   type MotleyRouteSubRoutes BarRoute = '[SingletonRoute "index.html"]
-  motleyRouteIso =
-    iso
-      ( \case
-          BarRoute -> Z $ coerce ()
-      )
-      ( \case
-          Z (coerce -> ()) -> BarRoute
-          S x -> case x of {}
-      )
 
 instance MotleyRoute R2 where
   type MotleyRouteSubRoutes R2 = '[SingletonRoute "index.html", SingletonRoute "foo", PrefixedRoute "bar" BarRoute, PrefixedRoute "bar2" BarRoute]
-  motleyRouteIso =
-    iso
-      ( \case
-          R2_Index -> Z $ coerce ()
-          R2_Foo -> S $ Z $ coerce ()
-          R2_Bar r -> S $ S $ Z $ coerce r
-          R2_Bar2 r -> S $ S $ S $ Z $ coerce r
-      )
-      ( \case
-          Z (coerce -> ()) -> R2_Index
-          S (Z (coerce -> ())) -> R2_Foo
-          S (S (Z r)) -> R2_Bar $ coerce r
-          S (S (S (Z r))) -> R2_Bar2 $ coerce r
-          S (S (S (S x))) -> case x of {}
-      )
 
 instance EmaSite R2 where
   siteInput _ _ () = pure $ pure (21, "inner")

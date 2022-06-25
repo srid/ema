@@ -1,20 +1,27 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 -- | WIP https://github.com/srid/ema/issues/92
 module Ema.Multi.Generic where
 
+import Data.SOP.Constraint (AllZipF)
 import Data.SOP.Extra (NPConst (npConstFrom))
-import Ema.Multi
+import Data.SOP.NS (trans_NS)
+import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder
-import GHC.TypeLits
+import Ema.Route.Encoder (
+  mapRouteEncoderModel,
+  mapRouteEncoderRoute,
+ )
+import GHC.TypeLits (ErrorMessage (Text), TypeError)
 import Generics.SOP
 import Optics.Core (
   Iso',
   ReversibleOptic (re),
   coercedTo,
+  iso,
   review,
   (%),
  )
@@ -28,9 +35,47 @@ import Prelude hiding (All, Generic)
 -}
 class MotleyRoute r where
   -- | The sub-routes in the `r` (for each constructor).
-  type MotleyRouteSubRoutes r :: [Type]
+  type MotleyRouteSubRoutes r :: [Type] -- TODO: Derive this generically
 
   motleyRouteIso :: Iso' r (MultiRoute (MotleyRouteSubRoutes r))
+  default motleyRouteIso ::
+    ( RGeneric r
+    , SameShapeAs (RCode r) (MotleyRouteSubRoutes r)
+    , SameShapeAs (MotleyRouteSubRoutes r) (RCode r)
+    , All Top (RCode r)
+    , All Top (MotleyRouteSubRoutes r)
+    , AllZipF Coercible (RCode r) (MotleyRouteSubRoutes r)
+    , AllZipF Coercible (MotleyRouteSubRoutes r) (RCode r)
+    ) =>
+    Iso' r (MultiRoute (MotleyRouteSubRoutes r))
+  motleyRouteIso =
+    iso (gtoMotley @r . rfrom) (rto . gfromMotley @r)
+
+gtoMotley ::
+  forall r.
+  ( RGeneric r
+  , SameShapeAs (RCode r) (MotleyRouteSubRoutes r)
+  , SameShapeAs (MotleyRouteSubRoutes r) (RCode r)
+  , All Top (RCode r)
+  , All Top (MotleyRouteSubRoutes r)
+  , AllZipF Coercible (RCode r) (MotleyRouteSubRoutes r)
+  ) =>
+  NS I (RCode r) ->
+  MultiRoute (MotleyRouteSubRoutes r)
+gtoMotley = trans_NS (Proxy @Coercible) coerce
+
+gfromMotley ::
+  forall r.
+  ( RGeneric r
+  , SameShapeAs (RCode r) (MotleyRouteSubRoutes r)
+  , SameShapeAs (MotleyRouteSubRoutes r) (RCode r)
+  , All Top (RCode r)
+  , All Top (MotleyRouteSubRoutes r)
+  , AllZipF Coercible (MotleyRouteSubRoutes r) (RCode r)
+  ) =>
+  MultiRoute (MotleyRouteSubRoutes r) ->
+  NS I (RCode r)
+gfromMotley = trans_NS (Proxy @Coercible) coerce
 
 class MotleyRoute r => MotleyModel r where
   type MotleyModelType r :: Type
@@ -106,7 +151,7 @@ instance
       <$> allRoutes (motleySubModels @r m)
 
 -- | Like `Generic` but for Route types only.
-class RGeneric r where
+class Generic r => RGeneric r where
   type RCode r :: [Type]
   rfrom :: r -> NS I (RCode r)
   rto :: NS I (RCode r) -> r
