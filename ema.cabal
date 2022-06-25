@@ -134,6 +134,8 @@ library
     Ema.Multi
     Ema.Multi.Generic
     Ema.Multi.Generic.Example
+    Ema.Multi.Generic.Motley
+    Ema.Multi.Generic.RGeneric
     Ema.Route.Class
     Ema.Route.Encoder
     Ema.Route.Extra
