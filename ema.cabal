@@ -56,7 +56,6 @@ library
     , optparse-applicative
     , relude                  >=1.0
     , sop-core
-    , symbols
     , text
     , unliftio
     , url-slug

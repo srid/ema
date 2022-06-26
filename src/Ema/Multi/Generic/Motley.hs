@@ -8,12 +8,11 @@ module Ema.Multi.Generic.Motley where
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
-import Data.Symbol.Ascii (ToLower)
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Extra
 import GHC.TypeLits (AppendSymbol, Symbol)
-import GHC.TypeLits.Extra.Symbol (StripPrefix)
+import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 import Generics.SOP
 import Generics.SOP.Type.Metadata qualified as SOPM
 import Optics.Core (
