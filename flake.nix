@@ -40,6 +40,7 @@
           };
           overrides = self: super: with pkgs.haskell.lib; {
             relude = dontCheck super.relude;
+            retry = dontCheck super.retry;
           };
         };
       };
