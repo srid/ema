@@ -8,10 +8,12 @@ module Ema.Multi.Generic.Motley where
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
+import Data.Symbol.Ascii (ToLower)
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Extra
-import GHC.TypeLits (Symbol)
+import GHC.TypeLits (AppendSymbol, Symbol)
+import GHC.TypeLits.Extra.Symbol (StripPrefix)
 import Generics.SOP
 import Generics.SOP.Type.Metadata qualified as SOPM
 import Optics.Core (
@@ -74,12 +76,31 @@ gfromMotley = trans_NS (Proxy @Coercible) coerce
 
 type family GMotleyRouteSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
   GMotleyRouteSubRoutes _ _ '[] = '[]
-  GMotleyRouteSubRoutes name (c ': cs) (() ': xs) = SingletonRoute (Constructor2RoutePath name c) ': GMotleyRouteSubRoutes name cs xs
-  GMotleyRouteSubRoutes name (c ': cs) (x ': xs) = PrefixedRoute (Constructor2RoutePath name c) x ': GMotleyRouteSubRoutes name cs xs
+  GMotleyRouteSubRoutes name (c ': cs) (() ': xs) =
+    -- TODO: The .html suffix part should be overridable.
+    SingletonRoute (Constructor2RoutePath name c ".html")
+      ': GMotleyRouteSubRoutes name cs xs
+  GMotleyRouteSubRoutes name (c ': cs) (x ': xs) =
+    PrefixedRoute (Constructor2RoutePath name c "") x
+      ': GMotleyRouteSubRoutes name cs xs
 
-type family Constructor2RoutePath (name :: SOPM.DatatypeName) (constr :: SOPM.ConstructorName) :: Symbol where
--- TODO: replace 'constr' with "${toLower ${stripPrefix '${name}_' constr}}". This requires heavy type-level symbol processing.
-  Constructor2RoutePath name constr = constr
+type family
+  Constructor2RoutePath
+    (name :: SOPM.DatatypeName)
+    (constr :: SOPM.ConstructorName)
+    (suffix :: Symbol) ::
+    Symbol
+  where
+  Constructor2RoutePath name constr suffix =
+    AppendSymbol
+      ( ToLower
+          ( StripPrefix
+              (AppendSymbol name "_")
+              -- TODO: Slugify this
+              constr
+          )
+      )
+      suffix
 
 class MotleyRoute r => MotleyModel r where
   type MotleyModelType r :: Type

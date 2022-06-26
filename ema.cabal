@@ -56,6 +56,7 @@ library
     , optparse-applicative
     , relude                  >=1.0
     , sop-core
+    , symbols
     , text
     , unliftio
     , url-slug
@@ -142,6 +143,7 @@ library
     Ema.Route.Url
     Ema.Server
     Ema.Site
+    GHC.TypeLits.Extra.Symbol
     Optics.CtxPrism
 
   if flag(with-examples)
