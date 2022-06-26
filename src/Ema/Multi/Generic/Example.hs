@@ -56,11 +56,9 @@ instance MotleyRoute R where
 -- TODO: In many simple cases (such as single model cases) this can be derived
 -- generically. But allow the user to define this manually if need be. Also cf.
 -- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
--- Unlike sub-type, we must support a `NP` as the 'super'-type (not records).
 instance MotleyModel R where
   type MotleyModelType R = M
   motleySubModels (a, b, _) =
-    -- In the single-model case this would be roughly same as: npConstFrom
     I () :* I () :* I a :* I b :* Nil
 
 instance EmaSite R where
@@ -105,7 +103,7 @@ instance EmaSite TR where
 trInnerEnc enc =
   enc
     & mapRouteEncoderRoute (_As @"TR_Inner")
-    & mapRouteEncoderModel (,undefined)
+    & mapRouteEncoderModel (,undefined) -- See #94
 
 -- TODO: General version of this (cf. innerModel)
 trInnerModel m =

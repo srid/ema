@@ -6,13 +6,16 @@ module Ema.Multi.Generic where
 
 import Data.SOP.Extra (NPConst (npConstFrom))
 import Ema.Multi (MultiModel, MultiRoute)
-import Ema.Multi.Generic.Motley
+import Ema.Multi.Generic.Motley (
+  MotleyModel (..),
+  MotleyRoute (..),
+ )
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
   mapRouteEncoderModel,
   mapRouteEncoderRoute,
  )
-import Generics.SOP
+import Generics.SOP (I (..), NP)
 import Optics.Core (
   ReversibleOptic (re),
   coercedTo,
@@ -49,7 +52,7 @@ instance
     WithModel . review motleyRouteIso
       <$> allRoutes (motleySubModels @r m)
 
--- | Like `WithModel`, but all sub-routes (at any depth) have `a` as their model.
+-- | Like `WithModel`, but all (immediate) sub-routes also have `a` as their model.
 newtype WithConstModel r (a :: Type) = WithConstModel r
 
 instance MotleyRoute r => MotleyRoute (WithConstModel r a) where
