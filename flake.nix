@@ -5,8 +5,11 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
+    # 1.1 not in nixpkgs or cabal hases yet 
+    relude.url = "github:kowainik/relude/v1.1.0.0";
+    relude.flake = false;
   };
-  outputs = { self, nixpkgs, flake-parts, haskell-flake, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
@@ -16,13 +19,29 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects.default = {
           root = ./.;
-          buildTools = hp: {
-            inherit (pkgs)
-              treefmt
-              nixpkgs-fmt;
-            inherit (hp)
-              cabal-fmt
-              ormolu;
+          haskellPackages = pkgs.haskell.packages.ghc922; # Needed for `UnconsSymbol`
+          buildTools = hp:
+            let
+              # https://github.com/NixOS/nixpkgs/issues/140774
+              workaround140774 = hpkg: with pkgs.haskell.lib;
+                overrideCabal hpkg (drv: {
+                  enableSeparateBinOutput = false;
+                });
+            in
+            {
+              inherit (pkgs)
+                treefmt
+                nixpkgs-fmt;
+              ormolu = workaround140774 hp.ormolu;
+              ghcid = workaround140774 hp.ghcid;
+            };
+          source-overrides = {
+            inherit (inputs) relude;
+          };
+          overrides = self: super: with pkgs.haskell.lib; {
+            relude = dontCheck super.relude;
+            retry = dontCheck super.retry;
+            http2 = dontCheck super.http2; # Fails on darwin
           };
         };
       };
