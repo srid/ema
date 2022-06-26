@@ -41,6 +41,7 @@
           overrides = self: super: with pkgs.haskell.lib; {
             relude = dontCheck super.relude;
             retry = dontCheck super.retry;
+            http2 = dontCheck super.http2; # Fails on darwin
           };
         };
       };
