@@ -28,8 +28,21 @@ type M = (Int, Int, String)
 
 data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
   deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModelType R ~ M
+
+-- ^ MotleyRoute instance generates:
+
+{-
+instance MotleyRoute R where
+  type
+    MotleyRouteSubRoutes R =
+      '[ SingletonRoute "index.html"
+       , SingletonRoute "foo.html"
+       , PrefixedRoute "bar" NumRoute
+       , PrefixedRoute "bar2" NumRoute
+       ]
+-}
 
 data NumRoute = NumRoute
   deriving stock (Show, Eq)
@@ -42,16 +55,6 @@ instance IsRoute NumRoute where
           guard $ s == fp
           pure NumRoute
   allRoutes _ = [NumRoute]
-
--- TODO: We want to derive MotleyRoute generically.
-instance MotleyRoute R where
-  type
-    MotleyRouteSubRoutes R =
-      '[ SingletonRoute "index.html"
-       , SingletonRoute "foo.html"
-       , PrefixedRoute "bar" NumRoute
-       , PrefixedRoute "bar2" NumRoute
-       ]
 
 -- TODO: In many simple cases (such as single model cases) this can be derived
 -- generically. But allow the user to define this manually if need be. Also cf.
@@ -77,11 +80,8 @@ type TM = (M, String)
 
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
   deriving (IsRoute) via (WithModel TR TM) -- This only works if MotleyModelType R ~ M
-
-instance MotleyRoute TR where
-  type MotleyRouteSubRoutes TR = '[SingletonRoute "index.html", PrefixedRoute "inner" R]
 
 instance MotleyModel TR where
   type MotleyModelType TR = TM
@@ -121,19 +121,13 @@ type M2 = (Int, String)
 
 data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
   deriving (IsRoute, MotleyModel) via (WithConstModel R2 M2)
 
 data BarRoute = BarRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
   deriving (IsRoute, MotleyModel) via (WithConstModel BarRoute M2)
-
-instance MotleyRoute BarRoute where
-  type MotleyRouteSubRoutes BarRoute = '[SingletonRoute "index.html"]
-
-instance MotleyRoute R2 where
-  type MotleyRouteSubRoutes R2 = '[SingletonRoute "index.html", SingletonRoute "foo", PrefixedRoute "bar" BarRoute, PrefixedRoute "bar2" BarRoute]
 
 instance EmaSite R2 where
   siteInput _ _ () = pure $ pure (21, "inner")
