@@ -5,7 +5,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
-    # 1.1 not in nixpkgs or cabal hases yet 
+    # 1.1 not in nixpkgs or cabal hasesh yet 
     relude.url = "github:kowainik/relude/v1.1.0.0";
     relude.flake = false;
   };
@@ -22,7 +22,7 @@
           haskellPackages = pkgs.haskell.packages.ghc922; # Needed for `UnconsSymbol`
           buildTools = hp:
             let
-              # https://github.com/NixOS/nixpkgs/issues/140774
+              # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
               workaround140774 = hpkg: with pkgs.haskell.lib;
                 overrideCabal hpkg (drv: {
                   enableSeparateBinOutput = false;
@@ -39,6 +39,7 @@
             inherit (inputs) relude;
           };
           overrides = self: super: with pkgs.haskell.lib; {
+            # All these below are for GHC 9.2 compat.
             relude = dontCheck super.relude;
             retry = dontCheck super.retry;
             http2 = dontCheck super.http2; # Fails on darwin
