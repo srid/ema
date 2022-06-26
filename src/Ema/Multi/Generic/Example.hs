@@ -11,7 +11,7 @@ import Ema.Asset qualified as Asset
 import Ema.Multi.Generic (WithConstModel (..), WithModel (..))
 import Ema.Multi.Generic.Motley (
   MotleyModel (..),
-  MotleyRoute (MotleyRouteSubRoutes),
+  MotleyRoute,
  )
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
