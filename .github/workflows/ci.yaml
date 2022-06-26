@@ -1,7 +1,10 @@
 name: "CI"
 on:
-  pull_request:
+  # Disable this action until 9.2 gets into nixpkgs cache
+  # pull_request:
   push:
+    branches-ignore:
+      - "**"
 jobs:
   build:
     runs-on: ubuntu-latest
