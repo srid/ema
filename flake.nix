@@ -25,7 +25,6 @@
               treefmt
               nixpkgs-fmt;
             inherit (hp)
-              cabal-fmt
               ormolu;
           };
           source-overrides = {

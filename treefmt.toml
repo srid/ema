@@ -15,7 +15,8 @@ includes = ["*.hs"]
 command = "nixpkgs-fmt"
 includes = ["*.nix"]
 
-[formatter.cabal]
-command = "cabal-fmt"
-options = ["--inplace"]
-includes = ["*.cabal"]
+# https://github.com/srid/ema/pull/97#issuecomment-1166589918
+# [formatter.cabal]
+# command = "cabal-fmt"
+# options = ["--inplace"]
+# includes = ["*.cabal"]
