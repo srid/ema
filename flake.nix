@@ -42,6 +42,7 @@
             relude = dontCheck super.relude;
             retry = dontCheck super.retry;
             http2 = dontCheck super.http2; # Fails on darwin
+            # streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
           };
         };
       };
