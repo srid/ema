@@ -42,15 +42,6 @@ instance (RGeneric' xss, RouteNP xs) => RGeneric' (xs ': xss) where
     Z (I t) -> Z $ toRouteNP t
     S rest -> S $ rto' @xss rest
 
-{- | Like `DatatypeInfo` but pertaining to Route types only.
-
- The main difference is that it uses a `Maybe` instead of a `[]` to represent
- ADT constructors in line with `RouteNP`.
--}
-data RDatatypeInfo
-  = RADT SOPM.ModuleName SOPM.DatatypeName (Maybe SOPM.ConstructorInfo)
-  | RNewtype SOPM.ModuleName SOPM.DatatypeName SOPM.ConstructorInfo
-
 type family RDatatypeName' (info :: SOPM.DatatypeInfo) :: SOPM.DatatypeName where
   RDatatypeName' ( 'SOPM.ADT _ name _ _) =
     name
