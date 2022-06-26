@@ -20,13 +20,21 @@
         haskellProjects.default = {
           root = ./.;
           haskellPackages = pkgs.haskell.packages.ghc922; # Needed for `UnconsSymbol`
-          buildTools = hp: {
-            inherit (pkgs)
-              treefmt
-              nixpkgs-fmt;
-            inherit (hp)
-              ormolu;
-          };
+          buildTools = hp:
+            let
+              # https://github.com/NixOS/nixpkgs/issues/140774
+              workaround140774 = hpkg: with pkgs.haskell.lib;
+                overrideCabal hpkg (drv: {
+                  enableSeparateBinOutput = false;
+                });
+            in
+            {
+              inherit (pkgs)
+                treefmt
+                nixpkgs-fmt;
+              ormolu = workaround140774 hp.ormolu;
+              ghcid = workaround140774 hp.ghcid;
+            };
           source-overrides = {
             inherit (inputs) relude;
           };
