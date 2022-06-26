@@ -16,6 +16,7 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects.default = {
           root = ./.;
+          haskellPackages = pkgs.haskell.packages.ghc922; # Needed for `UnconsSymbol`
           buildTools = hp: {
             inherit (pkgs)
               treefmt
