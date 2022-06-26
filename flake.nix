@@ -25,6 +25,9 @@
               cabal-fmt
               ormolu;
           };
+          overrides = self: super: with pkgs.haskell.lib; {
+            relude = self.callHackage "relude" "1.1.0.0" { }; # 1.1 required for GHC 9.2
+          };
         };
       };
     };
