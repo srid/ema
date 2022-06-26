@@ -31,6 +31,9 @@
           source-overrides = {
             inherit (inputs) relude;
           };
+          overrides = self: super: with pkgs.haskell.lib; {
+            relude = dontCheck super.relude;
+          };
         };
       };
     };
