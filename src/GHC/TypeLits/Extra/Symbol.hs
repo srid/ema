@@ -1,6 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- TODO: Upstream this to symbols package
+-- https://github.com/kcsongor/symbols/issues/3
 module GHC.TypeLits.Extra.Symbol where
 
 import Data.Symbol.Ascii

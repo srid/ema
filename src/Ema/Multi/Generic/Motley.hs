@@ -93,10 +93,11 @@ type family
   where
   Constructor2RoutePath name constr suffix =
     AppendSymbol
-      ( ToLower
+      ( -- Instead of ToLower we want Camel2Kebab here, ideally.
+        -- So that `Foo_BarQux` encodes to bar-qux instead of barqux.
+        ToLower
           ( StripPrefix
               (AppendSymbol name "_")
-              -- TODO: Slugify this
               constr
           )
       )
