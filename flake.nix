@@ -5,8 +5,11 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
+    # 1.1 not in nixpkgs or cabal hases yet 
+    relude.url = "github:kowainik/relude/v1.1.0.0";
+    relude.flake = false;
   };
-  outputs = { self, nixpkgs, flake-parts, haskell-flake, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
@@ -25,8 +28,8 @@
               cabal-fmt
               ormolu;
           };
-          overrides = self: super: with pkgs.haskell.lib; {
-            relude = self.callHackage "relude" "1.1.0.0" { }; # 1.1 required for GHC 9.2
+          source-overrides = {
+            inherit (inputs) relude;
           };
         };
       };
