@@ -78,7 +78,7 @@ type family GMotleyRouteSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.
   GMotleyRouteSubRoutes name (c ': cs) (x ': xs) = PrefixedRoute (Constructor2RoutePath name c) x ': GMotleyRouteSubRoutes name cs xs
 
 type family Constructor2RoutePath (name :: SOPM.DatatypeName) (constr :: SOPM.ConstructorName) :: Symbol where
--- TODO: replace 'constr' with "${name}_${toLower constr}". This requires heavy type-level symbol processing.
+-- TODO: replace 'constr' with "${toLower ${stripPrefix '${name}_' constr}}". This requires heavy type-level symbol processing.
   Constructor2RoutePath name constr = constr
 
 class MotleyRoute r => MotleyModel r where
