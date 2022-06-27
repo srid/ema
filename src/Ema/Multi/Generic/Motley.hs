@@ -34,8 +34,9 @@ class HasSubRoutes r where
 
   type SubRoutes r = GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
 
-  subRoutesIso :: Iso' r (MultiRoute (SubRoutes r))
-  default subRoutesIso ::
+  -- You should use @subRoutesIso@ instead of this function directly.
+  subRoutesIso' :: ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
+  default subRoutesIso' ::
     ( RGeneric r
     , SameShapeAs (RCode r) (SubRoutes r)
     , SameShapeAs (SubRoutes r) (RCode r)
@@ -44,33 +45,56 @@ class HasSubRoutes r where
     , AllZipF Coercible (RCode r) (SubRoutes r)
     , AllZipF Coercible (SubRoutes r) (RCode r)
     ) =>
-    Iso' r (MultiRoute (SubRoutes r))
-  subRoutesIso =
-    iso (gtoSubRoutes @r . rfrom) (rto . gfromSubRoutes @r)
+    ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
+  subRoutesIso' =
+    (,) (gtoSubRoutes @r . rfrom) (rto . gfromSubRoutes @r)
+
+-- We cannot put this inside the `HasSubRoutes` type-class due to coercion issues with DerivingVia
+-- See https://stackoverflow.com/a/71490273/55246
+subRoutesIso :: HasSubRoutes r => Iso' r (MultiRoute (SubRoutes r))
+subRoutesIso = uncurry iso subRoutesIso'
+
+newtype r `WithSubRoutes` (subRoutes :: [Type]) = WithSubRoutes r
+  deriving stock (Eq, Show)
+
+instance
+  ( RGeneric r
+  , SameShapeAs (RCode r) subRoutes
+  , SameShapeAs subRoutes (RCode r)
+  , AllZipF Coercible (RCode r) subRoutes
+  , AllZipF Coercible subRoutes (RCode r)
+  , All Top (RCode r)
+  , All Top subRoutes
+  ) =>
+  HasSubRoutes (r `WithSubRoutes` subRoutes)
+  where
+  type SubRoutes (r `WithSubRoutes` subRoutes) = subRoutes
+  subRoutesIso' =
+    (,) (gtoSubRoutes @r @subRoutes . rfrom . coerce @_ @r) (coerce @r . rto . gfromSubRoutes @r)
 
 gtoSubRoutes ::
-  forall r.
+  forall r subRoutes.
   ( RGeneric r
-  , SameShapeAs (RCode r) (SubRoutes r)
-  , SameShapeAs (SubRoutes r) (RCode r)
+  , SameShapeAs (RCode r) subRoutes
+  , SameShapeAs subRoutes (RCode r)
   , All Top (RCode r)
-  , All Top (SubRoutes r)
-  , AllZipF Coercible (RCode r) (SubRoutes r)
+  , All Top subRoutes
+  , AllZipF Coercible (RCode r) subRoutes
   ) =>
   NS I (RCode r) ->
-  MultiRoute (SubRoutes r)
+  MultiRoute subRoutes
 gtoSubRoutes = trans_NS (Proxy @Coercible) coerce
 
 gfromSubRoutes ::
-  forall r.
+  forall r subRoutes.
   ( RGeneric r
-  , SameShapeAs (RCode r) (SubRoutes r)
-  , SameShapeAs (SubRoutes r) (RCode r)
+  , SameShapeAs (RCode r) subRoutes
+  , SameShapeAs subRoutes (RCode r)
   , All Top (RCode r)
-  , All Top (SubRoutes r)
-  , AllZipF Coercible (SubRoutes r) (RCode r)
+  , All Top subRoutes
+  , AllZipF Coercible subRoutes (RCode r)
   ) =>
-  MultiRoute (SubRoutes r) ->
+  MultiRoute subRoutes ->
   NS I (RCode r)
 gfromSubRoutes = trans_NS (Proxy @Coercible) coerce
 

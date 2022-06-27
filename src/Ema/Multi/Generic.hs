@@ -4,11 +4,13 @@
 -- | WIP https://github.com/srid/ema/issues/92
 module Ema.Multi.Generic where
 
+import Data.Profunctor
 import Data.SOP.Extra (NPConst (npConstFrom))
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.Motley (
   HasSubModels (..),
   HasSubRoutes (..),
+  subRoutesIso,
  )
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
@@ -29,8 +31,8 @@ newtype WithModel r a = WithModel r
 
 instance HasSubRoutes r => HasSubRoutes (WithModel r a) where
   type SubRoutes (WithModel r a) = SubRoutes r
-  subRoutesIso =
-    coercedTo % subRoutesIso @r % coercedTo
+  subRoutesIso' =
+    bimap (lmap coerce) (rmap coerce) $ subRoutesIso' @r
 
 instance
   ( HasSubRoutes r
@@ -57,8 +59,8 @@ newtype WithConstModel r (a :: Type) = WithConstModel r
 
 instance HasSubRoutes r => HasSubRoutes (WithConstModel r a) where
   type SubRoutes (WithConstModel r a) = SubRoutes r
-  subRoutesIso =
-    coercedTo % subRoutesIso @r % coercedTo
+  subRoutesIso' =
+    bimap (lmap coerce) (rmap coerce) $ subRoutesIso' @r
 
 -- Enables derivingVia of HasSubModels
 instance
