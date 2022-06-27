@@ -17,8 +17,6 @@ import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Encoder (RouteEncoder)
-import Ema.Route.Generic
-import Ema.Route.Generic.Sub
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H

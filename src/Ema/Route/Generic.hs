@@ -2,7 +2,11 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 -- | WIP https://github.com/srid/ema/issues/92
-module Ema.Route.Generic where
+module Ema.Route.Generic (
+  -- DerivingVia utilities
+  WithModel (WithModel),
+  WithConstModel (WithConstModel),
+) where
 
 import Data.Profunctor
 import Data.SOP.Extra (NPConst (npConstFrom))

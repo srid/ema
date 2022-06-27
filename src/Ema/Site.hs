@@ -1,6 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Site (
   EmaSite (..),

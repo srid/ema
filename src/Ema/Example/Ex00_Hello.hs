@@ -5,8 +5,6 @@
 module Ema.Example.Ex00_Hello where
 
 import Ema
-import Ema.Route.Generic
-import Ema.Route.Generic.Sub
 import Generics.SOP qualified as SOP
 
 data Route = Route_Index
