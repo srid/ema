@@ -31,7 +31,7 @@ instance IsRoute IndexRoute where
   allRoutes () = [IndexRoute]
 -}
 instance EmaSite Route where
-  siteInput _ _ = pure $ pure () -- TODO: move to default
+  siteInput _ _ = pure $ pure ()
   siteOutput _enc _m Route_Index =
     Ema.AssetGenerated Ema.Html "<b>Hello</b>, Ema"
 

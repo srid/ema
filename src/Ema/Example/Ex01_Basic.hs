@@ -26,7 +26,7 @@ data Route
     via (Route `WithConstModel` ())
 
 instance EmaSite Route where
-  siteInput _ _ = pure $ pure () -- TODO: move to default
+  siteInput _ _ = pure $ pure ()
   siteOutput enc m r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $

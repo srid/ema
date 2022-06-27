@@ -59,18 +59,6 @@ class IsRoute r => EmaSite r where
     -- | Time-varying value of the model. If your model is not time-varying, use
     -- `pure` to produce a constant value.
     m (Dynamic m (RouteModel r))
-  default siteInput ::
-    forall m.
-    ( MonadIO m
-    , MonadUnliftIO m
-    , MonadLoggerIO m
-    , RouteModel r ~ ()
-    ) =>
-    Some CLI.Action ->
-    SiteArg r ->
-    m (Dynamic m (RouteModel r))
-  siteInput _ _ =
-    pure $ pure ()
 
   -- | Return the generated asset for the given route and model.
   siteOutput :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
