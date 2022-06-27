@@ -20,8 +20,8 @@ import Text.Show (Show (show))
 
 instance (EmaSite r, KnownSymbol prefix) => EmaSite (PrefixedRoute prefix r) where
   type SiteArg (PrefixedRoute prefix r) = SiteArg r
-  siteInput cliAct enc =
-    siteInput @r cliAct (mapRouteEncoderRoute coercedTo enc)
+  siteInput cliAct =
+    siteInput @r cliAct
   siteOutput enc m r =
     siteOutput @r (mapRouteEncoderRoute coercedTo enc) m (unPrefixedRoute r)
 

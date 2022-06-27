@@ -65,7 +65,7 @@ instance MotleyModel R where
     I () :* I () :* I a :* I b :* Nil
 
 instance EmaSite R where
-  siteInput _ _ () = pure $ pure (42, 21, "inner")
+  siteInput _ () = pure $ pure (42, 21, "inner")
   siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
 
 -- --warnings -c "cabal repl ema -f with-examples" -T Ema.Multi.Generic.main  --setup ":set args gen /tmp"
@@ -89,8 +89,8 @@ instance MotleyModel TR where
     I () :* I m :* Nil
 
 instance EmaSite TR where
-  siteInput x enc () = do
-    m1 <- siteInput @R x (trInnerEnc enc) ()
+  siteInput x () = do
+    m1 <- siteInput @R x ()
     pure $ fmap (,"TOP") m1
   siteOutput enc m = \case
     r@TR_Index ->
@@ -130,7 +130,7 @@ data BarRoute = BarRoute
   deriving (IsRoute, MotleyModel) via (WithConstModel BarRoute M2)
 
 instance EmaSite R2 where
-  siteInput _ _ () = pure $ pure (21, "inner")
+  siteInput _ () = pure $ pure (21, "inner")
   siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
 
 mainConst :: IO ()

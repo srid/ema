@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -54,8 +55,6 @@ class IsRoute r => EmaSite r where
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
     Some CLI.Action ->
-    -- | The `RouteEncoder` associated with `r`
-    RouteEncoder (RouteModel r) r ->
     -- | The value passed by the programmer to `Ema.App.runSite`
     SiteArg r ->
     -- | Time-varying value of the model. If your model is not time-varying, use
@@ -69,10 +68,9 @@ class IsRoute r => EmaSite r where
     , RouteModel r ~ NP I '[]
     ) =>
     Some CLI.Action ->
-    RouteEncoder (RouteModel r) r ->
     SiteArg r ->
     m (Dynamic m (RouteModel r))
-  siteInput _ _ _ =
+  siteInput _ _ =
     pure $ pure Nil
 
   -- | Return the generated asset for the given route and model.

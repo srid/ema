@@ -56,7 +56,7 @@ instance
 
 instance EmaSite (MultiRoute '[]) where
   type SiteArg (MultiRoute '[]) = NP I '[]
-  siteInput _ _ Nil = pure $ pure Nil
+  siteInput _ Nil = pure $ pure Nil
   siteOutput _ Nil = \case {}
 
 instance
@@ -68,9 +68,9 @@ instance
   EmaSite (MultiRoute (r ': rs))
   where
   type SiteArg (MultiRoute (r ': rs)) = NP I (MultiSiteArg (r ': rs))
-  siteInput cliAct enc (I i :* is) = do
-    m <- siteInput @r cliAct (headEncoder enc) i
-    ms <- siteInput @(MultiRoute rs) cliAct (tailEncoder enc) is
+  siteInput cliAct (I i :* is) = do
+    m <- siteInput @r cliAct i
+    ms <- siteInput @(MultiRoute rs) cliAct is
     pure $ curry toNP <$> m <*> ms
   siteOutput enc (I m :* ms) =
     fromNS
