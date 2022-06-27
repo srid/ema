@@ -20,9 +20,7 @@ import Ema.Route.Encoder (
 import Generics.SOP (I (..), NP)
 import Optics.Core (
   ReversibleOptic (re),
-  coercedTo,
   review,
-  (%),
  )
 import Prelude hiding (All, Generic)
 

@@ -11,11 +11,10 @@ module Ema.Multi (
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))
-import Data.SOP.Extra (here, there)
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Site (EmaSite (..))
-import Optics.Core (equality, iso, prism', review)
+import Optics.Core (equality, iso, prism')
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
  sub-routes.
@@ -80,11 +79,15 @@ instance
 
 tailEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (NP I (MultiModel rs)) (MultiRoute rs)
 tailEncoder =
-  mapRouteEncoder equality (prism' (toNS . Right) (fromNS >>> rightToMaybe)) (review there)
+  mapRouteEncoder equality (prism' (toNS . Right) (fromNS >>> rightToMaybe)) shiftModel
+  where
+    shiftModel x = I undefined :* x
 
 headEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (RouteModel r) r
 headEncoder =
-  mapRouteEncoder equality (prism' (toNS . Left) (fromNS >>> leftToMaybe)) (review here)
+  mapRouteEncoder equality (prism' (toNS . Left) (fromNS >>> leftToMaybe)) hereModel
+  where
+    hereModel x = I x :* undefined
 
 -- | Like `eitherRouteEncoder` but uses sop-core types instead of Either/Product.
 nsRouteEncoder ::

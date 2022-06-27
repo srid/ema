@@ -7,7 +7,6 @@ module Ema.Site (
 ) where
 
 import Control.Monad.Logger (MonadLoggerIO)
-import Data.SOP (I, NP (Nil))
 import Data.Some (Some)
 import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
@@ -65,14 +64,13 @@ class IsRoute r => EmaSite r where
     ( MonadIO m
     , MonadUnliftIO m
     , MonadLoggerIO m
-    , RouteModel r ~ NP I '[]
+    , RouteModel r ~ ()
     ) =>
     Some CLI.Action ->
     SiteArg r ->
     m (Dynamic m (RouteModel r))
   siteInput _ _ =
-    -- TODO: change to unit
-    pure $ pure Nil
+    pure $ pure ()
 
   -- | Return the generated asset for the given route and model.
   siteOutput :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
