@@ -52,13 +52,12 @@ instance HasSubModels Route where
   subModels m =
     I () :* I () :* I (modelProducts m) :* I (modelCategories m) :* Nil
 
--- TODO: Use DerivingVia to specify options, to disable extra /product/ in URL.
 data ProductRoute
   = ProductRoute_Index
   | ProductRoute_Product Product
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
+  deriving (HasSubRoutes) via (ProductRoute `WithSubRoutes` '[SingletonRoute "index.html", Product])
   deriving (IsRoute, HasSubModels) via (ProductRoute `WithConstModel` [Product])
 
 data CategoryRoute
@@ -66,7 +65,7 @@ data CategoryRoute
   | CategoryRoute_Category Category
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
+  deriving (HasSubRoutes) via (CategoryRoute `WithSubRoutes` '[SingletonRoute "index.html", Category])
   deriving (IsRoute, HasSubModels) via (CategoryRoute `WithConstModel` [Category])
 
 -- TODO: Replace this with a custom MotleyRoute delgatiion (to `IsString a => StringListRoute a`?)
