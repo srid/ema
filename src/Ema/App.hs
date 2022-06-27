@@ -17,7 +17,7 @@ import Ema.CLI (getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSiteFromModel)
-import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
+import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Server qualified as Server
 import Ema.Site (EmaSite (SiteArg, siteInput))
 import System.Directory (getCurrentDirectory)
@@ -69,7 +69,7 @@ runSiteWithCli cli siteArg = do
   flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
     logInfoNS "ema" $ "Launching Ema under: " <> toText cwd
-    Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) (routeEncoder @r) siteArg
+    Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) siteArg
     case CLI.action cli of
       Some act@(CLI.Generate dest) -> do
         fs <- generateSiteFromModel @r dest model0

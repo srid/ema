@@ -42,9 +42,9 @@ main = do
 -- TODO: Can we do generic of this too?
 -- Can demo in 'mergeSite' (of two Emanotes?)
 instance EmaSite R where
-  siteInput cliAct enc () = do
-    x1 :: Dynamic m Ex02.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Clock") enc) Ex02.delayNormal
-    x2 :: Dynamic m Ex03.Model <- siteInput cliAct (innerRouteEncoder (_As @"R_Store") enc) ()
+  siteInput cliAct () = do
+    x1 :: Dynamic m Ex02.Model <- siteInput @Ex02.Route cliAct Ex02.delayNormal
+    x2 :: Dynamic m Ex03.Model <- siteInput @Ex03.Route cliAct ()
     pure $ liftA2 (\x y -> I x :* I y :* Nil) x1 x2
   siteOutput enc m = \case
     R_Index ->

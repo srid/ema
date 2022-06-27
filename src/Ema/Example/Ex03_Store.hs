@@ -93,7 +93,7 @@ main :: IO ()
 main = void $ Ema.runSite @Route ()
 
 instance EmaSite Route where
-  siteInput _ _ () = do
+  siteInput _ () = do
     store0 <- readStoreFile
     pure . Dynamic . (store0,) $ \setModel -> do
       ch <- liftIO $ watchDirForked dataDir

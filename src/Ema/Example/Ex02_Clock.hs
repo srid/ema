@@ -35,7 +35,7 @@ data Route
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh
-  siteInput _ _ timerDelay = do
+  siteInput _ timerDelay = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \setModel -> do
       logInfoNS "Ex02" "Starting clock..."
