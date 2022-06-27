@@ -2,16 +2,16 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Ema.Multi.Generic.Example where
+module Ema.Route.Generic.Example where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (..))
 import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
-import Ema.Multi.Generic (WithConstModel (..), WithModel (..))
-import Ema.Multi.Generic.Motley
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
+import Ema.Route.Generic (WithConstModel (..), WithModel (..))
+import Ema.Route.Generic.Sub
 import Ema.Site
 import Generics.SOP qualified as SOP
 import Optics.Prism (prism')
@@ -63,7 +63,7 @@ instance EmaSite R where
   siteInput _ () = pure $ pure (42, 21, "inner")
   siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
 
--- --warnings -c "cabal repl ema -f with-examples" -T Ema.Multi.Generic.main  --setup ":set args gen /tmp"
+-- --warnings -c "cabal repl ema -f with-examples" -T Ema.Route.Generic.main  --setup ":set args gen /tmp"
 main :: IO ()
 main = Ema.runSite_ @R ()
 

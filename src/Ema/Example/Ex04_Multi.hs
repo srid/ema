@@ -14,9 +14,9 @@ import Ema.Example.Ex00_Hello qualified as Ex00
 import Ema.Example.Ex01_Basic qualified as Ex01
 import Ema.Example.Ex02_Clock qualified as Ex02
 import Ema.Example.Ex03_Store qualified as Ex03
-import Ema.Multi.Generic
-import Ema.Multi.Generic.Motley
 import Ema.Route.Encoder (RouteEncoder, mapRouteEncoderModel, mapRouteEncoderRoute)
+import Ema.Route.Generic
+import Ema.Route.Generic.Sub
 import GHC.Generics qualified as GHC
 import Generics.SOP (Generic, HasDatatypeInfo, I (I), NP (Nil, (:*)))
 import Optics.Core

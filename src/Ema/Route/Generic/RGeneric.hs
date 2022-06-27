@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
-module Ema.Multi.Generic.RGeneric where
+module Ema.Route.Generic.RGeneric where
 
 import GHC.TypeLits (ErrorMessage (Text), TypeError)
 import Generics.SOP

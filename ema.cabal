@@ -133,15 +133,15 @@ library
     Ema.Dynamic
     Ema.Generate
     Ema.Multi
-    Ema.Multi.Generic
-    Ema.Multi.Generic.Example
-    Ema.Multi.Generic.Motley
-    Ema.Multi.Generic.RGeneric
+    Ema.Route.Generic.RGeneric
     Ema.Route.Class
     Ema.Route.Encoder
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Url
+    Ema.Route.Generic
+    Ema.Route.Generic.Example
+    Ema.Route.Generic.Sub
     Ema.Server
     Ema.Site
     GHC.TypeLits.Extra.Symbol

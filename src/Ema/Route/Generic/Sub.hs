@@ -3,8 +3,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
--- | WIP https://github.com/srid/ema/issues/92
-module Ema.Multi.Generic.Motley (
+module Ema.Route.Generic.Sub (
   HasSubRoutes (SubRoutes, subRoutesIso'),
   subRoutesIso,
   HasSubModels (subModels),
@@ -18,8 +17,8 @@ module Ema.Multi.Generic.Motley (
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Multi (MultiModel, MultiRoute)
-import Ema.Multi.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Class (IsRoute (RouteModel))
+import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import GHC.TypeLits (AppendSymbol, Symbol)

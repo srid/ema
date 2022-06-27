@@ -11,8 +11,8 @@ import Ema.Example.Ex01_Basic qualified as Ex01
 import Ema.Example.Ex02_Clock qualified as Ex02
 import Ema.Example.Ex03_Store qualified as Ex03
 import Ema.Multi (MultiRoute)
-import Ema.Multi.Generic
-import Ema.Multi.Generic.Motley
+import Ema.Route.Generic
+import Ema.Route.Generic.Sub
 import Generics.SOP (I (I), NP (Nil, (:*)))
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))

@@ -2,18 +2,18 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 -- | WIP https://github.com/srid/ema/issues/92
-module Ema.Multi.Generic where
+module Ema.Route.Generic where
 
 import Data.Profunctor
 import Data.SOP.Extra (NPConst (npConstFrom))
 import Ema.Multi (MultiModel, MultiRoute)
-import Ema.Multi.Generic.Motley (
+import Ema.Route.Class (IsRoute (..))
+import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
+import Ema.Route.Generic.Sub (
   HasSubModels (..),
   HasSubRoutes (..),
   subRoutesIso,
  )
-import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
 import Generics.SOP (I (..), NP)
 import Optics.Core (ReversibleOptic (re), review)
 import Prelude hiding (All, Generic)
