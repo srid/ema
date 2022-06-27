@@ -57,7 +57,7 @@ data ProductRoute
   | ProductRoute_Product Product
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes) via (ProductRoute `WithSubRoutes` '[SingletonRoute "index.html", Product])
+  deriving (HasSubRoutes) via (ProductRoute `WithSubRoutes` '[FileRoute "index.html", Product])
   deriving (IsRoute, HasSubModels) via (ProductRoute `WithConstModel` [Product])
 
 data CategoryRoute
@@ -65,7 +65,7 @@ data CategoryRoute
   | CategoryRoute_Category Category
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes) via (CategoryRoute `WithSubRoutes` '[SingletonRoute "index.html", Category])
+  deriving (HasSubRoutes) via (CategoryRoute `WithSubRoutes` '[FileRoute "index.html", Category])
   deriving (IsRoute, HasSubModels) via (CategoryRoute `WithConstModel` [Category])
 
 -- TODO: Replace this with a custom MotleyRoute delgatiion (to `IsString a => StringListRoute a`?)

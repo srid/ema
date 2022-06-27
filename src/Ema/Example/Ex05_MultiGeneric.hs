@@ -22,11 +22,11 @@ import Text.Blaze.Html5.Attributes qualified as A
 type R =
   MultiRoute
     '[ TopRoute
-     , PrefixedRoute "hello" Ex00.Route
-     , PrefixedRoute "basic" Ex01.Route
-     , PrefixedRoute "clock" Ex02.Route
-     , PrefixedRoute "clockfast" Ex02.Route
-     , PrefixedRoute "store" Ex03.Route
+     , FolderRoute "hello" Ex00.Route
+     , FolderRoute "basic" Ex01.Route
+     , FolderRoute "clock" Ex02.Route
+     , FolderRoute "clockfast" Ex02.Route
+     , FolderRoute "store" Ex03.Route
      ]
 
 data TopRoute = TopRoute_Index

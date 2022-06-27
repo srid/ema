@@ -9,13 +9,9 @@ import Data.SOP (I (..), NP (..))
 import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
 import Ema.Multi.Generic (WithConstModel (..), WithModel (..))
-import Ema.Multi.Generic.Motley (
-  HasSubModels (..),
-  HasSubRoutes,
- )
+import Ema.Multi.Generic.Motley
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
-import Ema.Route.Extra
 import Ema.Site
 import Generics.SOP qualified as SOP
 import Optics.Prism (prism')
@@ -37,10 +33,10 @@ data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
 instance HasSubRoutes R where
   type
     SubRoutes R =
-      '[ SingletonRoute "index.html"
-       , SingletonRoute "foo.html"
-       , PrefixedRoute "bar" NumRoute
-       , PrefixedRoute "bar2" NumRoute
+      '[ FileRoute "index.html"
+       , FileRoute "foo.html"
+       , FolderRoute "bar" NumRoute
+       , FolderRoute "bar2" NumRoute
        ]
 -}
 

@@ -6,8 +6,8 @@ module Ema.Example.Ex01_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Multi.Generic (WithConstModel (..))
-import Ema.Multi.Generic.Motley (HasSubModels, HasSubRoutes)
+import Ema.Multi.Generic
+import Ema.Multi.Generic.Motley
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H

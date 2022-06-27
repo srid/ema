@@ -4,14 +4,24 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 -- | WIP https://github.com/srid/ema/issues/92
-module Ema.Multi.Generic.Motley where
+module Ema.Multi.Generic.Motley (
+  HasSubRoutes (SubRoutes, subRoutesIso'),
+  subRoutesIso,
+  HasSubModels (subModels),
+  -- DerivingVia types
+  WithSubRoutes (WithSubRoutes),
+  -- Export these for DerivingVia coercion representations
+  FileRoute (FileRoute),
+  FolderRoute (FolderRoute),
+) where
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Class (IsRoute (RouteModel))
-import Ema.Route.Extra (PrefixedRoute, SingletonRoute)
+import Ema.Route.Lib.File (FileRoute (FileRoute))
+import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import GHC.TypeLits (AppendSymbol, Symbol)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 import Generics.SOP (
@@ -98,10 +108,10 @@ type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.Constructor
   GSubRoutes _ _ '[] = '[]
   GSubRoutes name (c ': cs) (() ': xs) =
     -- TODO: The .html suffix part should be overridable.
-    SingletonRoute (Constructor2RoutePath name c ".html")
+    FileRoute (Constructor2RoutePath name c ".html")
       ': GSubRoutes name cs xs
   GSubRoutes name (c ': cs) (x ': xs) =
-    PrefixedRoute (Constructor2RoutePath name c "") x
+    FolderRoute (Constructor2RoutePath name c "") x
       ': GSubRoutes name cs xs
 
 type family

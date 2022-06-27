@@ -5,8 +5,8 @@
 module Ema.Example.Ex00_Hello where
 
 import Ema
-import Ema.Multi.Generic (WithConstModel (..))
-import Ema.Multi.Generic.Motley (HasSubModels, HasSubRoutes)
+import Ema.Multi.Generic
+import Ema.Multi.Generic.Motley
 import Generics.SOP qualified as SOP
 
 data Route = Route_Index

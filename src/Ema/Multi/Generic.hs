@@ -13,15 +13,9 @@ import Ema.Multi.Generic.Motley (
   subRoutesIso,
  )
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder (
-  mapRouteEncoderModel,
-  mapRouteEncoderRoute,
- )
+import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
 import Generics.SOP (I (..), NP)
-import Optics.Core (
-  ReversibleOptic (re),
-  review,
- )
+import Optics.Core (ReversibleOptic (re), review)
 import Prelude hiding (All, Generic)
 
 -- | Mark a route as associated with a model type.
