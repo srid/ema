@@ -11,16 +11,20 @@ import Data.SOP.NS (trans_NS)
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Class (IsRoute (RouteModel))
-import Ema.Route.Extra
+import Ema.Route.Extra (PrefixedRoute, SingletonRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
-import Generics.SOP
-import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (
-  Iso',
-  iso,
+import Generics.SOP (
+  All,
+  I (..),
+  NP,
+  NS,
+  SameShapeAs,
+  Top,
  )
-import Prelude hiding (All, Generic)
+import Generics.SOP.Type.Metadata qualified as SOPM
+import Optics.Core (Iso', iso)
+import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
 
@@ -38,12 +42,7 @@ class HasSubRoutes r where
   subRoutesIso' :: ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
   default subRoutesIso' ::
     ( RGeneric r
-    , SameShapeAs (RCode r) (SubRoutes r)
-    , SameShapeAs (SubRoutes r) (RCode r)
-    , All Top (RCode r)
-    , All Top (SubRoutes r)
-    , AllZipF Coercible (RCode r) (SubRoutes r)
-    , AllZipF Coercible (SubRoutes r) (RCode r)
+    , ValidSubRoutes r (SubRoutes r)
     ) =>
     ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
   subRoutesIso' =
@@ -59,12 +58,7 @@ newtype r `WithSubRoutes` (subRoutes :: [Type]) = WithSubRoutes r
 
 instance
   ( RGeneric r
-  , SameShapeAs (RCode r) subRoutes
-  , SameShapeAs subRoutes (RCode r)
-  , AllZipF Coercible (RCode r) subRoutes
-  , AllZipF Coercible subRoutes (RCode r)
-  , All Top (RCode r)
-  , All Top subRoutes
+  , ValidSubRoutes r subRoutes
   ) =>
   HasSubRoutes (r `WithSubRoutes` subRoutes)
   where
@@ -75,11 +69,7 @@ instance
 gtoSubRoutes ::
   forall r subRoutes.
   ( RGeneric r
-  , SameShapeAs (RCode r) subRoutes
-  , SameShapeAs subRoutes (RCode r)
-  , All Top (RCode r)
-  , All Top subRoutes
-  , AllZipF Coercible (RCode r) subRoutes
+  , ValidSubRoutes r subRoutes
   ) =>
   NS I (RCode r) ->
   MultiRoute subRoutes
@@ -88,15 +78,21 @@ gtoSubRoutes = trans_NS (Proxy @Coercible) coerce
 gfromSubRoutes ::
   forall r subRoutes.
   ( RGeneric r
-  , SameShapeAs (RCode r) subRoutes
-  , SameShapeAs subRoutes (RCode r)
-  , All Top (RCode r)
-  , All Top subRoutes
-  , AllZipF Coercible subRoutes (RCode r)
+  , ValidSubRoutes r subRoutes
   ) =>
   MultiRoute subRoutes ->
   NS I (RCode r)
 gfromSubRoutes = trans_NS (Proxy @Coercible) coerce
+
+-- | @subRoutes@ are valid sub-routes of @r@
+type ValidSubRoutes r subRoutes =
+  ( SameShapeAs (RCode r) subRoutes
+  , SameShapeAs subRoutes (RCode r)
+  , All Top (RCode r)
+  , All Top subRoutes
+  , AllZipF Coercible (RCode r) subRoutes
+  , AllZipF Coercible subRoutes (RCode r)
+  )
 
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
   GSubRoutes _ _ '[] = '[]

@@ -71,6 +71,7 @@ class IsRoute r => EmaSite r where
     SiteArg r ->
     m (Dynamic m (RouteModel r))
   siteInput _ _ =
+    -- TODO: change to unit
     pure $ pure Nil
 
   -- | Return the generated asset for the given route and model.
