@@ -16,6 +16,8 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
+import Ema.Multi.Generic
+import Ema.Multi.Generic.Motley
 import Ema.Route.Encoder (RouteEncoder)
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
@@ -29,9 +31,11 @@ data Route
   | Route_OnlyTime
   deriving stock
     (Show, Eq, Ord, Generic)
-  deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model Route)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels, IsRoute)
+    via (Route `WithConstModel` Model)
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh

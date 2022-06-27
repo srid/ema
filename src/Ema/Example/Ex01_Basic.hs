@@ -6,6 +6,8 @@ module Ema.Example.Ex01_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
+import Ema.Multi.Generic (WithConstModel (..))
+import Ema.Multi.Generic.Motley (HasSubModels, HasSubRoutes)
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
@@ -17,9 +19,14 @@ data Route
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
+    (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels, IsRoute)
+    via (Route `WithConstModel` ())
 
 instance EmaSite Route where
+  siteInput _ _ = pure $ pure () -- TODO: move to default
   siteOutput enc m r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $

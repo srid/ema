@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Demonstration of merging multiple sites using `Ema.Multi`
 module Ema.Example.Ex05_MultiGeneric where
@@ -10,6 +11,8 @@ import Ema.Example.Ex01_Basic qualified as Ex01
 import Ema.Example.Ex02_Clock qualified as Ex02
 import Ema.Example.Ex03_Store qualified as Ex03
 import Ema.Multi (MultiRoute)
+import Ema.Multi.Generic
+import Ema.Multi.Generic.Motley
 import Generics.SOP (I (I), NP (Nil, (:*)))
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
@@ -30,7 +33,11 @@ data TopRoute = TopRoute_Index
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
+    (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels, IsRoute)
+    via (TopRoute `WithConstModel` ())
 
 instance EmaSite TopRoute where
   siteOutput _enc _ TopRoute_Index =
