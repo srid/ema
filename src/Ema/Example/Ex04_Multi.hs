@@ -3,7 +3,7 @@
 
 {- | Demonstration of merging multiple sites
 
-  For an alternative (easier) approach, see `Ema.Multi` (used by Ex05_MultiGeneric.hs).
+  For an alternative (easier) approach, see `Ema.Route.Lib.Multi` (used by Ex05_MultiGeneric.hs).
 -}
 module Ema.Example.Ex04_Multi where
 

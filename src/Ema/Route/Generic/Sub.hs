@@ -16,11 +16,11 @@ module Ema.Route.Generic.Sub (
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
-import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
+import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 import Generics.SOP (

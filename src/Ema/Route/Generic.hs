@@ -6,7 +6,6 @@ module Ema.Route.Generic where
 
 import Data.Profunctor
 import Data.SOP.Extra (NPConst (npConstFrom))
-import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
 import Ema.Route.Generic.Sub (
@@ -14,6 +13,7 @@ import Ema.Route.Generic.Sub (
   HasSubRoutes (..),
   subRoutesIso,
  )
+import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import Generics.SOP (I (..), NP)
 import Optics.Core (ReversibleOptic (re), review)
 import Prelude hiding (All, Generic)

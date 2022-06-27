@@ -132,7 +132,7 @@ library
     Ema.CLI
     Ema.Dynamic
     Ema.Generate
-    Ema.Multi
+    Ema.Route.Lib.Multi
     Ema.Route.Generic.RGeneric
     Ema.Route.Class
     Ema.Route.Encoder

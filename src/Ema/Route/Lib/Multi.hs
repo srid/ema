@@ -5,7 +5,7 @@
     This is implemented in using `sop-core`'s NS and NP types. Use as
     `MultiRoute '[MySite1, MySite2, ...]`.
 -}
-module Ema.Multi (
+module Ema.Route.Lib.Multi (
   MultiRoute,
   MultiModel,
 ) where
