@@ -10,6 +10,7 @@ import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
+import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Extra
 import GHC.TypeLits (AppendSymbol, Symbol)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
@@ -103,7 +104,5 @@ type family
       suffix
 
 class HasSubRoutes r => HasSubModels r where
-  type SubModels r :: Type
-
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
-  subModels :: SubModels r -> NP I (MultiModel (SubRoutes r))
+  subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))

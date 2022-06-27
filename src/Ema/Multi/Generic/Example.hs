@@ -60,7 +60,6 @@ instance IsRoute NumRoute where
 -- generically. But allow the user to define this manually if need be. Also cf.
 -- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
 instance HasSubModels R where
-  type SubModels R = M
   subModels (a, b, _) =
     I () :* I () :* I a :* I b :* Nil
 
@@ -84,7 +83,6 @@ data TR = TR_Index | TR_Inner R
   deriving (IsRoute) via (WithModel TR TM) -- This only works if SubModels R ~ M
 
 instance HasSubModels TR where
-  type SubModels TR = TM
   subModels (m, _) =
     I () :* I m :* Nil
 

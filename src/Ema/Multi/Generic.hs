@@ -37,7 +37,7 @@ instance
   , HasSubModels r
   , mr ~ MultiRoute (SubRoutes r)
   , mm ~ MultiModel (SubRoutes r)
-  , a ~ SubModels r
+  , a ~ RouteModel r
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
@@ -67,7 +67,6 @@ instance
   ) =>
   HasSubModels (WithConstModel r a)
   where
-  type SubModels (WithConstModel r a) = a
   subModels = npConstFrom . I
 
 instance
@@ -76,7 +75,7 @@ instance
   , mr ~ MultiRoute (SubRoutes r)
   , mm ~ MultiModel (SubRoutes r)
   , NPConst I mm a -- The only difference
-  , a ~ SubModels r
+  , a ~ RouteModel r
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
