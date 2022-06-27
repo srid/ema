@@ -7,8 +7,8 @@ module Ema.Multi.Generic where
 import Data.SOP.Extra (NPConst (npConstFrom))
 import Ema.Multi (MultiModel, MultiRoute)
 import Ema.Multi.Generic.Motley (
-  MotleyModel (..),
-  MotleyRoute (..),
+  HasSubModels (..),
+  HasSubRoutes (..),
  )
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
@@ -27,17 +27,17 @@ import Prelude hiding (All, Generic)
 -- | Mark a route as associated with a model type.
 newtype WithModel r a = WithModel r
 
-instance MotleyRoute r => MotleyRoute (WithModel r a) where
-  type MotleyRouteSubRoutes (WithModel r a) = MotleyRouteSubRoutes r
-  motleyRouteIso =
-    coercedTo % motleyRouteIso @r % coercedTo
+instance HasSubRoutes r => HasSubRoutes (WithModel r a) where
+  type SubRoutes (WithModel r a) = SubRoutes r
+  subRoutesIso =
+    coercedTo % subRoutesIso @r % coercedTo
 
 instance
-  ( MotleyRoute r
-  , MotleyModel r
-  , mr ~ MultiRoute (MotleyRouteSubRoutes r)
-  , mm ~ MultiModel (MotleyRouteSubRoutes r)
-  , a ~ MotleyModelType r
+  ( HasSubRoutes r
+  , HasSubModels r
+  , mr ~ MultiRoute (SubRoutes r)
+  , mm ~ MultiModel (SubRoutes r)
+  , a ~ SubModels r
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
@@ -46,37 +46,37 @@ instance
   type RouteModel (WithModel r a) = a
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoderRoute (re motleyRouteIso)
-      & mapRouteEncoderModel (motleySubModels @r)
+      & mapRouteEncoderRoute (re subRoutesIso)
+      & mapRouteEncoderModel (subModels @r)
   allRoutes m =
-    WithModel . review motleyRouteIso
-      <$> allRoutes (motleySubModels @r m)
+    WithModel . review subRoutesIso
+      <$> allRoutes (subModels @r m)
 
 -- | Like `WithModel`, but all (immediate) sub-routes also have `a` as their model.
 newtype WithConstModel r (a :: Type) = WithConstModel r
 
-instance MotleyRoute r => MotleyRoute (WithConstModel r a) where
-  type MotleyRouteSubRoutes (WithConstModel r a) = MotleyRouteSubRoutes r
-  motleyRouteIso =
-    coercedTo % motleyRouteIso @r % coercedTo
+instance HasSubRoutes r => HasSubRoutes (WithConstModel r a) where
+  type SubRoutes (WithConstModel r a) = SubRoutes r
+  subRoutesIso =
+    coercedTo % subRoutesIso @r % coercedTo
 
--- Enables derivingVia of MotleyModel
+-- Enables derivingVia of HasSubModels
 instance
-  ( MotleyRoute r
-  , NPConst I (MultiModel (MotleyRouteSubRoutes r)) a
+  ( HasSubRoutes r
+  , NPConst I (MultiModel (SubRoutes r)) a
   ) =>
-  MotleyModel (WithConstModel r a)
+  HasSubModels (WithConstModel r a)
   where
-  type MotleyModelType (WithConstModel r a) = a
-  motleySubModels = npConstFrom . I
+  type SubModels (WithConstModel r a) = a
+  subModels = npConstFrom . I
 
 instance
-  ( MotleyRoute r
-  , MotleyModel r
-  , mr ~ MultiRoute (MotleyRouteSubRoutes r)
-  , mm ~ MultiModel (MotleyRouteSubRoutes r)
+  ( HasSubRoutes r
+  , HasSubModels r
+  , mr ~ MultiRoute (SubRoutes r)
+  , mm ~ MultiModel (SubRoutes r)
   , NPConst I mm a -- The only difference
-  , a ~ MotleyModelType r
+  , a ~ SubModels r
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
@@ -85,8 +85,8 @@ instance
   type RouteModel (WithConstModel r a) = a
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoderRoute (re motleyRouteIso)
-      & mapRouteEncoderModel (motleySubModels @r)
+      & mapRouteEncoderRoute (re subRoutesIso)
+      & mapRouteEncoderModel (subModels @r)
   allRoutes m =
-    WithConstModel . review motleyRouteIso
-      <$> allRoutes (motleySubModels @r m)
+    WithConstModel . review subRoutesIso
+      <$> allRoutes (subModels @r m)

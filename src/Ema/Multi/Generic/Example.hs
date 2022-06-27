@@ -10,8 +10,8 @@ import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
 import Ema.Multi.Generic (WithConstModel (..), WithModel (..))
 import Ema.Multi.Generic.Motley (
-  MotleyModel (..),
-  MotleyRoute,
+  HasSubModels (..),
+  HasSubRoutes,
  )
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
@@ -28,15 +28,15 @@ type M = (Int, Int, String)
 
 data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
-  deriving (IsRoute) via (WithModel R M) -- This only works if MotleyModelType R ~ M
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
+  deriving (IsRoute) via (WithModel R M) -- This only works if SubModels R ~ M
 
--- ^ MotleyRoute instance generates:
+-- ^ HasSubRoutes instance generates:
 
 {-
-instance MotleyRoute R where
+instance HasSubRoutes R where
   type
-    MotleyRouteSubRoutes R =
+    SubRoutes R =
       '[ SingletonRoute "index.html"
        , SingletonRoute "foo.html"
        , PrefixedRoute "bar" NumRoute
@@ -59,9 +59,9 @@ instance IsRoute NumRoute where
 -- TODO: In many simple cases (such as single model cases) this can be derived
 -- generically. But allow the user to define this manually if need be. Also cf.
 -- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
-instance MotleyModel R where
-  type MotleyModelType R = M
-  motleySubModels (a, b, _) =
+instance HasSubModels R where
+  type SubModels R = M
+  subModels (a, b, _) =
     I () :* I () :* I a :* I b :* Nil
 
 instance EmaSite R where
@@ -80,12 +80,12 @@ type TM = (M, String)
 
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
-  deriving (IsRoute) via (WithModel TR TM) -- This only works if MotleyModelType R ~ M
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
+  deriving (IsRoute) via (WithModel TR TM) -- This only works if SubModels R ~ M
 
-instance MotleyModel TR where
-  type MotleyModelType TR = TM
-  motleySubModels (m, _) =
+instance HasSubModels TR where
+  type SubModels TR = TM
+  subModels (m, _) =
     I () :* I m :* Nil
 
 instance EmaSite TR where
@@ -107,7 +107,7 @@ trInnerEnc enc =
 
 -- TODO: General version of this (cf. innerModel)
 trInnerModel m =
-  let I () :* I m' :* Nil = motleySubModels @TR m
+  let I () :* I m' :* Nil = subModels @TR m
    in m'
 
 mainTop :: IO ()
@@ -121,13 +121,13 @@ type M2 = (Int, String)
 
 data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
-  deriving (IsRoute, MotleyModel) via (WithConstModel R2 M2)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
+  deriving (IsRoute, HasSubModels) via (WithConstModel R2 M2)
 
 data BarRoute = BarRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, MotleyRoute)
-  deriving (IsRoute, MotleyModel) via (WithConstModel BarRoute M2)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
+  deriving (IsRoute, HasSubModels) via (WithConstModel BarRoute M2)
 
 instance EmaSite R2 where
   siteInput _ () = pure $ pure (21, "inner")

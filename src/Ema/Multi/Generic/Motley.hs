@@ -21,67 +21,67 @@ import Optics.Core (
  )
 import Prelude hiding (All, Generic)
 
-{- | MotleyRoute is a class of routes with an underlying MultiRoute (and MultiModel) representation.
+{- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
 
- The idea is that by deriving MotleyRoute (and MotleyModel), we get IsRoute for free (based on MultiRoute).
+ The idea is that by deriving HasSubRoutes (and HasSubModels), we get IsRoute for free (based on MultiRoute).
 
  TODO: Rename this class, or change the API.
 -}
-class MotleyRoute r where
+class HasSubRoutes r where
   -- | The sub-routes in the `r` (for each constructor).
-  type MotleyRouteSubRoutes r :: [Type] -- TODO: Derive this generically
+  type SubRoutes r :: [Type] -- TODO: Derive this generically
 
-  type MotleyRouteSubRoutes r = GMotleyRouteSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
+  type SubRoutes r = GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
 
-  motleyRouteIso :: Iso' r (MultiRoute (MotleyRouteSubRoutes r))
-  default motleyRouteIso ::
+  subRoutesIso :: Iso' r (MultiRoute (SubRoutes r))
+  default subRoutesIso ::
     ( RGeneric r
-    , SameShapeAs (RCode r) (MotleyRouteSubRoutes r)
-    , SameShapeAs (MotleyRouteSubRoutes r) (RCode r)
+    , SameShapeAs (RCode r) (SubRoutes r)
+    , SameShapeAs (SubRoutes r) (RCode r)
     , All Top (RCode r)
-    , All Top (MotleyRouteSubRoutes r)
-    , AllZipF Coercible (RCode r) (MotleyRouteSubRoutes r)
-    , AllZipF Coercible (MotleyRouteSubRoutes r) (RCode r)
+    , All Top (SubRoutes r)
+    , AllZipF Coercible (RCode r) (SubRoutes r)
+    , AllZipF Coercible (SubRoutes r) (RCode r)
     ) =>
-    Iso' r (MultiRoute (MotleyRouteSubRoutes r))
-  motleyRouteIso =
-    iso (gtoMotley @r . rfrom) (rto . gfromMotley @r)
+    Iso' r (MultiRoute (SubRoutes r))
+  subRoutesIso =
+    iso (gtoSubRoutes @r . rfrom) (rto . gfromSubRoutes @r)
 
-gtoMotley ::
+gtoSubRoutes ::
   forall r.
   ( RGeneric r
-  , SameShapeAs (RCode r) (MotleyRouteSubRoutes r)
-  , SameShapeAs (MotleyRouteSubRoutes r) (RCode r)
+  , SameShapeAs (RCode r) (SubRoutes r)
+  , SameShapeAs (SubRoutes r) (RCode r)
   , All Top (RCode r)
-  , All Top (MotleyRouteSubRoutes r)
-  , AllZipF Coercible (RCode r) (MotleyRouteSubRoutes r)
+  , All Top (SubRoutes r)
+  , AllZipF Coercible (RCode r) (SubRoutes r)
   ) =>
   NS I (RCode r) ->
-  MultiRoute (MotleyRouteSubRoutes r)
-gtoMotley = trans_NS (Proxy @Coercible) coerce
+  MultiRoute (SubRoutes r)
+gtoSubRoutes = trans_NS (Proxy @Coercible) coerce
 
-gfromMotley ::
+gfromSubRoutes ::
   forall r.
   ( RGeneric r
-  , SameShapeAs (RCode r) (MotleyRouteSubRoutes r)
-  , SameShapeAs (MotleyRouteSubRoutes r) (RCode r)
+  , SameShapeAs (RCode r) (SubRoutes r)
+  , SameShapeAs (SubRoutes r) (RCode r)
   , All Top (RCode r)
-  , All Top (MotleyRouteSubRoutes r)
-  , AllZipF Coercible (MotleyRouteSubRoutes r) (RCode r)
+  , All Top (SubRoutes r)
+  , AllZipF Coercible (SubRoutes r) (RCode r)
   ) =>
-  MultiRoute (MotleyRouteSubRoutes r) ->
+  MultiRoute (SubRoutes r) ->
   NS I (RCode r)
-gfromMotley = trans_NS (Proxy @Coercible) coerce
+gfromSubRoutes = trans_NS (Proxy @Coercible) coerce
 
-type family GMotleyRouteSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
-  GMotleyRouteSubRoutes _ _ '[] = '[]
-  GMotleyRouteSubRoutes name (c ': cs) (() ': xs) =
+type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
+  GSubRoutes _ _ '[] = '[]
+  GSubRoutes name (c ': cs) (() ': xs) =
     -- TODO: The .html suffix part should be overridable.
     SingletonRoute (Constructor2RoutePath name c ".html")
-      ': GMotleyRouteSubRoutes name cs xs
-  GMotleyRouteSubRoutes name (c ': cs) (x ': xs) =
+      ': GSubRoutes name cs xs
+  GSubRoutes name (c ': cs) (x ': xs) =
     PrefixedRoute (Constructor2RoutePath name c "") x
-      ': GMotleyRouteSubRoutes name cs xs
+      ': GSubRoutes name cs xs
 
 type family
   Constructor2RoutePath
@@ -102,8 +102,8 @@ type family
       )
       suffix
 
-class MotleyRoute r => MotleyModel r where
-  type MotleyModelType r :: Type
+class HasSubRoutes r => HasSubModels r where
+  type SubModels r :: Type
 
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
-  motleySubModels :: MotleyModelType r -> NP I (MultiModel (MotleyRouteSubRoutes r))
+  subModels :: SubModels r -> NP I (MultiModel (SubRoutes r))
