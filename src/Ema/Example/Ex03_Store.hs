@@ -8,9 +8,12 @@ import Control.Concurrent (readChan)
 import Control.Exception (throwIO)
 import Control.Monad.Logger (MonadLogger, logInfoNS)
 import Data.Aeson (FromJSON, eitherDecodeFileStrict')
+import Data.SOP (I (I), NP (Nil, (:*)))
 import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
+import Ema.Multi.Generic
+import Ema.Multi.Generic.Motley
 import Ema.Route.Encoder
 import Generics.SOP qualified as SOP
 import Optics.Core (Iso', iso)
@@ -41,11 +44,13 @@ data Route
   | Route_Category CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model Route)
+  deriving anyclass (HasSubRoutes)
+  deriving (IsRoute) via (Route `WithModel` Model)
 
-newtype StoreFileError = StoreFileMalformed String
-  deriving stock (Show, Eq)
-  deriving anyclass (Exception)
+-- TODO: Can we derive this automatically?
+instance HasSubModels Route where
+  subModels m =
+    I () :* I () :* I (modelProducts m) :* I (modelCategories m) :* Nil
 
 -- TODO: Use DerivingVia to specify options, to disable extra /product/ in URL.
 data ProductRoute
@@ -53,24 +58,26 @@ data ProductRoute
   | ProductRoute_Product Product
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
+  deriving anyclass (HasSubRoutes)
+  deriving (IsRoute, HasSubModels) via (ProductRoute `WithConstModel` [Product])
 
 data CategoryRoute
   = CategoryRoute_Index
   | CategoryRoute_Category Category
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model CategoryRoute)
+  deriving anyclass (HasSubRoutes)
+  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithConstModel` [Category])
 
+-- TODO: Replace this with a custom MotleyRoute delgatiion (to `IsString a => StringListRoute a`?)
+-- This way we can use the slugify behaviour here as well.
 instance IsRoute Product where
-  type RouteModel Product = Model
-  routeEncoder =
-    stringRouteEncoder
-  allRoutes =
-    modelProducts
+  type RouteModel Product = [Product]
+  routeEncoder = stringRouteEncoder
+  allRoutes = id
 
 instance IsRoute Category where
-  type RouteModel Category = Model
+  type RouteModel Category = [Category]
   routeEncoder =
     stringRouteEncoder
       -- Since category names can contain whitespace, we replace them in URLs
@@ -86,8 +93,7 @@ instance IsRoute Category where
         iso
           (toString . T.replace replacement needle . toText)
           (toString . T.replace needle replacement . toText)
-  allRoutes =
-    modelCategories
+  allRoutes = id
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()
@@ -158,3 +164,7 @@ instance EmaSite Route where
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
         A.href (fromString . toString $ Ema.routeUrl enc m r')
+
+newtype StoreFileError = StoreFileMalformed String
+  deriving stock (Show, Eq)
+  deriving anyclass (Exception)
