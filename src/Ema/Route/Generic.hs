@@ -13,8 +13,8 @@ import Ema.Route.Generic.Sub as X
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.TypeLits (
   ErrorMessage (ShowType, Text, (:<>:)),
-  TypeError,
  )
+import GHC.TypeLits.Extra (Impossible (impossible), TypeErr)
 import Generics.SOP (I (..), NP (Nil, (:*)))
 import Optics.Core (ReversibleOptic (re), review)
 import Prelude hiding (All, Generic)
@@ -78,7 +78,7 @@ instance {-# OVERLAPPABLE #-} (NPConst t f xs x) => NPConst t f (x ': xs) x wher
 
 instance
   {-# OVERLAPPABLE #-}
-  ( TypeError
+  ( TypeErr
       ( 'Text "You must *manually* derive HasSubModels for type '"
           ':<>: 'ShowType t
           ':<>: 'Text "', because it can only be anyclass-derived if all sub-models are of type '"
@@ -88,4 +88,4 @@ instance
   ) =>
   NPConst t f xs x
   where
-  npConstFrom = undefined
+  npConstFrom = impossible

@@ -143,6 +143,7 @@ library
     Ema.Server
     Ema.Site
     Optics.CtxPrism
+    GHC.TypeLits.Extra
 
   if impl(ghc >=9.2)
     exposed-modules: GHC.TypeLits.Extra.Symbol

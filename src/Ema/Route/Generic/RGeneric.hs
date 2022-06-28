@@ -4,6 +4,7 @@
 module Ema.Route.Generic.RGeneric where
 
 import GHC.TypeLits (ErrorMessage (Text), TypeError)
+import GHC.TypeLits.Extra (Impossible (impossible), TypeErr)
 import Generics.SOP
 import Generics.SOP.Type.Metadata qualified as SOPM
 import Prelude hiding (All, Generic)
@@ -85,7 +86,7 @@ instance RouteNP (x ': '[]) where
   fromRouteNP (I x :* Nil) = x
   toRouteNP x = I x :* Nil
 
-instance (TypeError ( 'Text "MultiRoute: too many arguments")) => RouteNP (x ': x' ': xs) where
+instance (TypeErr ( 'Text "MultiRoute: too many arguments")) => RouteNP (x ': x' ': xs) where
   type RouteNPType (x ': x' ': xs) = TypeError ( 'Text "MultiRoute: too many arguments")
-  fromRouteNP _ = undefined
-  toRouteNP _ = undefined
+  fromRouteNP _ = impossible
+  toRouteNP _ = impossible
