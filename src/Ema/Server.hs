@@ -17,6 +17,7 @@ import Ema.Asset (
 import Ema.CLI (Host (unHost))
 import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Route.Encoder (
+  applyRouteEncoder,
   checkRouteEncoderGivenFilePath,
   encodeRoute,
  )
@@ -181,7 +182,7 @@ runServerWithWebSocketHotReload host mport model = do
                 let mimeType = Static.getMimeType $ encodeRoute enc val r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (siteOutput enc m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteOutput (applyRouteEncoder enc m) m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err

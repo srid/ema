@@ -21,6 +21,7 @@ import Optics.CtxPrism (
   creview,
   ctxPrismIsLawfulFor,
   fromPrism,
+  toPrism,
  )
 import System.FilePath ((</>))
 
@@ -32,6 +33,9 @@ newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
 mkRouteEncoder = RouteEncoder . fromPrism
+
+applyRouteEncoder :: RouteEncoder a r -> a -> Prism' FilePath r
+applyRouteEncoder (RouteEncoder enc) x = toPrism enc x
 
 encodeRoute :: HasCallStack => RouteEncoder model r -> model -> r -> FilePath
 encodeRoute (RouteEncoder enc) = creview enc

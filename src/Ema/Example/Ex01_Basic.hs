@@ -25,7 +25,7 @@ data Route
 
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()
-  siteOutput enc m r =
+  siteOutput rp () r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
@@ -41,7 +41,7 @@ instance EmaSite Route where
       routeElem r' w = do
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
-        A.href (fromString . toString $ Ema.routeUrl enc m r')
+        A.href (fromString . toString $ Ema.routeUrl rp r')
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

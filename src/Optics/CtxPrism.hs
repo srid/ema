@@ -4,6 +4,7 @@ module Optics.CtxPrism (
 
   -- * Construction
   fromPrism,
+  toPrism,
 
   -- * Functions
   cpreview,

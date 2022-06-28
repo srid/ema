@@ -19,6 +19,7 @@ import Ema.Asset (Asset (..))
 import Ema.CLI (crash)
 import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
 import Ema.Route.Encoder (
+  applyRouteEncoder,
   checkRouteEncoderGivenRoute,
   encodeRoute,
  )
@@ -67,6 +68,7 @@ generateSiteFromModel' ::
   m [FilePath]
 generateSiteFromModel' dest model = do
   let enc = routeEncoder @r
+      rp = applyRouteEncoder enc model
   -- Sanity checks
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     throwError $ "Destination directory does not exist: " <> toText dest
@@ -82,7 +84,7 @@ generateSiteFromModel' dest model = do
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   fmap concat . forM routes $ \r -> do
     let fp = dest </> encodeRoute enc model r
-    case siteOutput enc model r of
+    case siteOutput rp model r of
       AssetStatic staticPath -> do
         liftIO (doesPathExist staticPath) >>= \case
           True ->

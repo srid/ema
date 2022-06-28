@@ -57,23 +57,23 @@ instance EmaSite R where
     x2 :: Dynamic m Ex02.Model <- siteInput @Ex02.Route cliAct Ex02.delayFast
     x3 :: Dynamic m Ex03.Model <- siteInput @Ex03.Route cliAct ()
     pure $ liftA3 M x1 x2 x3
-  siteOutput enc m sr =
+  siteOutput rp m sr =
     let I () :* I m2 :* I m3 :* I m4 :* I m5 :* I m6 :* Nil = subModels @R m
      in case sr of
           R_Index ->
-            Ema.AssetGenerated Ema.Html $ renderIndex enc m
+            Ema.AssetGenerated Ema.Html $ renderIndex rp m
           -- TODO: Can all of these be generalized? (constructor with 1 encoder; delegate)
           R_Hello r ->
             -- TODO: add `subSiteOutput enc m (_As @"R_Hello") r`?
-            siteOutput (innerEncoderWithModel m (_As @"R_Hello") enc) m2 r
+            siteOutput (rp % (_As @"R_Hello")) m2 r
           R_Basic r ->
-            siteOutput (innerEncoderWithModel m (_As @"R_Basic") enc) m3 r
+            siteOutput (rp % (_As @"R_Basic")) m3 r
           R_Clock r ->
-            siteOutput (innerEncoderWithModel m (_As @"R_Clock") enc) m4 r
+            siteOutput (rp % (_As @"R_Clock")) m4 r
           R_ClockFast r ->
-            siteOutput (innerEncoderWithModel m (_As @"R_Clock") enc) m5 r
+            siteOutput (rp % (_As @"R_Clock")) m5 r
           R_Store r ->
-            siteOutput (innerEncoderWithModel m (_As @"R_Store") enc) m6 r
+            siteOutput (rp % (_As @"R_Store")) m6 r
 
 {- | Return the inner `RouteEncoder` corresponding to the route `i`, assuming
  that the model value `a` is known ahead of time.
@@ -90,8 +90,8 @@ innerEncoderWithModel m innerRoute enc =
     & mapRouteEncoderRoute innerRoute
     & mapRouteEncoderModel (\_ -> m) -- TODO: this is wrong; why discard inner values?
 
-renderIndex :: RouteEncoder M R -> M -> LByteString
-renderIndex enc m =
+renderIndex :: Prism' FilePath R -> M -> LByteString
+renderIndex rp m =
   tailwindLayout (H.title "Ex04_Multi" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are three sites composed to produce one:"
@@ -108,4 +108,4 @@ renderIndex enc m =
         H.small $ show $ mClock m
   where
     routeElem r w = do
-      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! A.href (H.toValue $ routeUrl enc m r) $ w
+      H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! A.href (H.toValue $ routeUrl rp r) $ w
