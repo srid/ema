@@ -16,8 +16,9 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Encoder (RouteEncoder)
+import Ema.Route.Generic
 import Generics.SOP qualified as SOP
+import Optics.Core (Prism')
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -29,13 +30,15 @@ data Route
   | Route_OnlyTime
   deriving stock
     (Show, Eq, Ord, Generic)
-  deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model Route)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels, IsRoute)
+    via (Route `WithModel` Model)
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh
-  siteInput _ _ timerDelay = do
+  siteInput _ timerDelay = do
     t0 <- liftIO getCurrentTime
     pure . Dynamic . (t0,) $ \setModel -> do
       logInfoNS "Ex02" "Starting clock..."
@@ -44,8 +47,8 @@ instance EmaSite Route where
         t <- liftIO getCurrentTime
         logDebugNS "Ex02" "Updating clock..."
         setModel t
-  siteOutput enc m r =
-    Ema.AssetGenerated Ema.Html $ render enc m r
+  siteOutput rp m r =
+    Ema.AssetGenerated Ema.Html $ render rp m r
 
 main :: IO ()
 main = do
@@ -57,8 +60,8 @@ delayNormal = 1000000 -- 1 second
 delayFast :: Int
 delayFast = 10000
 
-render :: RouteEncoder UTCTime Route -> UTCTime -> Route -> LByteString
-render enc now r =
+render :: Prism' FilePath Route -> UTCTime -> Route -> LByteString
+render rp now r =
   tailwindLayout (H.title "Clock" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto" $ do
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
@@ -82,7 +85,7 @@ render enc now r =
   where
     routeElem r' = H.a ! A.class_ "text-xl text-purple-500 hover:underline" ! routeHref r'
     routeHref r' =
-      A.href (fromString . toString $ Ema.routeUrl enc now r')
+      A.href (fromString . toString $ Ema.routeUrl rp r')
     randomColor t =
       let epochSecs = fromMaybe 0 . readMaybe @Int $ formatTime defaultTimeLocale "%s" t
           colors = ["green", "gray", "purple", "red", "blue", "yellow", "black", "pink"]

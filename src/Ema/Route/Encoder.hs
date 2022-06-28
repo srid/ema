@@ -2,8 +2,6 @@
 module Ema.Route.Encoder where
 
 import Control.Monad.Writer (runWriter)
-import Data.SOP (I, NP)
-import Data.SOP.Extra (NPContains (npIso))
 import Data.Text qualified as T
 import Optics.Core (
   A_Prism,
@@ -14,18 +12,12 @@ import Optics.Core (
   castOptic,
   equality,
   iso,
+  preview,
   prism',
   review,
-  view,
  )
-import Optics.CtxPrism (
-  CtxPrism,
-  cpmap,
-  cpreview,
-  creview,
-  ctxPrismIsLawfulFor,
-  fromPrism,
- )
+import Optics.CtxPrism (CtxPrism)
+import Optics.CtxPrism qualified as CtxPrism
 import System.FilePath ((</>))
 
 {- | An encoder cum decoder that knows how to convert routes to and from
@@ -35,13 +27,10 @@ newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
-mkRouteEncoder = RouteEncoder . fromPrism
+mkRouteEncoder = RouteEncoder . CtxPrism.fromPrism
 
-encodeRoute :: HasCallStack => RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (RouteEncoder enc) = creview enc
-
-decodeRoute :: HasCallStack => RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (RouteEncoder enc) = cpreview enc
+applyRouteEncoder :: RouteEncoder a r -> a -> Prism' FilePath r
+applyRouteEncoder (RouteEncoder enc) x = CtxPrism.toPrism enc x
 
 {- | fmap over the filepath, route and model in a `RouteEncoder`
 
@@ -55,7 +44,7 @@ mapRouteEncoder ::
   RouteEncoder a r1 ->
   RouteEncoder b r2
 mapRouteEncoder fp r m (RouteEncoder enc) =
-  RouteEncoder $ cpmap (castOptic fp) (castOptic r) m enc
+  RouteEncoder $ CtxPrism.cpmap (castOptic fp) (castOptic r) m enc
 
 -- | Like `mapRouteEncoder` but maps only the route
 mapRouteEncoderRoute :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
@@ -104,7 +93,7 @@ singletonRouteEncoder =
 
 checkRouteEncoderGivenRoute :: (HasCallStack, Eq r, Show r) => RouteEncoder a r -> a -> r -> Either Text ()
 checkRouteEncoderGivenRoute enc a r =
-  let s = encodeRoute enc a r
+  let s = review (applyRouteEncoder enc a) r
    in checkRouteEncoder enc a r s
 
 checkRouteEncoderGivenFilePath ::
@@ -116,7 +105,8 @@ checkRouteEncoderGivenFilePath ::
 checkRouteEncoderGivenFilePath enc a s = do
   -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
   let candidates = [s, s <> ".html", s </> "index.html"]
-  case asum (decodeRoute enc a <$> candidates) of
+      rp = applyRouteEncoder enc a
+  case asum (preview rp <$> candidates) of
     Nothing -> pure Nothing
     Just r -> do
       -- All candidates must be checked, and if even one passes - we let this
@@ -134,7 +124,7 @@ checkRouteEncoderGivenFilePath enc a s = do
 checkRouteEncoder :: (Eq r, Show r) => RouteEncoder a r -> a -> r -> FilePath -> Either Text ()
 checkRouteEncoder (RouteEncoder p) a r s =
   let (valid, checkLog) =
-        runWriter $ ctxPrismIsLawfulFor p a r s
+        runWriter $ CtxPrism.ctxPrismIsLawfulFor p a r s
    in if valid
         then Right ()
         else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
@@ -147,17 +137,19 @@ eitherRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a,
 eitherRouteEncoder enc1 enc2 =
   -- TODO: this can be made safe, using lens composition.
   mkRouteEncoder $ \m ->
-    prism'
-      ( either
-          (encodeRoute enc1 (fst m))
-          (encodeRoute enc2 (snd m))
-      )
-      ( \fp ->
-          asum
-            [ Left <$> decodeRoute enc1 (fst m) fp
-            , Right <$> decodeRoute enc2 (snd m) fp
-            ]
-      )
+    let rp1 = applyRouteEncoder enc1 $ fst m
+        rp2 = applyRouteEncoder enc2 $ snd m
+     in prism'
+          ( either
+              (review rp1)
+              (review rp2)
+          )
+          ( \fp ->
+              asum
+                [ Left <$> preview rp1 fp
+                , Right <$> preview rp2 fp
+                ]
+          )
 
 {- | Combine two `RouteEncoder`s into a single one
 
@@ -181,19 +173,3 @@ combineRouteEncoder rf mf enc1 enc2 =
   eitherRouteEncoder enc1 enc2
     & mapRouteEncoderRoute rf
     & mapRouteEncoderModel mf
-
-{- | Extract the inner RouteEncoder.
- TODO: avoid having to specify Prism
--}
-innerRouteEncoder ::
-  forall m o i (ms :: [Type]) pf.
-  pf `Is` A_Prism =>
-  NPContains ms m =>
-  Optic' pf NoIx o i ->
-  RouteEncoder (NP I ms) o ->
-  RouteEncoder m i
-innerRouteEncoder r =
-  mapRouteEncoder equality r (review npIso)
-
-innerModel :: NPContains ms m => NP I ms -> m
-innerModel = view npIso

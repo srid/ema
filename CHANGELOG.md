@@ -12,7 +12,7 @@ This releases brings a significant rewrite of Ema. If you choose to upgrade your
     - Optional generic deriving of `RouteEncoder`s, so you do not have to hand-write them.
     - Automatic isomorphism checks ensures that encoding and decoding are isomorphic.
   - Composable Ema apps 
-    - There are two ways of composing Ema apps. Using heterogenous lists (see `Ema.Multi`), or by defining a top-level route type (see `Ex04_Multi.hs`).
+    - There are two ways of composing Ema apps. Using heterogenous lists (see `Ema.Route.Lib.Multi`), or by defining a top-level route type (see `Ex04_Multi.hs`).
   - Replace `LVar` with `Dynamic`.
     - Ema still uses `LVar` internally (for live server updates), but on the user-side one only needs to provide a `Dynamic` which is a tuple of initial value and an updating function. The [unionmount](https://github.com/srid/unionmount/pull/1) library was changed to provide this tuple.
   - Add `EmaSite` typeclass to "connect them all"

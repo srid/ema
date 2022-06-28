@@ -47,10 +47,10 @@ isLiveServer _ = False
 
 -- | Ema's command-line interface options
 data Cli = Cli
-  { -- | The Ema action to run
-    action :: Some Action
-  , -- | Logging verbosity
-    verbose :: Bool
+  { action :: Some Action
+  -- ^ The Ema action to run
+  , verbose :: Bool
+  -- ^ Logging verbosity
   }
   deriving stock (Eq, Show)
 

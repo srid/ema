@@ -8,10 +8,12 @@ import Control.Concurrent (readChan)
 import Control.Exception (throwIO)
 import Control.Monad.Logger (MonadLogger, logInfoNS)
 import Data.Aeson (FromJSON, eitherDecodeFileStrict')
+import Data.SOP (I (I), NP (Nil, (:*)))
 import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
+import Ema.Route.Generic
 import Generics.SOP qualified as SOP
 import Optics.Core (Iso', iso)
 import System.FSNotify qualified as FSNotify
@@ -22,7 +24,8 @@ import Text.Blaze.Html5.Attributes qualified as A
 import Prelude hiding (Product)
 
 data Model = Model
-  { modelProducts :: [Product]
+  { modelStoreName :: Text
+  , modelProducts :: [Product]
   , modelCategories :: [Category]
   }
   deriving stock (Generic)
@@ -41,36 +44,39 @@ data Route
   | Route_Category CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model Route)
+  deriving anyclass (HasSubRoutes)
+  deriving (IsRoute) via (Route `WithModel` Model)
 
-newtype StoreFileError = StoreFileMalformed String
-  deriving stock (Show, Eq)
-  deriving anyclass (Exception)
+-- TODO: Can we derive this automatically?
+instance HasSubModels Route where
+  subModels m =
+    I () :* I () :* I (modelProducts m) :* I (modelCategories m) :* Nil
 
--- TODO: Use DerivingVia to specify options, to disable extra /product/ in URL.
 data ProductRoute
   = ProductRoute_Index
   | ProductRoute_Product Product
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model ProductRoute)
+  deriving (HasSubRoutes) via (ProductRoute `WithSubRoutes` '[FileRoute "index.html", Product])
+  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` [Product])
 
 data CategoryRoute
   = CategoryRoute_Index
   | CategoryRoute_Category Category
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (IsRoute) via (SingleModelRoute Model CategoryRoute)
+  deriving (HasSubRoutes) via (CategoryRoute `WithSubRoutes` '[FileRoute "index.html", Category])
+  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithModel` [Category])
 
+-- TODO: Replace this with a custom MotleyRoute delgatiion (to `IsString a => StringListRoute a`?)
+-- This way we can use the slugify behaviour here as well.
 instance IsRoute Product where
-  type RouteModel Product = Model
-  routeEncoder =
-    stringRouteEncoder
-  allRoutes =
-    modelProducts
+  type RouteModel Product = [Product]
+  routeEncoder = stringRouteEncoder
+  allRoutes = id
 
 instance IsRoute Category where
-  type RouteModel Category = Model
+  type RouteModel Category = [Category]
   routeEncoder =
     stringRouteEncoder
       -- Since category names can contain whitespace, we replace them in URLs
@@ -86,14 +92,13 @@ instance IsRoute Category where
         iso
           (toString . T.replace replacement needle . toText)
           (toString . T.replace needle replacement . toText)
-  allRoutes =
-    modelCategories
+  allRoutes = id
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()
 
 instance EmaSite Route where
-  siteInput _ _ () = do
+  siteInput _ () = do
     store0 <- readStoreFile
     pure . Dynamic . (store0,) $ \setModel -> do
       ch <- liftIO $ watchDirForked dataDir
@@ -115,11 +120,11 @@ instance EmaSite Route where
           Right store -> pure store
       log :: MonadLogger m => Text -> m ()
       log = logInfoNS "Ex03_Store"
-  siteOutput enc m@(Model ps cats) r =
+  siteOutput rp (Model storeName ps cats) r =
     Ema.AssetGenerated Ema.Html $
-      tailwindLayout (H.title "Store example (Ema)" >> H.base ! A.href "/") $
+      tailwindLayout (H.title ("Store example: " <> H.toHtml storeName) >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
-          H.h1 ! A.class_ "text-3xl font-bold" $ "Store"
+          H.h1 ! A.class_ "text-3xl font-bold" $ H.toHtml storeName
           case r of
             Route_Index -> do
               "You are on the index page. "
@@ -157,4 +162,8 @@ instance EmaSite Route where
       routeElem r' w = do
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
-        A.href (fromString . toString $ Ema.routeUrl enc m r')
+        A.href (fromString . toString $ Ema.routeUrl rp r')
+
+newtype StoreFileError = StoreFileMalformed String
+  deriving stock (Show, Eq)
+  deriving anyclass (Exception)

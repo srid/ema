@@ -51,11 +51,29 @@
         "type": "github"
       }
     },
+    "relude": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1654789035,
+        "narHash": "sha256-57pQicQBHQ7T9NCuR7YnRt7E6m+tVNLE8LyJV4MtpMU=",
+        "owner": "kowainik",
+        "repo": "relude",
+        "rev": "b2fccefa4b81ead3aeec567e2f536498dec5eee5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kowainik",
+        "ref": "v1.1.0.0",
+        "repo": "relude",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
         "haskell-flake": "haskell-flake",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "relude": "relude"
       }
     }
   },

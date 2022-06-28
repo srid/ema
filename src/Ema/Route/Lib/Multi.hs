@@ -5,16 +5,16 @@
     This is implemented in using `sop-core`'s NS and NP types. Use as
     `MultiRoute '[MySite1, MySite2, ...]`.
 -}
-module Ema.Multi (
+module Ema.Route.Lib.Multi (
   MultiRoute,
+  MultiModel,
 ) where
 
 import Data.SOP (I (..), NP (..), NS (..))
-import Data.SOP.Extra (here, there)
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Site (EmaSite (..))
-import Optics.Core (equality, iso, prism', review)
+import Optics.Core (iso, prism', (%))
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
  sub-routes.
@@ -55,7 +55,7 @@ instance
 
 instance EmaSite (MultiRoute '[]) where
   type SiteArg (MultiRoute '[]) = NP I '[]
-  siteInput _ _ Nil = pure $ pure Nil
+  siteInput _ Nil = pure $ pure Nil
   siteOutput _ Nil = \case {}
 
 instance
@@ -67,23 +67,20 @@ instance
   EmaSite (MultiRoute (r ': rs))
   where
   type SiteArg (MultiRoute (r ': rs)) = NP I (MultiSiteArg (r ': rs))
-  siteInput cliAct enc (I i :* is) = do
-    m <- siteInput @r cliAct (headEncoder enc) i
-    ms <- siteInput @(MultiRoute rs) cliAct (tailEncoder enc) is
+  siteInput cliAct (I i :* is) = do
+    m <- siteInput @r cliAct i
+    ms <- siteInput @(MultiRoute rs) cliAct is
     pure $ curry toNP <$> m <*> ms
-  siteOutput enc (I m :* ms) =
+  siteOutput rp (I m :* ms) =
     fromNS
       >>> either
-        (siteOutput @r (headEncoder enc) m)
-        (siteOutput @(MultiRoute rs) (tailEncoder enc) ms)
-
-tailEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (NP I (MultiModel rs)) (MultiRoute rs)
-tailEncoder =
-  mapRouteEncoder equality (prism' (toNS . Right) (fromNS >>> rightToMaybe)) (review there)
-
-headEncoder :: RouteEncoder (NP I (MultiModel (r ': rs))) (MultiRoute (r ': rs)) -> RouteEncoder (RouteModel r) r
-headEncoder =
-  mapRouteEncoder equality (prism' (toNS . Left) (fromNS >>> leftToMaybe)) (review here)
+        (siteOutput @r (rp % headRoute) m)
+        (siteOutput @(MultiRoute rs) (rp % tailRoute) ms)
+    where
+      tailRoute =
+        (prism' (toNS . Right) (fromNS >>> rightToMaybe))
+      headRoute =
+        (prism' (toNS . Left) (fromNS >>> leftToMaybe))
 
 -- | Like `eitherRouteEncoder` but uses sop-core types instead of Either/Product.
 nsRouteEncoder ::

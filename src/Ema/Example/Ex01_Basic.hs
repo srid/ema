@@ -6,6 +6,7 @@ module Ema.Example.Ex01_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
+import Ema.Route.Generic
 import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
@@ -17,10 +18,15 @@ data Route
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo, IsRoute)
+    (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels, IsRoute)
+    via (Route `WithModel` ())
 
 instance EmaSite Route where
-  siteOutput enc m r =
+  siteInput _ _ = pure $ pure ()
+  siteOutput rp () r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
@@ -36,7 +42,7 @@ instance EmaSite Route where
       routeElem r' w = do
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
-        A.href (fromString . toString $ Ema.routeUrl enc m r')
+        A.href (fromString . toString $ Ema.routeUrl rp r')
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

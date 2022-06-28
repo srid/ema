@@ -4,10 +4,7 @@ module Optics.CtxPrism (
 
   -- * Construction
   fromPrism,
-
-  -- * Functions
-  cpreview,
-  creview,
+  toPrism,
 
   -- * Functor
   cpmap,
@@ -40,14 +37,6 @@ toPrism f ctx = let (x, y) = f ctx in prism' x y
 fromPrism :: (ctx -> Prism' s a) -> CtxPrism ctx s a
 fromPrism f ctx = let p = f ctx in (review p, preview p)
 
--- | Like `review` but for a @CtxPrism@
-creview :: CtxPrism ctx t b -> ctx -> b -> t
-creview p ctx = review (toPrism p ctx)
-
--- | Like `preview` but for a @CtxPrism@
-cpreview :: CtxPrism ctx s a -> ctx -> s -> Maybe a
-cpreview p ctx = preview (toPrism p ctx)
-
 -- | Map a `CtxPrism`
 cpmap ::
   forall a b c d x y.
@@ -74,8 +63,17 @@ ctxPrismIsLawfulFor ::
   a ->
   s ->
   Writer [Text] Bool
-ctxPrismIsLawfulFor (toPrism -> cp) ctx a s = do
-  let p = cp ctx
+ctxPrismIsLawfulFor (toPrism -> cp) ctx =
+  prismIsLawfulFor (cp ctx)
+
+prismIsLawfulFor ::
+  forall s a.
+  (Eq a, Eq s, Show a, ToText s) =>
+  Prism' s a ->
+  a ->
+  s ->
+  Writer [Text] Bool
+prismIsLawfulFor p a s = do
   -- TODO: The logging here could be improved.
   log $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
   let s' :: s = review p a

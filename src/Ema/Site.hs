@@ -1,18 +1,16 @@
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Ema.Site (
   EmaSite (..),
 ) where
 
 import Control.Monad.Logger (MonadLoggerIO)
-import Data.SOP (I, NP (Nil))
 import Data.Some (Some)
 import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
 import Ema.Route.Class (IsRoute (RouteModel))
-import Ema.Route.Encoder (RouteEncoder)
+import Optics.Core (Prism')
 import UnliftIO (MonadUnliftIO)
 
 {- | Typeclass to orchestrate an Ema site
@@ -54,26 +52,11 @@ class IsRoute r => EmaSite r where
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
     Some CLI.Action ->
-    -- | The `RouteEncoder` associated with `r`
-    RouteEncoder (RouteModel r) r ->
     -- | The value passed by the programmer to `Ema.App.runSite`
     SiteArg r ->
     -- | Time-varying value of the model. If your model is not time-varying, use
     -- `pure` to produce a constant value.
     m (Dynamic m (RouteModel r))
-  default siteInput ::
-    forall m.
-    ( MonadIO m
-    , MonadUnliftIO m
-    , MonadLoggerIO m
-    , RouteModel r ~ NP I '[]
-    ) =>
-    Some CLI.Action ->
-    RouteEncoder (RouteModel r) r ->
-    SiteArg r ->
-    m (Dynamic m (RouteModel r))
-  siteInput _ _ _ =
-    pure $ pure Nil
 
   -- | Return the generated asset for the given route and model.
-  siteOutput :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
+  siteOutput :: Prism' FilePath r -> RouteModel r -> r -> Asset LByteString
