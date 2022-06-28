@@ -18,7 +18,7 @@ import Ema.Route.Generic.Sub (
   subRoutesIso,
  )
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
-import Generics.SOP (I (..), NP)
+import Generics.SOP (I (..), NP, IsProductType, productTypeFrom)
 import Optics.Core (ReversibleOptic (re), review)
 import Prelude hiding (All, Generic)
 
@@ -29,6 +29,14 @@ instance HasSubRoutes r => HasSubRoutes (WithModel r a) where
   type SubRoutes (WithModel r a) = SubRoutes r
   subRoutesIso' =
     bimap (lmap coerce) (rmap coerce) $ subRoutesIso' @r
+
+instance
+  ( HasSubRoutes r
+  , IsProductType a (MultiModel (SubRoutes r))
+  ) =>
+  HasSubModels (WithModel r a)
+  where
+  subModels = productTypeFrom
 
 instance
   ( HasSubRoutes r

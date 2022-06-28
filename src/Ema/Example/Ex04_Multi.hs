@@ -28,6 +28,8 @@ data M = M
   , mClockFast :: Ex02.Model
   , mStore :: Ex03.Model
   }
+  deriving stock (GHC.Generic)
+  deriving anyclass (Generic)
 
 data R
   = R_Index
@@ -39,11 +41,7 @@ data R
   deriving stock (Show, Ord, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
-  deriving (IsRoute) via (R `WithModel` M)
-
-instance HasSubModels R where
-  subModels m =
-    I (mClock m) :* I (mClockFast m) :* I (mStore m) :* Nil
+  deriving (HasSubModels, IsRoute) via (R `WithModel` M)
 
 main :: IO ()
 main = do

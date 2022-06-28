@@ -8,7 +8,6 @@ import Control.Concurrent (readChan)
 import Control.Exception (throwIO)
 import Control.Monad.Logger (MonadLogger, logInfoNS)
 import Data.Aeson (FromJSON, eitherDecodeFileStrict')
-import Data.SOP (I (I), NP (Nil, (:*)))
 import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
@@ -27,7 +26,7 @@ data Model = Model
   , modelCategories :: [Category]
   }
   deriving stock (Generic)
-  deriving anyclass (FromJSON)
+  deriving anyclass (FromJSON, SOP.Generic)
 
 newtype Product = Product {unProduct :: Text}
   deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON)
@@ -43,12 +42,7 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
-  deriving (IsRoute) via (Route `WithModel` Model)
-
--- TODO: Can we derive this automatically?
-instance HasSubModels Route where
-  subModels m =
-    I (modelProducts m) :* I (modelCategories m) :* Nil
+  deriving (HasSubModels, IsRoute) via (Route `WithModel` Model)
 
 data ProductRoute
   = ProductRoute_Index
