@@ -5,7 +5,6 @@
 module Ema.Route.Generic (
   -- DerivingVia utilities
   WithModel (WithModel),
-  WithConstModel (WithConstModel),
 ) where
 
 import Data.Profunctor
@@ -50,40 +49,11 @@ instance
     WithModel . review subRoutesIso
       <$> allRoutes (subModels @r m)
 
--- | Like `WithModel`, but all (immediate) sub-routes also have `a` as their model.
-newtype WithConstModel r (a :: Type) = WithConstModel r
-
-instance HasSubRoutes r => HasSubRoutes (WithConstModel r a) where
-  type SubRoutes (WithConstModel r a) = SubRoutes r
-  subRoutesIso' =
-    bimap (lmap coerce) (rmap coerce) $ subRoutesIso' @r
-
 -- Enables derivingVia of HasSubModels
 instance
   ( HasSubRoutes r
   , NPConst I (MultiModel (SubRoutes r)) a
   ) =>
-  HasSubModels (WithConstModel r a)
+  HasSubModels (WithModel r a)
   where
   subModels = npConstFrom . I
-
-instance
-  ( HasSubRoutes r
-  , HasSubModels r
-  , mr ~ MultiRoute (SubRoutes r)
-  , mm ~ MultiModel (SubRoutes r)
-  , NPConst I mm a -- The only difference
-  , a ~ RouteModel r
-  , IsRoute mr
-  , RouteModel mr ~ NP I mm
-  ) =>
-  IsRoute (WithConstModel r a)
-  where
-  type RouteModel (WithConstModel r a) = a
-  routeEncoder =
-    routeEncoder @mr
-      & mapRouteEncoderRoute (re subRoutesIso)
-      & mapRouteEncoderModel (subModels @r)
-  allRoutes m =
-    WithConstModel . review subRoutesIso
-      <$> allRoutes (subModels @r m)

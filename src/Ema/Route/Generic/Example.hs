@@ -10,7 +10,7 @@ import Ema.App qualified as Ema
 import Ema.Asset qualified as Asset
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
-import Ema.Route.Generic (WithConstModel (..), WithModel (..))
+import Ema.Route.Generic (WithModel (..))
 import Ema.Route.Generic.Sub
 import Ema.Site
 import Generics.SOP qualified as SOP
@@ -106,12 +106,12 @@ type M2 = (Int, String)
 data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute, HasSubModels) via (WithConstModel R2 M2)
+  deriving (IsRoute, HasSubModels) via (WithModel R2 M2)
 
 data BarRoute = BarRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute, HasSubModels) via (WithConstModel BarRoute M2)
+  deriving (IsRoute, HasSubModels) via (WithModel BarRoute M2)
 
 instance EmaSite R2 where
   siteInput _ () = pure $ pure (21, "inner")

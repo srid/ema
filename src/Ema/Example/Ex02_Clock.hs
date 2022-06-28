@@ -33,7 +33,7 @@ data Route
   deriving anyclass (HasSubRoutes)
   deriving
     (HasSubModels, IsRoute)
-    via (Route `WithConstModel` Model)
+    via (Route `WithModel` Model)
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh

@@ -13,7 +13,7 @@ data Route = Route_Index
   deriving anyclass (HasSubRoutes)
   deriving
     (HasSubModels, IsRoute)
-    via (Route `WithConstModel` ())
+    via (Route `WithModel` ())
 
 {- | Without generics, defining IsRoute looks like:
 

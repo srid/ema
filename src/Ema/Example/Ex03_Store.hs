@@ -57,7 +57,7 @@ data ProductRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (HasSubRoutes) via (ProductRoute `WithSubRoutes` '[FileRoute "index.html", Product])
-  deriving (IsRoute, HasSubModels) via (ProductRoute `WithConstModel` [Product])
+  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` [Product])
 
 data CategoryRoute
   = CategoryRoute_Index
@@ -65,7 +65,7 @@ data CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving (HasSubRoutes) via (CategoryRoute `WithSubRoutes` '[FileRoute "index.html", Category])
-  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithConstModel` [Category])
+  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithModel` [Category])
 
 -- TODO: Replace this with a custom MotleyRoute delgatiion (to `IsString a => StringListRoute a`?)
 -- This way we can use the slugify behaviour here as well.

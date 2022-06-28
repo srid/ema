@@ -21,7 +21,7 @@ data Route
   deriving anyclass (HasSubRoutes)
   deriving
     (HasSubModels, IsRoute)
-    via (Route `WithConstModel` ())
+    via (Route `WithModel` ())
 
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()

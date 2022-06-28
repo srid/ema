@@ -35,7 +35,7 @@ data TopRoute = TopRoute_Index
   deriving anyclass (HasSubRoutes)
   deriving
     (HasSubModels, IsRoute)
-    via (TopRoute `WithConstModel` ())
+    via (TopRoute `WithModel` ())
 
 instance EmaSite TopRoute where
   siteInput _ _ = pure $ pure ()
