@@ -5,33 +5,15 @@
 module Ema.Example.Ex00_Hello where
 
 import Ema
-import Ema.Route.Generic
-import Generics.SOP qualified as SOP
 
-data Route = Route_Index
-  deriving stock (Show, Eq, Ord, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
-  deriving
-    (HasSubModels, IsRoute)
-    via (Route `WithModel` ())
+-- Let's newtype the unit route, because we have only one page to generate.
+newtype Route = Route ()
+  deriving newtype
+    (Show, Eq, Ord, Generic, IsRoute)
 
-{- | Without generics, defining IsRoute looks like:
-
-data IndexRoute = IndexRoute
-  deriving stock (Show, Eq)
-
-instance IsRoute IndexRoute where
-  type RouteModel IndexRoute = ()
-  routeEncoder = mkRouteEncoder $ \() ->
-    prism'
-      (\IndexRoute -> "index.html")
-      (\fp -> guard (fp == "index.html") >> pure IndexRoute)
-  allRoutes () = [IndexRoute]
--}
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()
-  siteOutput _enc _m Route_Index =
+  siteOutput _rp () (Route ()) =
     Ema.AssetGenerated Ema.Html "<b>Hello</b>, Ema"
 
 main :: IO ()

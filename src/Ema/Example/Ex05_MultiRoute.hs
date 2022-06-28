@@ -13,7 +13,6 @@ import Ema.Example.Ex03_Store qualified as Ex03
 import Ema.Route.Generic
 import Ema.Route.Lib.Multi (MultiRoute)
 import Generics.SOP (I (I), NP (Nil, (:*)))
-import Generics.SOP qualified as SOP
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -28,19 +27,13 @@ type R =
      , FolderRoute "store" Ex03.Route
      ]
 
-data TopRoute = TopRoute_Index
-  deriving stock
-    (Show, Eq, Ord, Generic)
-  deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
-  deriving
-    (HasSubModels, IsRoute)
-    via (TopRoute `WithModel` ())
+newtype TopRoute = TopRoute ()
+  deriving newtype
+    (Show, Eq, Ord, Generic, IsRoute)
 
 instance EmaSite TopRoute where
   siteInput _ _ = pure $ pure ()
-  siteOutput _enc _ TopRoute_Index =
+  siteOutput _enc _ _ =
     Ema.AssetGenerated Ema.Html renderIndex
 
 main :: IO ()

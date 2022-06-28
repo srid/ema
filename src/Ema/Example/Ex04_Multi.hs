@@ -77,7 +77,7 @@ renderIndex rp m =
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are three sites composed to produce one:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do
-        H.li $ routeElem (R_Hello Ex00.Route_Index) "Ex00_Hello"
+        H.li $ routeElem (R_Hello $ Ex00.Route ()) "Ex00_Hello"
         H.li $ routeElem (R_Basic Ex01.Route_Index) "Ex01_Basic"
         H.li $ routeElem (R_Clock Ex02.Route_Index) "Ex02_Clock"
         H.li $ routeElem (R_ClockFast Ex02.Route_Index) "Ex02_ClockFast"

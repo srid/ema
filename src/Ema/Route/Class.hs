@@ -2,7 +2,7 @@ module Ema.Route.Class (
   IsRoute (RouteModel, routeEncoder, allRoutes),
 ) where
 
-import Ema.Route.Encoder (RouteEncoder)
+import Ema.Route.Encoder (RouteEncoder, singletonRouteEncoder)
 import Prelude hiding (All, Generic)
 
 {- | Class of Ema routes
@@ -17,3 +17,9 @@ class IsRoute r where
   type RouteModel r :: Type
   routeEncoder :: RouteEncoder (RouteModel r) r
   allRoutes :: RouteModel r -> [r]
+
+-- Single element routes are represented by `()`
+instance IsRoute () where
+  type RouteModel () = ()
+  routeEncoder = singletonRouteEncoder
+  allRoutes _ = [()]
