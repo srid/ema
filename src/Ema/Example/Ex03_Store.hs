@@ -48,7 +48,7 @@ data Route
 -- TODO: Can we derive this automatically?
 instance HasSubModels Route where
   subModels m =
-    I () :* I () :* I (modelProducts m) :* I (modelCategories m) :* Nil
+    I (modelProducts m) :* I (modelCategories m) :* Nil
 
 data ProductRoute
   = ProductRoute_Index

@@ -57,7 +57,7 @@ instance IsRoute NumRoute where
 -- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
 instance HasSubModels R where
   subModels (a, b, _) =
-    I () :* I () :* I a :* I b :* Nil
+    I a :* I b :* Nil
 
 instance EmaSite R where
   siteInput _ () = pure $ pure (42, 21, "inner")
@@ -80,7 +80,7 @@ data TR = TR_Index | TR_Inner R
 
 instance HasSubModels TR where
   subModels (m, _) =
-    I () :* I m :* Nil
+    I m :* Nil
 
 instance EmaSite TR where
   siteInput x () = do
@@ -101,7 +101,7 @@ trInnerEnc enc =
 
 -- TODO: General version of this (cf. innerModel)
 trInnerModel m =
-  let I () :* I m' :* Nil = subModels @TR m
+  let I m' :* Nil = subModels @TR m
    in m'
 
 mainTop :: IO ()

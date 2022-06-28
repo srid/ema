@@ -44,7 +44,7 @@ instance EmaSite TopRoute where
 
 main :: IO ()
 main = do
-  void $ Ema.runSite @R $ I () :* I () :* I () :* I Ex02.delayNormal :* I Ex02.delayFast :* I () :* Nil
+  void $ Ema.runSite @R $ I Ex02.delayNormal :* I Ex02.delayFast :* Nil
 
 renderIndex :: LByteString
 renderIndex =

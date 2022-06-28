@@ -43,7 +43,7 @@ data R
 
 instance HasSubModels R where
   subModels m =
-    I () :* I () :* I () :* I (mClock m) :* I (mClockFast m) :* I (mStore m) :* Nil
+    I (mClock m) :* I (mClockFast m) :* I (mStore m) :* Nil
 
 main :: IO ()
 main = do
@@ -58,16 +58,16 @@ instance EmaSite R where
     x3 :: Dynamic m Ex03.Model <- siteInput @Ex03.Route cliAct ()
     pure $ liftA3 M x1 x2 x3
   siteOutput enc m sr =
-    let I () :* I m2 :* I m3 :* I m4 :* I m5 :* I m6 :* Nil = subModels @R m
+    let I m4 :* I m5 :* I m6 :* Nil = subModels @R m
      in case sr of
           R_Index ->
             Ema.AssetGenerated Ema.Html $ renderIndex enc m
           -- TODO: Can all of these be generalized? (constructor with 1 encoder; delegate)
           R_Hello r ->
             -- TODO: add `subSiteOutput enc m (_As @"R_Hello") r`?
-            siteOutput (innerEncoderWithModel m (_As @"R_Hello") enc) m2 r
+            siteOutput (innerEncoderWithModel m (_As @"R_Hello") enc) () r
           R_Basic r ->
-            siteOutput (innerEncoderWithModel m (_As @"R_Basic") enc) m3 r
+            siteOutput (innerEncoderWithModel m (_As @"R_Basic") enc) () r
           R_Clock r ->
             siteOutput (innerEncoderWithModel m (_As @"R_Clock") enc) m4 r
           R_ClockFast r ->
