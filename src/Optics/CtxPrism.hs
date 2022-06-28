@@ -4,10 +4,7 @@ module Optics.CtxPrism (
 
   -- * Construction
   fromPrism,
-
-  -- * Functions
-  cpreview,
-  creview,
+  toPrism,
 
   -- * Functor
   cpmap,
@@ -39,14 +36,6 @@ toPrism f ctx = let (x, y) = f ctx in prism' x y
 
 fromPrism :: (ctx -> Prism' s a) -> CtxPrism ctx s a
 fromPrism f ctx = let p = f ctx in (review p, preview p)
-
--- | Like `review` but for a @CtxPrism@
-creview :: CtxPrism ctx t b -> ctx -> b -> t
-creview p ctx = review (toPrism p ctx)
-
--- | Like `preview` but for a @CtxPrism@
-cpreview :: CtxPrism ctx s a -> ctx -> s -> Maybe a
-cpreview p ctx = preview (toPrism p ctx)
 
 -- | Map a `CtxPrism`
 cpmap ::

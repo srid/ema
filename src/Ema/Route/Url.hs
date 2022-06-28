@@ -11,17 +11,17 @@ module Ema.Route.Url (
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.Text qualified as T
-import Ema.Route.Encoder (RouteEncoder, encodeRoute)
 import Network.URI.Slug qualified as Slug
+import Optics.Core (Prism', review)
 
 {- | Return the relative URL of the given route
 
  As the returned URL is relative, you will have to either make it absolute (by
  prepending with `/`) or set the `<base>` URL in your HTML head element.
 -}
-routeUrlWith :: HasCallStack => UrlStrategy -> RouteEncoder a r -> a -> r -> Text
-routeUrlWith urlStrategy enc model =
-  relUrlFromPath . encodeRoute enc model
+routeUrlWith :: HasCallStack => UrlStrategy -> Prism' FilePath r -> r -> Text
+routeUrlWith urlStrategy rp =
+  relUrlFromPath . review rp
   where
     relUrlFromPath :: FilePath -> Text
     relUrlFromPath fp =
@@ -52,7 +52,7 @@ urlToFilePath :: Text -> FilePath
 urlToFilePath =
   toString . T.intercalate "/" . fmap (Slug.unSlug . Slug.decodeSlug) . T.splitOn "/"
 
-routeUrl :: HasCallStack => RouteEncoder a r -> a -> r -> Text
+routeUrl :: HasCallStack => Prism' FilePath r -> r -> Text
 routeUrl =
   routeUrlWith UrlDirect
 

@@ -119,7 +119,7 @@ instance EmaSite Route where
           Right store -> pure store
       log :: MonadLogger m => Text -> m ()
       log = logInfoNS "Ex03_Store"
-  siteOutput enc m@(Model storeName ps cats) r =
+  siteOutput rp (Model storeName ps cats) r =
     Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title ("Store example: " <> H.toHtml storeName) >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
@@ -161,7 +161,7 @@ instance EmaSite Route where
       routeElem r' w = do
         H.a ! A.class_ "text-red-500 hover:underline" ! routeHref r' $ w
       routeHref r' =
-        A.href (fromString . toString $ Ema.routeUrl enc m r')
+        A.href (fromString . toString $ Ema.routeUrl rp r')
 
 newtype StoreFileError = StoreFileMalformed String
   deriving stock (Show, Eq)

@@ -8,11 +8,10 @@ import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
   RouteEncoder,
   mapRouteEncoder,
-  mapRouteEncoderRoute,
  )
 import Ema.Site (EmaSite (..))
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Optics.Core (coercedTo, prism')
+import Optics.Core (coercedTo, prism', (%))
 import System.FilePath ((</>))
 import Text.Show (Show (show))
 
@@ -32,8 +31,8 @@ instance (EmaSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r) where
   type SiteArg (FolderRoute prefix r) = SiteArg r
   siteInput cliAct =
     siteInput @r cliAct
-  siteOutput enc m r =
-    siteOutput @r (mapRouteEncoderRoute coercedTo enc) m (unFolderRoute r)
+  siteOutput rp m r =
+    siteOutput @r (rp % coercedTo) m (unFolderRoute r)
 
 -- | Prefix the encoding of the given RouteEncoder.
 prefixRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (FolderRoute prefix r)

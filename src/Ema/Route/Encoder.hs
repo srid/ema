@@ -12,15 +12,16 @@ import Optics.Core (
   castOptic,
   equality,
   iso,
+  preview,
   prism',
+  review,
  )
 import Optics.CtxPrism (
   CtxPrism,
   cpmap,
-  cpreview,
-  creview,
   ctxPrismIsLawfulFor,
   fromPrism,
+  toPrism,
  )
 import System.FilePath ((</>))
 
@@ -33,11 +34,8 @@ newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
 mkRouteEncoder = RouteEncoder . fromPrism
 
-encodeRoute :: HasCallStack => RouteEncoder model r -> model -> r -> FilePath
-encodeRoute (RouteEncoder enc) = creview enc
-
-decodeRoute :: HasCallStack => RouteEncoder model r -> model -> FilePath -> Maybe r
-decodeRoute (RouteEncoder enc) = cpreview enc
+applyRouteEncoder :: RouteEncoder a r -> a -> Prism' FilePath r
+applyRouteEncoder (RouteEncoder enc) x = toPrism enc x
 
 {- | fmap over the filepath, route and model in a `RouteEncoder`
 
@@ -100,7 +98,7 @@ singletonRouteEncoder =
 
 checkRouteEncoderGivenRoute :: (HasCallStack, Eq r, Show r) => RouteEncoder a r -> a -> r -> Either Text ()
 checkRouteEncoderGivenRoute enc a r =
-  let s = encodeRoute enc a r
+  let s = review (applyRouteEncoder enc a) r
    in checkRouteEncoder enc a r s
 
 checkRouteEncoderGivenFilePath ::
@@ -112,7 +110,8 @@ checkRouteEncoderGivenFilePath ::
 checkRouteEncoderGivenFilePath enc a s = do
   -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
   let candidates = [s, s <> ".html", s </> "index.html"]
-  case asum (decodeRoute enc a <$> candidates) of
+      rp = applyRouteEncoder enc a
+  case asum (preview rp <$> candidates) of
     Nothing -> pure Nothing
     Just r -> do
       -- All candidates must be checked, and if even one passes - we let this
@@ -145,13 +144,13 @@ eitherRouteEncoder enc1 enc2 =
   mkRouteEncoder $ \m ->
     prism'
       ( either
-          (encodeRoute enc1 (fst m))
-          (encodeRoute enc2 (snd m))
+          (review (applyRouteEncoder enc1 $ fst m))
+          (review (applyRouteEncoder enc2 $ snd m))
       )
       ( \fp ->
           asum
-            [ Left <$> decodeRoute enc1 (fst m) fp
-            , Right <$> decodeRoute enc2 (snd m) fp
+            [ Left <$> preview (applyRouteEncoder enc1 $ fst m) fp
+            , Right <$> preview (applyRouteEncoder enc2 $ snd m) fp
             ]
       )
 

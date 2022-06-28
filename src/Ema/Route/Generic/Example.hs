@@ -14,6 +14,7 @@ import Ema.Route.Generic (WithConstModel (..), WithModel (..))
 import Ema.Route.Generic.Sub
 import Ema.Site
 import Generics.SOP qualified as SOP
+import Optics.Core ((%))
 import Optics.Prism (prism')
 
 -- ----------
@@ -82,17 +83,13 @@ instance EmaSite TR where
   siteInput x () = do
     m1 <- siteInput @R x ()
     pure $ fmap (,"TOP") m1
-  siteOutput enc m = \case
+  siteOutput rp m = \case
     r@TR_Index ->
       Asset.AssetGenerated Asset.Html $ show r <> show m
     TR_Inner r ->
       -- Might as well provide a `innerSiteOutput (_As @TR_Inner)`?
-      siteOutput @R (trInnerEnc enc) (trInnerModel m) r
+      siteOutput @R (rp % _As @"TR_Inner") (trInnerModel m) r
     where
-      trInnerEnc enc' =
-        enc'
-          & mapRouteEncoderRoute (_As @"TR_Inner")
-          & mapRouteEncoderModel (,undefined) -- See #94
       trInnerModel model =
         let I () :* I m' :* Nil = subModels @TR model
          in m'

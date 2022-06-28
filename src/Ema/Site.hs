@@ -10,7 +10,7 @@ import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
 import Ema.Route.Class (IsRoute (RouteModel))
-import Ema.Route.Encoder (RouteEncoder)
+import Optics.Core (Prism')
 import UnliftIO (MonadUnliftIO)
 
 {- | Typeclass to orchestrate an Ema site
@@ -59,4 +59,4 @@ class IsRoute r => EmaSite r where
     m (Dynamic m (RouteModel r))
 
   -- | Return the generated asset for the given route and model.
-  siteOutput :: RouteEncoder (RouteModel r) r -> RouteModel r -> r -> Asset LByteString
+  siteOutput :: Prism' FilePath r -> RouteModel r -> r -> Asset LByteString
