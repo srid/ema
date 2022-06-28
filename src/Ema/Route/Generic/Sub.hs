@@ -50,11 +50,7 @@ class HasSubRoutes r where
   -- | The sub-routes in the `r` (for each constructor).
   type SubRoutes r :: [Type]
 
-  #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
   type SubRoutes r = GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
-  #else 
-  type SubRoutes r = TypeError ('Text "GHC 9.2 is required to derive HasSubRoutes via anyclass")
-  #endif
 
   -- You should use @subRoutesIso@ instead of this function directly.
   subRoutesIso' :: ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
@@ -141,6 +137,9 @@ type family
           )
       )
       suffix
+#else 
+type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
+  GSubRoutes _ _ _ = TypeError ('Text "GHC 9.2 is required for anyclass deriving of HasSubRoutes")
 #endif
 
 class HasSubRoutes r => HasSubModels r where
