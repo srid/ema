@@ -1,8 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Demonstration of merging multiple sites using `Ema.Route.Lib.Multi`
-module Ema.Example.Ex05_MultiGeneric where
+-- | Demonstration of `MultiRoute`.
+module Ema.Example.Ex05_MultiRoute where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
@@ -49,7 +49,7 @@ main = do
 
 renderIndex :: LByteString
 renderIndex =
-  tailwindLayout (H.title "Ex05_MultiGeneric" >> H.base ! A.href "/") $
+  tailwindLayout (H.title "Ex05_MultiRoute" >> H.base ! A.href "/") $
     H.div ! A.class_ "container mx-auto text-center mt-8 p-2" $ do
       H.p "You can compose Ema sites. Here are three sites composed to produce one, using Ema.Route.Lib.Multi:"
       H.ul ! A.class_ "flex flex-col justify-center .items-center mt-4 space-y-4" $ do

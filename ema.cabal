@@ -156,7 +156,7 @@ library
       Ema.Example.Ex02_Clock
       Ema.Example.Ex03_Store
       Ema.Example.Ex04_Multi
-      Ema.Example.Ex05_MultiGeneric
+      Ema.Example.Ex05_MultiRoute
       Ema.Route.Generic.Example
 
   hs-source-dirs:     src
