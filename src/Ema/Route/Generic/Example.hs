@@ -25,8 +25,7 @@ type M = (Int, Int, String)
 data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute) via (WithModel R M) -- This only works if SubModels R ~ M
-
+  deriving (IsRoute) via (WithModel R M)
 -- ^ HasSubRoutes instance generates:
 
 {-
@@ -52,9 +51,6 @@ instance IsRoute NumRoute where
           pure NumRoute
   allRoutes _ = [NumRoute]
 
--- TODO: In many simple cases (such as single model cases) this can be derived
--- generically. But allow the user to define this manually if need be. Also cf.
--- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
 instance HasSubModels R where
   subModels (a, b, _) =
     I () :* I () :* I a :* I b :* Nil
@@ -76,7 +72,7 @@ type TM = (M, String)
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute) via (WithModel TR TM) -- This only works if SubModels R ~ M
+  deriving (IsRoute) via (WithModel TR TM)
 
 instance HasSubModels TR where
   subModels (m, _) =
@@ -92,17 +88,14 @@ instance EmaSite TR where
     TR_Inner r ->
       -- Might as well provide a `innerSiteOutput (_As @TR_Inner)`?
       siteOutput @R (trInnerEnc enc) (trInnerModel m) r
-
--- TODO: General version of this (cf. innerRouteEncoder)
-trInnerEnc enc =
-  enc
-    & mapRouteEncoderRoute (_As @"TR_Inner")
-    & mapRouteEncoderModel (,undefined) -- See #94
-
--- TODO: General version of this (cf. innerModel)
-trInnerModel m =
-  let I () :* I m' :* Nil = subModels @TR m
-   in m'
+    where
+      trInnerEnc enc' =
+        enc'
+          & mapRouteEncoderRoute (_As @"TR_Inner")
+          & mapRouteEncoderModel (,undefined) -- See #94
+      trInnerModel model =
+        let I () :* I m' :* Nil = subModels @TR model
+         in m'
 
 mainTop :: IO ()
 mainTop = Ema.runSite_ @TR ()
