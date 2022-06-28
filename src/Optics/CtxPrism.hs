@@ -63,8 +63,17 @@ ctxPrismIsLawfulFor ::
   a ->
   s ->
   Writer [Text] Bool
-ctxPrismIsLawfulFor (toPrism -> cp) ctx a s = do
-  let p = cp ctx
+ctxPrismIsLawfulFor (toPrism -> cp) ctx =
+  prismIsLawfulFor (cp ctx)
+
+prismIsLawfulFor ::
+  forall s a.
+  (Eq a, Eq s, Show a, ToText s) =>
+  Prism' s a ->
+  a ->
+  s ->
+  Writer [Text] Bool
+prismIsLawfulFor p a s = do
   -- TODO: The logging here could be improved.
   log $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
   let s' :: s = review p a

@@ -16,13 +16,8 @@ import Optics.Core (
   prism',
   review,
  )
-import Optics.CtxPrism (
-  CtxPrism,
-  cpmap,
-  ctxPrismIsLawfulFor,
-  fromPrism,
-  toPrism,
- )
+import Optics.CtxPrism (CtxPrism)
+import Optics.CtxPrism qualified as CtxPrism
 import System.FilePath ((</>))
 
 {- | An encoder cum decoder that knows how to convert routes to and from
@@ -32,10 +27,10 @@ newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
 
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
-mkRouteEncoder = RouteEncoder . fromPrism
+mkRouteEncoder = RouteEncoder . CtxPrism.fromPrism
 
 applyRouteEncoder :: RouteEncoder a r -> a -> Prism' FilePath r
-applyRouteEncoder (RouteEncoder enc) x = toPrism enc x
+applyRouteEncoder (RouteEncoder enc) x = CtxPrism.toPrism enc x
 
 {- | fmap over the filepath, route and model in a `RouteEncoder`
 
@@ -49,7 +44,7 @@ mapRouteEncoder ::
   RouteEncoder a r1 ->
   RouteEncoder b r2
 mapRouteEncoder fp r m (RouteEncoder enc) =
-  RouteEncoder $ cpmap (castOptic fp) (castOptic r) m enc
+  RouteEncoder $ CtxPrism.cpmap (castOptic fp) (castOptic r) m enc
 
 -- | Like `mapRouteEncoder` but maps only the route
 mapRouteEncoderRoute :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
@@ -129,7 +124,7 @@ checkRouteEncoderGivenFilePath enc a s = do
 checkRouteEncoder :: (Eq r, Show r) => RouteEncoder a r -> a -> r -> FilePath -> Either Text ()
 checkRouteEncoder (RouteEncoder p) a r s =
   let (valid, checkLog) =
-        runWriter $ ctxPrismIsLawfulFor p a r s
+        runWriter $ CtxPrism.ctxPrismIsLawfulFor p a r s
    in if valid
         then Right ()
         else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
@@ -142,17 +137,19 @@ eitherRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a,
 eitherRouteEncoder enc1 enc2 =
   -- TODO: this can be made safe, using lens composition.
   mkRouteEncoder $ \m ->
-    prism'
-      ( either
-          (review (applyRouteEncoder enc1 $ fst m))
-          (review (applyRouteEncoder enc2 $ snd m))
-      )
-      ( \fp ->
-          asum
-            [ Left <$> preview (applyRouteEncoder enc1 $ fst m) fp
-            , Right <$> preview (applyRouteEncoder enc2 $ snd m) fp
-            ]
-      )
+    let rp1 = applyRouteEncoder enc1 $ fst m
+        rp2 = applyRouteEncoder enc2 $ snd m
+     in prism'
+          ( either
+              (review rp1)
+              (review rp2)
+          )
+          ( \fp ->
+              asum
+                [ Left <$> preview rp1 fp
+                , Right <$> preview rp2 fp
+                ]
+          )
 
 {- | Combine two `RouteEncoder`s into a single one
 
