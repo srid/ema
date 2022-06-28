@@ -16,6 +16,7 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
+import Ema.Route.Generic
 import Generics.SOP qualified as SOP
 import Optics.Core (Prism')
 import Text.Blaze.Html5 ((!))

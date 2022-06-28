@@ -1,20 +1,15 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
--- | WIP https://github.com/srid/ema/issues/92
 module Ema.Route.Generic (
-  -- DerivingVia utilities
   WithModel (WithModel),
+  module X,
 ) where
 
 import Data.Profunctor
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
-import Ema.Route.Generic.Sub (
-  HasSubModels (..),
-  HasSubRoutes (..),
-  subRoutesIso,
- )
+import Ema.Route.Generic.Sub as X
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.TypeLits
 import Generics.SOP (I (..), NP (Nil, (:*)))

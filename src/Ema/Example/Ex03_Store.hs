@@ -13,6 +13,7 @@ import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
+import Ema.Route.Generic
 import Generics.SOP qualified as SOP
 import Optics.Core (Iso', iso)
 import System.FSNotify qualified as FSNotify

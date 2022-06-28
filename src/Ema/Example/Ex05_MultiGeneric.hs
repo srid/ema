@@ -10,6 +10,7 @@ import Ema.Example.Ex00_Hello qualified as Ex00
 import Ema.Example.Ex01_Basic qualified as Ex01
 import Ema.Example.Ex02_Clock qualified as Ex02
 import Ema.Example.Ex03_Store qualified as Ex03
+import Ema.Route.Generic
 import Ema.Route.Lib.Multi (MultiRoute)
 import Generics.SOP (I (I), NP (Nil, (:*)))
 import Generics.SOP qualified as SOP
