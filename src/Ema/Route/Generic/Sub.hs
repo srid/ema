@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
@@ -22,7 +23,11 @@ import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
+#if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
+#else 
+import GHC.TypeLits
+#endif
 import Generics.SOP (
   All,
   I (..),
@@ -43,9 +48,13 @@ import Prelude hiding (All)
 -}
 class HasSubRoutes r where
   -- | The sub-routes in the `r` (for each constructor).
-  type SubRoutes r :: [Type] -- TODO: Derive this generically
+  type SubRoutes r :: [Type]
 
+  #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
   type SubRoutes r = GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
+  #else 
+  type SubRoutes r = TypeError ('Text "GHC 9.2 is required to derive HasSubRoutes via anyclass")
+  #endif
 
   -- You should use @subRoutesIso@ instead of this function directly.
   subRoutesIso' :: ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
@@ -103,6 +112,7 @@ type ValidSubRoutes r subRoutes =
   , AllZipF Coercible subRoutes (RCode r)
   )
 
+#if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
   GSubRoutes _ _ '[] = '[]
   GSubRoutes name (c ': cs) (() ': xs) =
@@ -131,6 +141,7 @@ type family
           )
       )
       suffix
+#endif
 
 class HasSubRoutes r => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
