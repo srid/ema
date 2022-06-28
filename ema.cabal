@@ -125,7 +125,6 @@ library
     ViewPatterns
 
   exposed-modules:
-    Data.SOP.Extra
     Ema
     Ema.App
     Ema.Asset
