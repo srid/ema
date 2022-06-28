@@ -56,7 +56,7 @@ instance EmaSite R where
     x3 :: Dynamic m Ex03.Model <- siteInput @Ex03.Route cliAct ()
     pure $ liftA3 M x1 x2 x3
   siteOutput enc m sr =
-    let I m4 :* I m5 :* I m6 :* Nil = subModels @R m
+    let I m4 :* I m5 :* I m6 :* Nil = view (subModelsLens @R) m
      in case sr of
           R_Index ->
             Ema.AssetGenerated Ema.Html $ renderIndex enc m

@@ -6,7 +6,8 @@
 module Ema.Route.Generic.Sub (
   HasSubRoutes (SubRoutes, subRoutesIso'),
   subRoutesIso,
-  HasSubModels (subModels),
+  HasSubModels (subModelsLens'),
+  subModelsLens,
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
   -- Export these for DerivingVia coercion representations
@@ -32,7 +33,7 @@ import Generics.SOP (
   Top,
  )
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', iso)
+import Optics.Core (Iso', iso, Lens', lens)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -134,4 +135,11 @@ type family
 
 class HasSubRoutes r => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
-  subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
+  subModelsLens' :: ( RouteModel r -> NP I (MultiModel (SubRoutes r))
+                    , RouteModel r -> NP I (MultiModel (SubRoutes r)) -> RouteModel r
+                    )
+
+-- We cannot put this inside the `HasSubModels` type-class due to coercion issues with DerivingVia
+-- See https://stackoverflow.com/a/71490273/55246
+subModelsLens :: forall r. HasSubModels r => Lens' (RouteModel r) (NP I (MultiModel (SubRoutes r)))
+subModelsLens = uncurry lens (subModelsLens' @r)

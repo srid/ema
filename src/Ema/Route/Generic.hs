@@ -16,10 +16,11 @@ import Ema.Route.Generic.Sub (
   HasSubModels (..),
   HasSubRoutes (..),
   subRoutesIso,
+  subModelsLens,
  )
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
-import Generics.SOP (I (..), NP, IsProductType, productTypeFrom)
-import Optics.Core (ReversibleOptic (re), review)
+import Generics.SOP (I (..), NP, IsProductType, productTypeFrom, productTypeTo)
+import Optics.Core (ReversibleOptic (re), review, view)
 import Prelude hiding (All, Generic)
 
 -- | Mark a route as associated with a model type.
@@ -36,7 +37,7 @@ instance
   ) =>
   HasSubModels (WithModel r a)
   where
-  subModels = productTypeFrom
+  subModelsLens' = (productTypeFrom, const productTypeTo)
 
 instance
   ( HasSubRoutes r
@@ -53,10 +54,10 @@ instance
   routeEncoder =
     routeEncoder @mr
       & mapRouteEncoderRoute (re subRoutesIso)
-      & mapRouteEncoderModel (subModels @r)
+      & mapRouteEncoderModel (view (subModelsLens @r))
   allRoutes m =
     WithModel . review subRoutesIso
-      <$> allRoutes (subModels @r m)
+      <$> allRoutes (view (subModelsLens @r) m)
 
 -- | Like `WithModel`, but all (immediate) sub-routes also have `a` as their model.
 newtype WithConstModel r (a :: Type) = WithConstModel r
@@ -73,7 +74,7 @@ instance
   ) =>
   HasSubModels (WithConstModel r a)
   where
-  subModels = npConstFrom . I
+  subModelsLens' = (npConstFrom . I, undefined)
 
 instance
   ( HasSubRoutes r
@@ -91,7 +92,7 @@ instance
   routeEncoder =
     routeEncoder @mr
       & mapRouteEncoderRoute (re subRoutesIso)
-      & mapRouteEncoderModel (subModels @r)
+      & mapRouteEncoderModel (view (subModelsLens @r))
   allRoutes m =
     WithConstModel . review subRoutesIso
-      <$> allRoutes (subModels @r m)
+      <$> allRoutes (view (subModelsLens @r) m)

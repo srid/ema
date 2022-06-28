@@ -15,6 +15,7 @@ import Ema.Route.Generic.Sub
 import Ema.Site
 import Generics.SOP qualified as SOP
 import Optics.Prism (prism')
+import Optics.Core (view)
 
 -- ----------
 -- Examples
@@ -56,8 +57,10 @@ instance IsRoute NumRoute where
 -- generically. But allow the user to define this manually if need be. Also cf.
 -- Sub-type. https://hackage.haskell.org/package/records-sop-0.1.1.0/docs/Generics-SOP-Record-SubTyping.html
 instance HasSubModels R where
-  subModels (a, b, _) =
-    I a :* I b :* Nil
+  subModelsLens' =
+    ( \(a, b, _) -> I a :* I b :* Nil
+    , \(_, _, s) (I a :* I b :* Nil) -> (a, b, s)
+    )
 
 instance EmaSite R where
   siteInput _ () = pure $ pure (42, 21, "inner")
@@ -79,8 +82,9 @@ data TR = TR_Index | TR_Inner R
   deriving (IsRoute) via (WithModel TR TM) -- This only works if SubModels R ~ M
 
 instance HasSubModels TR where
-  subModels (m, _) =
-    I m :* Nil
+  subModelsLens' =
+    ( \(m, _) -> I m :* Nil
+    , \(_, y) (I m' :* Nil) -> (m', y))
 
 instance EmaSite TR where
   siteInput x () = do
@@ -101,7 +105,7 @@ trInnerEnc enc =
 
 -- TODO: General version of this (cf. innerModel)
 trInnerModel m =
-  let I m' :* Nil = subModels @TR m
+  let I m' :* Nil = view (subModelsLens @TR) m
    in m'
 
 mainTop :: IO ()
