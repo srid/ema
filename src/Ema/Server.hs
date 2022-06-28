@@ -19,7 +19,6 @@ import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
 import Ema.Route.Encoder (
   applyRouteEncoder,
   checkRouteEncoderGivenFilePath,
-  encodeRoute,
  )
 import Ema.Route.Url (urlToFilePath)
 import Ema.Site (EmaSite (siteOutput))
@@ -33,6 +32,7 @@ import Network.Wai.Handler.WebSockets qualified as WaiWs
 import Network.Wai.Middleware.Static qualified as Static
 import Network.WebSockets (ConnectionException)
 import Network.WebSockets qualified as WS
+import Optics.Core (review)
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 import UnliftIO.Concurrent (threadDelay)
@@ -119,7 +119,7 @@ runServerWithWebSocketHotReload host mport model = do
                         AssetGenerated Other _s ->
                           -- HACK: Websocket client should check for REDIRECT prefix.
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (encodeRoute enc s r)
+                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (applyRouteEncoder enc s) r)
                       log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -179,7 +179,7 @@ runServerWithWebSocketHotReload host mport model = do
                 let s = html <> wsClientHtml <> wsClientJS
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
-                let mimeType = Static.getMimeType $ encodeRoute enc val r
+                let mimeType = Static.getMimeType $ review (applyRouteEncoder enc val) r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
       unsafeCatch (siteOutput (applyRouteEncoder enc m) m r) $ \(err :: SomeException) ->
@@ -225,7 +225,7 @@ pathInfoFromWsMsg =
   filter (/= "") . T.splitOn "/" . T.drop 1
 
 decodeRouteNothingMsg :: Text
-decodeRouteNothingMsg = "Ema: 404 (decodeRoute returned Nothing)"
+decodeRouteNothingMsg = "Ema: 404 (route decoding returned Nothing)"
 
 data BadRouteEncoding r = BadRouteEncoding
   { _bre_urlFilePath :: FilePath

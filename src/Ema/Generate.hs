@@ -21,9 +21,9 @@ import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
 import Ema.Route.Encoder (
   applyRouteEncoder,
   checkRouteEncoderGivenRoute,
-  encodeRoute,
  )
 import Ema.Site (EmaSite (siteOutput))
+import Optics.Core (review)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
@@ -83,7 +83,7 @@ generateSiteFromModel' dest model = do
   -- Enumerate and write all routes.
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   fmap concat . forM routes $ \r -> do
-    let fp = dest </> encodeRoute enc model r
+    let fp = dest </> review rp r
     case siteOutput rp model r of
       AssetStatic staticPath -> do
         liftIO (doesPathExist staticPath) >>= \case

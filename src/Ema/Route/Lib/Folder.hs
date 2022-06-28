@@ -8,7 +8,6 @@ import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
   RouteEncoder,
   mapRouteEncoder,
-  mapRouteEncoderRoute,
  )
 import Ema.Site (EmaSite (..))
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)

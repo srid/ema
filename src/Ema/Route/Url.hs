@@ -11,7 +11,6 @@ module Ema.Route.Url (
 import Data.Aeson (FromJSON (parseJSON), Value)
 import Data.Aeson.Types (Parser)
 import Data.Text qualified as T
-import Ema.Route.Encoder (RouteEncoder, encodeRoute)
 import Network.URI.Slug qualified as Slug
 import Optics.Core (Prism', review)
 

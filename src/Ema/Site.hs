@@ -10,7 +10,6 @@ import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
 import Ema.Route.Class (IsRoute (RouteModel))
-import Ema.Route.Encoder (RouteEncoder)
 import Optics.Core (Prism')
 import UnliftIO (MonadUnliftIO)
 
