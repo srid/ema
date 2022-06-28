@@ -23,7 +23,8 @@ import Text.Blaze.Html5.Attributes qualified as A
 import Prelude hiding (Product)
 
 data Model = Model
-  { modelProducts :: [Product]
+  { modelStoreName :: Text
+  , modelProducts :: [Product]
   , modelCategories :: [Category]
   }
   deriving stock (Generic)
@@ -118,11 +119,11 @@ instance EmaSite Route where
           Right store -> pure store
       log :: MonadLogger m => Text -> m ()
       log = logInfoNS "Ex03_Store"
-  siteOutput enc m@(Model ps cats) r =
+  siteOutput enc m@(Model storeName ps cats) r =
     Ema.AssetGenerated Ema.Html $
-      tailwindLayout (H.title "Store example (Ema)" >> H.base ! A.href "/") $
+      tailwindLayout (H.title ("Store example: " <> H.toHtml storeName) >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
-          H.h1 ! A.class_ "text-3xl font-bold" $ "Store"
+          H.h1 ! A.class_ "text-3xl font-bold" $ H.toHtml storeName
           case r of
             Route_Index -> do
               "You are on the index page. "
