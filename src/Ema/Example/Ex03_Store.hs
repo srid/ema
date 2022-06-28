@@ -16,7 +16,7 @@ import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
 import Ema.Route.Generic
 import Generics.SOP qualified as SOP
-import Optics.Core (prism')
+import Optics.Core (coercedTo, iso, prism', (%))
 import System.FSNotify qualified as FSNotify
 import System.FilePath (takeFileName, (</>))
 import Text.Blaze.Html5 ((!))
@@ -92,10 +92,13 @@ newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}
 instance (IsString r, ToString r, Eq r, Ord r) => IsRoute (StringRoute a r) where
   type RouteModel (StringRoute a r) = Map r a
   routeEncoder = mkRouteEncoder \(as :: Map r a) ->
-    prism' (toString . unStringRoute) $ \fp -> do
-      let r = fromString fp
-      guard $ r `Map.member` as
-      pure $ StringRoute r
+    htmlSuffixPrism
+      % iso fromString toString
+      % mapMemberPrism as
+      % coercedTo
+    where
+      mapMemberPrism m =
+        prism' id $ \r -> do pure r <* (guard $ r `Map.member` m)
   allRoutes as = StringRoute <$> Map.keys as
 
 main :: IO ()
@@ -149,7 +152,7 @@ instance EmaSite Route where
                     H.li $ routeElem (Route_Products $ ProductRoute_Product k) $ H.toHtml p
                   routeElem Route_Index "Back to index"
                 ProductRoute_Product name -> do
-                  H.h3 ! A.class_ "p-2 border-2" $ fromString . toString $ name
+                  H.h3 ! A.class_ "p-2 border-2" $ show $ Map.lookup name ps
                   routeElem (Route_Products ProductRoute_Index) "Back to products"
             Route_Category cr -> do
               H.h2 "Categories"
@@ -160,7 +163,7 @@ instance EmaSite Route where
                     H.li $ routeElem (Route_Category $ CategoryRoute_Category k) $ H.toHtml c
                   routeElem Route_Index "Back to index"
                 CategoryRoute_Category name -> do
-                  H.h3 ! A.class_ "p-2 border-2" $ fromString . toString $ name
+                  H.h3 ! A.class_ "p-2 border-2" $ show $ Map.lookup name cats
                   routeElem (Route_Category CategoryRoute_Index) "Back to categories"
     where
       routeElem r' w = do
