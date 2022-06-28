@@ -6,12 +6,15 @@ module Ema.Route.Generic (
   module X,
 ) where
 
-import Data.Profunctor
+import Data.Profunctor (Profunctor (lmap, rmap))
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
 import Ema.Route.Generic.Sub as X
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
-import GHC.TypeLits
+import GHC.TypeLits (
+  ErrorMessage (ShowType, Text, (:<>:)),
+  TypeError,
+ )
 import Generics.SOP (I (..), NP (Nil, (:*)))
 import Optics.Core (ReversibleOptic (re), review)
 import Prelude hiding (All, Generic)

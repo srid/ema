@@ -50,8 +50,6 @@ main :: IO ()
 main = do
   void $ Ema.runSite @R ()
 
--- TODO: Can we do generic of this too?
--- Can demo in 'mergeSite' (of two Emanotes?)
 instance EmaSite R where
   siteInput cliAct () = do
     x1 :: Dynamic m Ex02.Model <- siteInput @Ex02.Route cliAct Ex02.delayNormal

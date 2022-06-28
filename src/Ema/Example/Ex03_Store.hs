@@ -1,3 +1,4 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -7,15 +8,15 @@ module Ema.Example.Ex03_Store where
 import Control.Concurrent (readChan)
 import Control.Exception (throwIO)
 import Control.Monad.Logger (MonadLogger, logInfoNS)
-import Data.Aeson (FromJSON, eitherDecodeFileStrict')
+import Data.Aeson (FromJSON, FromJSONKey, eitherDecodeFileStrict')
+import Data.Map.Strict qualified as Map
 import Data.SOP (I (I), NP (Nil, (:*)))
-import Data.Text qualified as T
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
 import Ema.Route.Generic
 import Generics.SOP qualified as SOP
-import Optics.Core (Iso', iso)
+import Optics.Core (prism')
 import System.FSNotify qualified as FSNotify
 import System.FilePath (takeFileName, (</>))
 import Text.Blaze.Html5 ((!))
@@ -25,11 +26,14 @@ import Prelude hiding (Product)
 
 data Model = Model
   { modelStoreName :: Text
-  , modelProducts :: [Product]
-  , modelCategories :: [Category]
+  , modelProducts :: Map Slug Product
+  , modelCategories :: Map Slug Category
   }
   deriving stock (Generic)
   deriving anyclass (FromJSON)
+
+newtype Slug = Slug Text
+  deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON, FromJSONKey)
 
 newtype Product = Product {unProduct :: Text}
   deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON)
@@ -54,45 +58,45 @@ instance HasSubModels Route where
 
 data ProductRoute
   = ProductRoute_Index
-  | ProductRoute_Product Product
+  | ProductRoute_Product Slug
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes) via (ProductRoute `WithSubRoutes` '[FileRoute "index.html", Product])
-  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` [Product])
+  deriving
+    (HasSubRoutes)
+    via ( ProductRoute
+            `WithSubRoutes` '[ FileRoute "index.html"
+                             , StringRoute Product Slug
+                             ]
+        )
+  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` Map Slug Product)
 
 data CategoryRoute
   = CategoryRoute_Index
-  | CategoryRoute_Category Category
+  | CategoryRoute_Category Slug
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes) via (CategoryRoute `WithSubRoutes` '[FileRoute "index.html", Category])
-  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithModel` [Category])
+  deriving
+    (HasSubRoutes)
+    via ( CategoryRoute
+            `WithSubRoutes` '[ FileRoute "index.html"
+                             , StringRoute Category Slug
+                             ]
+        )
+  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithModel` Map Slug Category)
 
--- TODO: Replace this with a custom MotleyRoute delgatiion (to `IsString a => StringListRoute a`?)
--- This way we can use the slugify behaviour here as well.
-instance IsRoute Product where
-  type RouteModel Product = [Product]
-  routeEncoder = stringRouteEncoder
-  allRoutes = id
+-- | A route represented by a stringy type; associated with a foldable of the same as its model.
+newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
 
-instance IsRoute Category where
-  type RouteModel Category = [Category]
-  routeEncoder =
-    stringRouteEncoder
-      -- Since category names can contain whitespace, we replace them in URLs
-      -- with '-'. This allows use to use stringRouteEncoder, and "fix" up its
-      -- result manually.
-      & slugifyRouteEncoder
-    where
-      slugifyRouteEncoder :: RouteEncoder a r -> RouteEncoder a r
-      slugifyRouteEncoder =
-        mapRouteEncoderFilePath (replacing " " "-")
-      replacing :: Text -> Text -> Iso' FilePath FilePath
-      replacing needle replacement =
-        iso
-          (toString . T.replace replacement needle . toText)
-          (toString . T.replace needle replacement . toText)
-  allRoutes = id
+instance (IsString r, ToString r, Eq r, Ord r) => IsRoute (StringRoute a r) where
+  type RouteModel (StringRoute a r) = Map r a
+  routeEncoder = mkRouteEncoder \(as :: Map r a) ->
+    prism' (toString . unStringRoute) $ \fp -> do
+      let r = fromString fp
+      guard $ r `Map.member` as
+      pure $ StringRoute r
+  allRoutes as = StringRoute <$> Map.keys as
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()
@@ -141,8 +145,8 @@ instance EmaSite Route where
               case pr of
                 ProductRoute_Index -> do
                   H.p "List of products go here"
-                  forM_ ps $ \(Product p) -> do
-                    H.li $ routeElem (Route_Products $ ProductRoute_Product $ fromString . toString $ p) $ H.toHtml p
+                  forM_ (Map.toList ps) $ \(k, Product p) -> do
+                    H.li $ routeElem (Route_Products $ ProductRoute_Product k) $ H.toHtml p
                   routeElem Route_Index "Back to index"
                 ProductRoute_Product name -> do
                   H.h3 ! A.class_ "p-2 border-2" $ fromString . toString $ name
@@ -152,8 +156,8 @@ instance EmaSite Route where
               case cr of
                 CategoryRoute_Index -> do
                   H.p "List of categories go here"
-                  forM_ cats $ \(Category c) -> do
-                    H.li $ routeElem (Route_Category $ CategoryRoute_Category $ fromString . toString $ c) $ H.toHtml c
+                  forM_ (Map.toList cats) $ \(k, Category c) -> do
+                    H.li $ routeElem (Route_Category $ CategoryRoute_Category k) $ H.toHtml c
                   routeElem Route_Index "Back to index"
                 CategoryRoute_Category name -> do
                   H.h3 ! A.class_ "p-2 border-2" $ fromString . toString $ name
