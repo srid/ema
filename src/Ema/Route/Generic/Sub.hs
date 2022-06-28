@@ -22,9 +22,9 @@ import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (.
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
-import GHC.TypeLits (AppendSymbol, Symbol)
+import GHC.TypeLits (AppendSymbol, Symbol, ConsSymbol)
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
-import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
+import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower, SplitAtChar)
 #else 
 import GHC.TypeLits
 #endif
@@ -109,6 +109,10 @@ type ValidSubRoutes r subRoutes =
   )
 
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
+type family AddExtension (pair :: (Symbol, Symbol)) (suffix :: Symbol) :: Symbol where
+  AddExtension '(path, "") suffix = AppendSymbol path suffix
+  AddExtension '(path, ext) suffix = AppendSymbol path (ConsSymbol '.' ext)
+
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
   GSubRoutes _ _ '[] = '[]
   GSubRoutes name (c ': cs) (() ': xs) =
@@ -127,13 +131,15 @@ type family
     Symbol
   where
   Constructor2RoutePath name constr suffix =
-    AppendSymbol
+    AddExtension
       ( -- Instead of ToLower we want Camel2Kebab here, ideally.
         -- So that `Foo_BarQux` encodes to bar-qux instead of barqux.
-        ToLower
-          ( StripPrefix
+        SplitAtChar '_'
+          (ToLower
+            ( StripPrefix
               (AppendSymbol name "_")
               constr
+            )
           )
       )
       suffix

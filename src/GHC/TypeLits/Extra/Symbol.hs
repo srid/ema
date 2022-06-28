@@ -3,6 +3,9 @@
 module GHC.TypeLits.Extra.Symbol (
   StripPrefix,
   ToLower,
+  BeforeChar,
+  AfterChar,
+  SplitAtChar,
 ) where
 
 import GHC.TypeLits (ConsSymbol, Symbol, UnconsSymbol)
@@ -61,3 +64,22 @@ type family ToLowerC (c :: Char) :: Char where
 type family FromMaybe (def :: a) (maybe :: Maybe a) :: a where
   FromMaybe def 'Nothing = def
   FromMaybe def ( 'Just a) = a
+
+type family BeforeChar (c :: Char) (sym :: Symbol) :: Symbol where
+  BeforeChar c sym = BeforeChar' c (UnconsSymbol sym)
+
+type family BeforeChar' (char :: Char) (pair :: Maybe (Char, Symbol)) :: Symbol where
+  BeforeChar' char 'Nothing = ""
+  BeforeChar' char ( 'Just '(char, cs)) = ""
+  BeforeChar' char ( 'Just '(c,    cs)) = ConsSymbol c (BeforeChar' char (UnconsSymbol cs))
+
+type family AfterChar (c :: Char) (sym :: Symbol) :: Symbol where
+  AfterChar c sym = AfterChar' c (UnconsSymbol sym)
+
+type family AfterChar' (char :: Char) (pair :: Maybe (Char, Symbol)) :: Symbol where
+  AfterChar' char 'Nothing = ""
+  AfterChar' char ( 'Just '(char, cs)) = cs
+  AfterChar' char ( 'Just '(_,    cs)) = AfterChar' char (UnconsSymbol cs)
+
+type family SplitAtChar (char :: Char) (sym :: Symbol) :: (Symbol, Symbol) where
+  SplitAtChar char sym = '(BeforeChar char sym, AfterChar char sym)
