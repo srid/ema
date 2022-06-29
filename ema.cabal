@@ -133,6 +133,7 @@ library
     Ema.Generate
     Ema.Route.Class
     Ema.Route.Encoder
+    Ema.Route.Encoder.Check
     Ema.Route.Generic
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.Sub
@@ -142,7 +143,6 @@ library
     Ema.Route.Url
     Ema.Server
     Ema.Site
-    Optics.CtxPrism
     GHC.TypeLits.Extra
 
   if impl(ghc >=9.2)

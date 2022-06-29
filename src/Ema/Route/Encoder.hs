@@ -1,8 +1,9 @@
 -- | TODO: Export only what's necessary.
 module Ema.Route.Encoder where
 
-import Control.Monad.Writer (runWriter)
+import Control.Monad.Writer (Writer, runWriter)
 import Data.Text qualified as T
+import Ema.Route.Encoder.Check qualified as Check
 import Optics.Core (
   A_Prism,
   Is,
@@ -15,22 +16,34 @@ import Optics.Core (
   preview,
   prism',
   review,
+  (%),
  )
-import Optics.CtxPrism (CtxPrism)
-import Optics.CtxPrism qualified as CtxPrism
 import System.FilePath ((</>))
 
 {- | An encoder cum decoder that knows how to convert routes to and from
  filepaths. The conversion depends on the context `a`.
 -}
-newtype RouteEncoder a r = RouteEncoder (CtxPrism a FilePath r)
+type RouteEncoder a r = a -> Prism_ FilePath r
+
+{- | Isomorphic to `Prism' s a`, but coercion-friendly.
+
+  DerivingVia prevents us from directly using Prism' here
+  https://stackoverflow.com/q/71489589/55246
+-}
+type Prism_ s a = (a -> s, s -> Maybe a)
+
+fromPrism_ :: Prism_ s a -> Prism' s a
+fromPrism_ = uncurry prism'
+
+toPrism_ :: Prism' s a -> Prism_ s a
+toPrism_ = review &&& preview
 
 -- | Make a `RouteEncoder` manually.
 mkRouteEncoder :: (a -> Prism' FilePath r) -> RouteEncoder a r
-mkRouteEncoder = RouteEncoder . CtxPrism.fromPrism
+mkRouteEncoder f = toPrism_ . f
 
 applyRouteEncoder :: RouteEncoder a r -> a -> Prism' FilePath r
-applyRouteEncoder (RouteEncoder enc) x = CtxPrism.toPrism enc x
+applyRouteEncoder f = fromPrism_ . f
 
 {- | fmap over the filepath, route and model in a `RouteEncoder`
 
@@ -43,8 +56,18 @@ mapRouteEncoder ::
   (b -> a) ->
   RouteEncoder a r1 ->
   RouteEncoder b r2
-mapRouteEncoder fp r m (RouteEncoder enc) =
-  RouteEncoder $ CtxPrism.cpmap (castOptic fp) (castOptic r) m enc
+mapRouteEncoder fp r m enc =
+  mkRouteEncoder $ cpmap (castOptic fp) (castOptic r) m $ applyRouteEncoder enc
+  where
+    cpmap ::
+      forall a b c d x y.
+      Prism' b a ->
+      Prism' c d ->
+      (y -> x) ->
+      (x -> Prism' a c) ->
+      (y -> Prism' b d)
+    cpmap p q f r' ctx =
+      p % r' (f ctx) % q
 
 -- | Like `mapRouteEncoder` but maps only the route
 mapRouteEncoderRoute :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
@@ -122,9 +145,9 @@ checkRouteEncoderGivenFilePath enc a s = do
         else Right (Just r)
 
 checkRouteEncoder :: (Eq r, Show r) => RouteEncoder a r -> a -> r -> FilePath -> Either Text ()
-checkRouteEncoder (RouteEncoder p) a r s =
+checkRouteEncoder p a r s =
   let (valid, checkLog) =
-        runWriter $ CtxPrism.ctxPrismIsLawfulFor p a r s
+        runWriter $ routeEncoderIsLawfulFor p a r s
    in if valid
         then Right ()
         else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
@@ -173,3 +196,21 @@ combineRouteEncoder rf mf enc1 enc2 =
   eitherRouteEncoder enc1 enc2
     & mapRouteEncoderRoute rf
     & mapRouteEncoderModel mf
+
+{- | Check if the @CtxPrism@ is lawful.
+
+  A @CtxPrism@ is lawful if its conversions both the ways form an isomorphism
+  for a given value.
+
+  Returns a Writer reporting logs.
+-}
+routeEncoderIsLawfulFor ::
+  forall ctx a.
+  (Eq a, Show a) =>
+  RouteEncoder ctx a ->
+  ctx ->
+  a ->
+  FilePath ->
+  Writer [Text] Bool
+routeEncoderIsLawfulFor enc =
+  Check.prismIsLawfulFor . applyRouteEncoder enc
