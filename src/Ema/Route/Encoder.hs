@@ -3,52 +3,47 @@ module Ema.Route.Encoder (
 
   -- * Handy encoders
   prismRouteEncoder,
-  showReadRouteEncoder,
-  stringRouteEncoder,
-  htmlSuffixEncoder,
-  htmlSuffixPrism,
   singletonRouteEncoder,
-  singletonRouteEncoderFrom,
   eitherRouteEncoder,
+
+  -- * Handy lenses
+  htmlSuffixPrism,
+  stringIso,
+  showReadPrism,
+  singletonPrism,
 ) where
 
 import Data.Text qualified as T
 import Ema.Route.Encoder.Check as X
 import Ema.Route.Encoder.Type as X
-import Optics.Core (Prism', equality, iso, preview, prism', review)
+import Optics.Core (Iso', Prism', iso, preview, prism', review)
 
--- | Like `mkRouteEncoder` but ignores the context
+{- | Like `mkRouteEncoder` but ignores the model context.
+
+  A handy list of `Prism'`'s are provided below. They are typically used in
+  conjunction with `htmlSuffixPrism` to creat a encoding for .html routes. For
+  example,
+
+  >>> prismRouteEncoder $ htmlSuffixPrism % showReadPrism
+-}
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = mkRouteEncoder . const
 
--- | A route encoder that uses Show/Read to encode/decode.
-showReadRouteEncoder :: (Show r, Read r) => RouteEncoder a r
-showReadRouteEncoder =
-  htmlSuffixEncoder
-    & mapRouteEncoder equality (prism' show readMaybe) id
+stringIso :: (ToString a, IsString a) => Iso' String a
+stringIso = iso fromString toString
 
--- | A route encoder that uses @toString@ and @fromString@ to encode and decode respectively.
-stringRouteEncoder :: (IsString r, ToString r) => RouteEncoder a r
-stringRouteEncoder =
-  htmlSuffixEncoder
-    & mapRouteEncoder equality (iso fromString toString) id
-
--- | An encoder that uses the ".html" suffix
-htmlSuffixEncoder :: RouteEncoder a FilePath
-htmlSuffixEncoder =
-  prismRouteEncoder htmlSuffixPrism
+showReadPrism :: (Show a, Read a) => Prism' String a
+showReadPrism = prism' show readMaybe
 
 htmlSuffixPrism :: Prism' FilePath FilePath
 htmlSuffixPrism = prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . toText)
 
-singletonRouteEncoderFrom :: FilePath -> RouteEncoder a ()
-singletonRouteEncoderFrom fp =
-  prismRouteEncoder $ prism' (\() -> fp) (\s -> guard (s == fp))
+singletonRouteEncoder :: FilePath -> RouteEncoder a ()
+singletonRouteEncoder fp =
+  prismRouteEncoder $ singletonPrism fp
 
--- | Route encoder for single route encoding to 'index.html'
-singletonRouteEncoder :: RouteEncoder a ()
-singletonRouteEncoder =
-  singletonRouteEncoderFrom "index.html"
+singletonPrism :: Eq a => a -> Prism' a ()
+singletonPrism x = prism' (\() -> x) (\s -> guard (s == x))
 
 {- | Returns a new @RouteEncoder@ that supports *either* of the input routes.
 

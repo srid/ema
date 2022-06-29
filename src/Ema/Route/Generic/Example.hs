@@ -6,13 +6,10 @@ module Ema.Route.Generic.Example where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (..))
-import Ema.App qualified as Ema
+import Ema
 import Ema.Asset qualified as Asset
-import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder
 import Ema.Route.Generic (WithModel (..))
 import Ema.Route.Generic.Sub
-import Ema.Site
 import Generics.SOP qualified as SOP
 import Optics.Core ((%))
 import Optics.Prism (prism')

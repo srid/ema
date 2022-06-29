@@ -21,5 +21,5 @@ class IsRoute r where
 -- Single element routes are represented by `()`
 instance IsRoute () where
   type RouteModel () = ()
-  routeEncoder = singletonRouteEncoder
+  routeEncoder = singletonRouteEncoder "index.html"
   allRoutes _ = [()]

@@ -5,7 +5,7 @@ module Ema.Route.Lib.File (
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
   mapRouteEncoder,
-  singletonRouteEncoderFrom,
+  singletonRouteEncoder,
  )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (equality, prism')
@@ -22,7 +22,7 @@ newtype FileRoute (filename :: Symbol) = FileRoute ()
 instance KnownSymbol fn => IsRoute (FileRoute fn) where
   type RouteModel (FileRoute fn) = ()
   routeEncoder =
-    singletonRouteEncoderFrom (symbolVal (Proxy @fn))
+    singletonRouteEncoder (symbolVal (Proxy @fn))
       & mapRouteEncoder equality (prism' (const ()) (const $ Just $ FileRoute ())) id
   allRoutes () =
     [FileRoute ()]
