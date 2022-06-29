@@ -8,7 +8,7 @@ module Ema.Route.Generic (
 
 import Data.Profunctor (Profunctor (lmap, rmap))
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder (mapRouteEncoderModel, mapRouteEncoderRoute)
+import Ema.Route.Encoder (mapRouteEncoder)
 import Ema.Route.Generic.Sub as X
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.TypeLits (
@@ -16,7 +16,7 @@ import GHC.TypeLits (
  )
 import GHC.TypeLits.Extra (Impossible (impossible), TypeErr)
 import Generics.SOP (I (..), NP (Nil, (:*)))
-import Optics.Core (ReversibleOptic (re), review)
+import Optics.Core (ReversibleOptic (re), equality, review)
 import Prelude hiding (All, Generic)
 
 -- | Mark a route as associated with a model type.
@@ -41,8 +41,7 @@ instance
   type RouteModel (WithModel r a) = a
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoderRoute (re subRoutesIso)
-      & mapRouteEncoderModel (subModels @r)
+      & mapRouteEncoder equality (re subRoutesIso) (subModels @r)
   allRoutes m =
     WithModel . review subRoutesIso
       <$> allRoutes (subModels @r m)

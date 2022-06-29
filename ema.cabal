@@ -134,6 +134,7 @@ library
     Ema.Route.Class
     Ema.Route.Encoder
     Ema.Route.Encoder.Check
+    Ema.Route.Encoder.Type
     Ema.Route.Generic
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.Sub

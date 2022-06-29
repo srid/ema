@@ -4,11 +4,11 @@ module Ema.Route.Lib.File (
 
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (
-  mapRouteEncoderRoute,
+  mapRouteEncoder,
   singletonRouteEncoderFrom,
  )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Optics.Core (prism')
+import Optics.Core (equality, prism')
 
 {- | A type-level singleton route, whose encoding is given by the symbol parameter.
 
@@ -23,6 +23,6 @@ instance KnownSymbol fn => IsRoute (FileRoute fn) where
   type RouteModel (FileRoute fn) = ()
   routeEncoder =
     singletonRouteEncoderFrom (symbolVal (Proxy @fn))
-      & mapRouteEncoderRoute (prism' (const ()) (const $ Just $ FileRoute ()))
+      & mapRouteEncoder equality (prism' (const ()) (const $ Just $ FileRoute ())) id
   allRoutes () =
     [FileRoute ()]

@@ -14,7 +14,7 @@ import Data.SOP (I (..), NP (..), NS (..))
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
 import Ema.Site (EmaSite (..))
-import Optics.Core (iso, prism', (%))
+import Optics.Core (equality, iso, prism', (%))
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
  sub-routes.
@@ -89,8 +89,7 @@ nsRouteEncoder ::
   RouteEncoder (NP I (a ': as)) (NS I (r ': rs))
 nsRouteEncoder a b =
   eitherRouteEncoder a b
-    & mapRouteEncoderRoute (iso toNS fromNS)
-    & mapRouteEncoderModel fromNP
+    & mapRouteEncoder equality (iso toNS fromNS) fromNP
 
 fromNP :: NP I (a ': as) -> (a, NP I as)
 fromNP (I x :* y) = (x, y)

@@ -69,18 +69,6 @@ mapRouteEncoder fp r m enc =
     cpmap p q f r' ctx =
       p % r' (f ctx) % q
 
--- | Like `mapRouteEncoder` but maps only the route
-mapRouteEncoderRoute :: pr `Is` A_Prism => Optic' pr NoIx r1 r2 -> RouteEncoder a r1 -> RouteEncoder a r2
-mapRouteEncoderRoute f = mapRouteEncoder equality f id
-
--- | Like `mapRouteEncoder` but maps only the encoded FilePath
-mapRouteEncoderFilePath :: pr `Is` A_Prism => Optic' pr NoIx FilePath FilePath -> RouteEncoder a r -> RouteEncoder a r
-mapRouteEncoderFilePath f = mapRouteEncoder f equality id
-
--- | Like `mapRouteEncoder` but (contra)maps the model
-mapRouteEncoderModel :: (b -> a) -> RouteEncoder a r2 -> RouteEncoder b r2
-mapRouteEncoderModel = mapRouteEncoder equality equality
-
 -- | Like `mkRouteEncoder` but ignores the context
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = mkRouteEncoder . const
@@ -89,13 +77,13 @@ prismRouteEncoder = mkRouteEncoder . const
 showReadRouteEncoder :: (Show r, Read r) => RouteEncoder a r
 showReadRouteEncoder =
   htmlSuffixEncoder
-    & mapRouteEncoderRoute (prism' show readMaybe)
+    & mapRouteEncoder equality (prism' show readMaybe) id
 
 -- | A route encoder that uses @toString@ and @fromString@ to encode and decode respectively.
 stringRouteEncoder :: (IsString r, ToString r) => RouteEncoder a r
 stringRouteEncoder =
   htmlSuffixEncoder
-    & mapRouteEncoderRoute (iso fromString toString)
+    & mapRouteEncoder equality (iso fromString toString) id
 
 -- | An encoder that uses the ".html" suffix
 htmlSuffixEncoder :: RouteEncoder a FilePath
@@ -113,6 +101,28 @@ singletonRouteEncoderFrom fp =
 singletonRouteEncoder :: RouteEncoder a ()
 singletonRouteEncoder =
   singletonRouteEncoderFrom "index.html"
+
+{- | Returns a new @RouteEncoder@ that supports *either* of the input routes.
+
+  The resulting @RouteEncoder@'s model type becomes the *product* of the input models.
+-}
+eitherRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
+eitherRouteEncoder enc1 enc2 =
+  -- TODO: this can be made safe, using lens composition.
+  mkRouteEncoder $ \m ->
+    let rp1 = applyRouteEncoder enc1 $ fst m
+        rp2 = applyRouteEncoder enc2 $ snd m
+     in prism'
+          ( either
+              (review rp1)
+              (review rp2)
+          )
+          ( \fp ->
+              asum
+                [ Left <$> preview rp1 fp
+                , Right <$> preview rp2 fp
+                ]
+          )
 
 checkRouteEncoderGivenRoute :: (HasCallStack, Eq r, Show r) => RouteEncoder a r -> a -> r -> Either Text ()
 checkRouteEncoderGivenRoute enc a r =
@@ -151,51 +161,6 @@ checkRouteEncoder p a r s =
    in if valid
         then Right ()
         else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
-
-{- | Returns a new @RouteEncoder@ that supports *either* of the input routes.
-
-  The resulting @RouteEncoder@'s model type becomes the *product* of the input models.
--}
-eitherRouteEncoder :: RouteEncoder a r1 -> RouteEncoder b r2 -> RouteEncoder (a, b) (Either r1 r2)
-eitherRouteEncoder enc1 enc2 =
-  -- TODO: this can be made safe, using lens composition.
-  mkRouteEncoder $ \m ->
-    let rp1 = applyRouteEncoder enc1 $ fst m
-        rp2 = applyRouteEncoder enc2 $ snd m
-     in prism'
-          ( either
-              (review rp1)
-              (review rp2)
-          )
-          ( \fp ->
-              asum
-                [ Left <$> preview rp1 fp
-                , Right <$> preview rp2 fp
-                ]
-          )
-
-{- | Combine two `RouteEncoder`s into a single one
-
-  Use the given mapping functions to transform to (or from) resultant model and
-  route types.
-
-  This is equivalent to `eitherRouteEncoder` except the resultant RouteEncoder
-  can use arbitrary model and route types (instead of `(,)` and `Either`) .
--}
-combineRouteEncoder ::
-  forall m r pr m1 m2 r1 r2.
-  Is pr A_Prism =>
-  -- | Isomorphism between either of the input routes and the output route.
-  Optic' pr NoIx (Either r1 r2) r ->
-  -- | How to retrieve the input models given the output model.
-  (m -> (m1, m2)) ->
-  RouteEncoder m1 r1 ->
-  RouteEncoder m2 r2 ->
-  RouteEncoder m r
-combineRouteEncoder rf mf enc1 enc2 =
-  eitherRouteEncoder enc1 enc2
-    & mapRouteEncoderRoute rf
-    & mapRouteEncoderModel mf
 
 {- | Check if the @CtxPrism@ is lawful.
 
