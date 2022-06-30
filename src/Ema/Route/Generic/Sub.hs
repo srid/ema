@@ -181,18 +181,6 @@ class GSubModels m (ms :: [Type]) (lookups :: [k]) where
 instance GSubModels m '[] '[] where
   gsubModels _ = Nil
 
-{-
-instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) (Const () ': ss) where
-  gsubModels m = I () :* gsubModels @_ @m @ms @ss m
-
-instance
-  {-# OVERLAPPING #-}
-  (Generic m, GSubModels m ms ss) =>
-  GSubModels m (m ': ms) (Identity ': ss)
-  where
-  gsubModels m = I m :* gsubModels @_ @m @ms @ss m
--}
-
 instance
   {-# OVERLAPPING #-}
   (HasAny s m m t t, GSubModels m ms ss) =>
