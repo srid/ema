@@ -71,7 +71,14 @@ data ProductRoute
                              , StringRoute Product Slug
                              ]
         )
-  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` Map Slug Product)
+  deriving
+    (HasSubModels)
+    via ( ProductRoute
+            `WithSubModels` [ ()
+                            , Map Slug Product
+                            ]
+        )
+  deriving (IsRoute) via (ProductRoute `WithModel` Map Slug Product)
 
 data CategoryRoute
   = CategoryRoute_Index
@@ -85,7 +92,14 @@ data CategoryRoute
                              , StringRoute Category Slug
                              ]
         )
-  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithModel` Map Slug Category)
+  deriving
+    (HasSubModels)
+    via ( CategoryRoute
+            `WithSubModels` [ ()
+                            , Map Slug Category
+                            ]
+        )
+  deriving (IsRoute) via (CategoryRoute `WithModel` Map Slug Category)
 
 -- | A route represented by a stringy type; associated with a foldable of the same as its model.
 newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}
