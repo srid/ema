@@ -10,14 +10,17 @@ module Ema.Route.Generic.Sub (
   HasSubModels (subModels),
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
+  WithSubModels (WithSubModels),
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
   FolderRoute (FolderRoute),
 ) where
 
+import Data.Generics.Product.Fields (HasField' (..))
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Route.Class (IsRoute (RouteModel))
+
 import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
@@ -28,16 +31,17 @@ import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 #else 
 import GHC.TypeLits
 #endif
+import Data.Type.Equality (type (==))
 import Generics.SOP (
   All,
   I (..),
-  NP,
+  NP (Nil, (:*)),
   NS,
   SameShapeAs,
   Top,
  )
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', iso)
+import Optics.Core (Iso', iso, view)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -145,3 +149,47 @@ type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.Constructor
 class HasSubRoutes r => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
   subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
+
+newtype r `WithSubModels` (subModels :: [Either () Symbol]) = WithSubModels r
+  deriving stock (Eq, Show)
+  deriving newtype (IsRoute, HasSubRoutes)
+
+instance
+  ( HasSubRoutes (WithSubModels r subModels)
+  , ( GSubModels
+        (RouteModel r)
+        (MultiModel (SubRoutes (WithSubModels r subModels)))
+        subModels
+    )
+  ) =>
+  HasSubModels (r `WithSubModels` subModels)
+  where
+  subModels m =
+    gsubModels
+      @(RouteModel r)
+      @(MultiModel (SubRoutes (WithSubModels r subModels)))
+      @subModels
+      m
+
+class GSubModels m (ms :: [Type]) (subModels :: [Either () Symbol]) where
+  gsubModels :: m -> NP I ms
+
+instance GSubModels m '[] '[] where
+  gsubModels _ = Nil
+
+instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) (( 'Left '()) ': ss) where
+  gsubModels m = I () :* gsubModels @m @ms @ss m
+
+instance
+  {-# OVERLAPPING #-}
+  (Generic m, HasField' s m t, (t == ()) ~ 'False, GSubModels m ms ss) =>
+  GSubModels m (t ': ms) (( 'Right s) ': ss)
+  where
+  gsubModels m = I (view (field' @s @m @t) m) :* gsubModels @m @ms @ss m
+
+{-
+instance {-# OVERLAPPABLE #-} (TypeErr ( 'Text "noooo")) => GSubModels m ms (s ': ss) where
+  gsubModels = impossible
+instance {-# OVERLAPPABLE #-} (TypeErr ( 'Text "noooo")) => GSubModels m (m ': ms) ss where
+  gsubModels = impossible
+  -}

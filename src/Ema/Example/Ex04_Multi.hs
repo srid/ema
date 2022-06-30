@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fprint-potential-instances #-}
 
 {- | Demonstration of merging multiple sites
 
@@ -9,6 +10,7 @@ module Ema.Example.Ex04_Multi where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
+
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex00_Hello qualified as Ex00
 import Ema.Example.Ex01_Basic qualified as Ex01
@@ -28,6 +30,7 @@ data M = M
   , mClockFast :: Ex02.Model
   , mStore :: Ex03.Model
   }
+  deriving stock (GHC.Generic)
 
 data R
   = R_Index
@@ -39,11 +42,18 @@ data R
   deriving stock (Show, Ord, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels)
+    via ( R
+            `WithSubModels` [ 'Left '()
+                            , 'Left '()
+                            , 'Left '()
+                            , 'Right "mClock"
+                            , 'Right "mClockFast"
+                            , 'Right "mStore"
+                            ]
+        )
   deriving (IsRoute) via (R `WithModel` M)
-
-instance HasSubModels R where
-  subModels m =
-    I () :* I () :* I () :* I (mClock m) :* I (mClockFast m) :* I (mStore m) :* Nil
 
 main :: IO ()
 main = do
