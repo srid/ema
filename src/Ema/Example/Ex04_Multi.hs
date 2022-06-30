@@ -43,12 +43,12 @@ data R
   deriving
     (HasSubModels)
     via ( R
-            `WithSubModels` [ 'Nothing
-                            , 'Nothing
-                            , 'Nothing
-                            , 'Just "mClock"
-                            , 'Just "mClockFast"
-                            , 'Just "mStore"
+            `WithSubModels` [ Const ()
+                            , Const ()
+                            , Const ()
+                            , The "mClock"
+                            , The "mClockFast"
+                            , The Ex03.Model
                             ]
         )
   deriving (IsRoute) via (R `WithModel` M)

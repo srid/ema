@@ -11,12 +11,12 @@ module Ema.Route.Generic.Sub (
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
   WithSubModels (WithSubModels),
+  The,
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
   FolderRoute (FolderRoute),
 ) where
 
-import Data.Generics.Product.Fields (HasField' (..))
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Route.Class (IsRoute (RouteModel))
@@ -31,6 +31,7 @@ import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 #else 
 import GHC.TypeLits
 #endif
+import Data.Generics.Product (HasAny (the))
 import Generics.SOP (
   All,
   I (..),
@@ -149,7 +150,14 @@ class HasSubRoutes r => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
   subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
 
-newtype r `WithSubModels` (subModels :: [Maybe Symbol]) = WithSubModels r
+{- | DerivingVia type for HasSubModels
+
+  List element types:
+  - Void: no model.
+  - The: sub model lookup via record field
+  - (): same model as larger route.
+-}
+newtype r `WithSubModels` (subModels :: [Type -> Type]) = WithSubModels r
   deriving stock (Eq, Show)
   deriving newtype (IsRoute, HasSubRoutes)
 
@@ -170,18 +178,28 @@ instance
       @subModels
       m
 
-class GSubModels m (ms :: [Type]) (subModels :: [Maybe Symbol]) where
+class GSubModels m (ms :: [Type]) (subModels :: [Type -> Type]) where
   gsubModels :: m -> NP I ms
 
 instance GSubModels m '[] '[] where
   gsubModels _ = Nil
 
-instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) ( 'Nothing ': ss) where
+instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) (Const () ': ss) where
   gsubModels m = I () :* gsubModels @m @ms @ss m
+
+-- | A `Type` corresponding to `Data.Generics.Product.Any.the` (for use in Derivingvia)
+data The (sel :: k) a
 
 instance
   {-# OVERLAPPING #-}
-  (Generic m, HasField' s m t, GSubModels m ms ss) =>
-  GSubModels m (t ': ms) (( 'Just s) ': ss)
+  (Generic m, GSubModels m ms ss) =>
+  GSubModels m (m ': ms) (Identity ': ss)
   where
-  gsubModels m = I (view (field' @s @m @t) m) :* gsubModels @m @ms @ss m
+  gsubModels m = I m :* gsubModels @m @ms @ss m
+
+instance
+  {-# OVERLAPPING #-}
+  (Generic m, HasAny s m m t t, GSubModels m ms ss) =>
+  GSubModels m (t ': ms) ((The s) ': ss)
+  where
+  gsubModels m = I (view (the @s @m @_ @t @_) m) :* gsubModels @m @ms @ss m
