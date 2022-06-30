@@ -43,12 +43,15 @@ data R
   deriving
     (HasSubModels)
     via ( R
-            `WithSubModels` [ Const ()
-                            , Const ()
-                            , Const ()
-                            , The "mClock"
+            `WithSubModels` [ ()
+                            , ()
+                            , ()
+                            , -- You can refer to a record field by the field name
+                              The "mClock"
                             , The "mClockFast"
-                            , The Ex03.Model
+                            , -- Or by the field type.
+                              -- Thanks to Data.Generics.Product.Any
+                              Ex03.Model
                             ]
         )
   deriving (IsRoute) via (R `WithModel` M)

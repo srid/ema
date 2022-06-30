@@ -1,8 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Ema.Route.Generic.Sub (
   HasSubRoutes (SubRoutes, subRoutesIso'),
@@ -41,7 +43,7 @@ import Generics.SOP (
   Top,
  )
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', iso, view)
+import Optics.Core (Iso', castOptic, equality, iso, lens, united, view)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -153,53 +155,64 @@ class HasSubRoutes r => HasSubModels r where
 {- | DerivingVia type for HasSubModels
 
   List element types:
-  - Void: no model.
-  - The: sub model lookup via record field
-  - (): same model as larger route.
+  - Const (): no model.
+  - The "field": sub model lookup via `the` from generic-optics
+  - Identity: same model as larger route.
 -}
-newtype r `WithSubModels` (subModels :: [Type -> Type]) = WithSubModels r
+newtype r `WithSubModels` (subModels :: [k]) = WithSubModels r
   deriving stock (Eq, Show)
   deriving newtype (IsRoute, HasSubRoutes)
 
 instance
-  ( HasSubRoutes (WithSubModels r subModels)
-  , ( GSubModels
-        (RouteModel r)
-        (MultiModel (SubRoutes (WithSubModels r subModels)))
-        subModels
-    )
+  ( HasSubRoutes (r `WithSubModels` subModels)
+  , GSubModels
+      (RouteModel r)
+      (MultiModel (SubRoutes r))
+      subModels
   ) =>
-  HasSubModels (r `WithSubModels` subModels)
+  HasSubModels (r `WithSubModels` (subModels :: [k]))
   where
   subModels m =
     gsubModels
+      @_
       @(RouteModel r)
-      @(MultiModel (SubRoutes (WithSubModels r subModels)))
+      @(MultiModel (SubRoutes r))
       @subModels
       m
 
-class GSubModels m (ms :: [Type]) (subModels :: [Type -> Type]) where
+class GSubModels m (ms :: [Type]) (subModels :: [k]) where
   gsubModels :: m -> NP I ms
 
 instance GSubModels m '[] '[] where
   gsubModels _ = Nil
 
+{-
 instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) (Const () ': ss) where
-  gsubModels m = I () :* gsubModels @m @ms @ss m
-
--- | A `Type` corresponding to `Data.Generics.Product.Any.the` (for use in Derivingvia)
-data The (sel :: k) a
+  gsubModels m = I () :* gsubModels @_ @m @ms @ss m
 
 instance
   {-# OVERLAPPING #-}
   (Generic m, GSubModels m ms ss) =>
   GSubModels m (m ': ms) (Identity ': ss)
   where
-  gsubModels m = I m :* gsubModels @m @ms @ss m
+  gsubModels m = I m :* gsubModels @_ @m @ms @ss m
+-}
+
+-- | A `Type` corresponding to `Data.Generics.Product.Any.the` (for use in Derivingvia)
+data The (sel :: k)
 
 instance
   {-# OVERLAPPING #-}
   (Generic m, HasAny s m m t t, GSubModels m ms ss) =>
-  GSubModels m (t ': ms) ((The s) ': ss)
+  GSubModels m (t ': ms) (s ': ss)
   where
-  gsubModels m = I (view (the @s @m @_ @t @_) m) :* gsubModels @m @ms @ss m
+  gsubModels m = I (view (the @s @m @_ @t @_) m) :* gsubModels @_ @m @ms @ss m
+
+instance {-# OVERLAPPING #-} HasAny () s s () () where
+  the = united
+
+instance HasAny s s s s s where
+  the = castOptic equality
+
+instance HasAny sel s s a a => HasAny (The sel) s s a a where
+  the = the @sel
