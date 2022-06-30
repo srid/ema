@@ -12,7 +12,6 @@ module Ema.Route.Generic.Sub (
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
   WithSubModels (WithSubModels),
-  The (..),
   GSubModels (..),
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
@@ -42,7 +41,7 @@ import Generics.SOP (
   Top,
  )
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', castOptic, equality, iso, united, view)
+import Optics.Core (Iso', iso, united, view)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -207,17 +206,4 @@ instance {-# OVERLAPPING #-} HasAny () s s () () where
   the = united
 
 instance HasAny sel s t a b => HasAny (Proxy sel) s t a b where
-  the = the @sel
-
-data The = TheUnit | TheId | TheField Symbol | TheType Type
-instance {-# OVERLAPPING #-} HasAny 'TheUnit s s () () where
-  the = united
-
-instance {-# OVERLAPPING #-} HasAny 'TheId s s s s where
-  the = castOptic equality
-
-instance HasAny sel s t a b => HasAny ( 'TheField sel) s t a b where
-  the = the @sel
-
-instance HasAny sel s t a b => HasAny ( 'TheType sel) s t a b where
   the = the @sel
