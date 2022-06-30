@@ -25,6 +25,8 @@ import Optics.Core (Iso', Prism', iso, preview, prism', review)
   example,
 
   >>> prismRouteEncoder $ htmlSuffixPrism % showReadPrism
+
+  See @singletonRouteEncoder@ for an example.
 -}
 prismRouteEncoder :: forall r a. Prism' FilePath r -> RouteEncoder a r
 prismRouteEncoder = mkRouteEncoder . const
@@ -38,6 +40,11 @@ showReadPrism = prism' show readMaybe
 htmlSuffixPrism :: Prism' FilePath FilePath
 htmlSuffixPrism = prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . toText)
 
+{- | A @RouteEncoder@ representing the singleton route, using the given encoding for that singleton value.
+
+  Typically used as `singletonRouteEncoder "index.html"` for a single-page site.
+  See `()` which has an @IsRoute@ instance using this encoder.
+-}
 singletonRouteEncoder :: FilePath -> RouteEncoder a ()
 singletonRouteEncoder fp =
   prismRouteEncoder $ singletonPrism fp

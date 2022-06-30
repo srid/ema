@@ -25,6 +25,11 @@ extra-source-files:
 flag with-examples
   description: Include examples and their dependencies
   default:     True
+flag with-extra
+  description: Include non-core functionality
+  default:     True
+
+
 
 library
   -- Modules included in this executable, other than Main.
@@ -72,6 +77,10 @@ library
       , blaze-markup
       , fsnotify
       , time
+  if flag(with-extra)
+    build-depends:
+      , time
+      , unionmount
 
   mixins:
     base hiding (Prelude),
@@ -146,6 +155,9 @@ library
     Ema.Site
     GHC.TypeLits.Extra
 
+  if (flag(with-extra))
+    exposed-modules:
+      Ema.Route.Lib.Extra.StaticRoute
   if impl(ghc >=9.2)
     exposed-modules: GHC.TypeLits.Extra.Symbol
 
