@@ -13,7 +13,6 @@ module Ema.Route.Generic.Sub (
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
   WithSubModels (WithSubModels),
-  The,
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
   FolderRoute (FolderRoute),
@@ -198,9 +197,6 @@ instance
   gsubModels m = I m :* gsubModels @_ @m @ms @ss m
 -}
 
--- | A `Type` corresponding to `Data.Generics.Product.Any.the` (for use in Derivingvia)
-data The (sel :: k)
-
 instance
   {-# OVERLAPPING #-}
   (Generic m, HasAny s m m t t, GSubModels m ms ss) =>
@@ -208,11 +204,13 @@ instance
   where
   gsubModels m = I (view (the @s @m @_ @t @_) m) :* gsubModels @_ @m @ms @ss m
 
+-- Useful instances to support varied types in `WithSubModels` list.
+
 instance {-# OVERLAPPING #-} HasAny () s s () () where
   the = united
 
 instance HasAny s s s s s where
   the = castOptic equality
 
-instance HasAny sel s s a a => HasAny (The sel) s s a a where
+instance HasAny sel s t a b => HasAny (Proxy sel) s t a b where
   the = the @sel

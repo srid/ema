@@ -47,8 +47,10 @@ data R
                             , ()
                             , ()
                             , -- You can refer to a record field by the field name
-                              The "mClock"
-                            , The "mClockFast"
+                              -- (We use `Proxy` only because heteregenous type
+                              -- lists must be uni-kind).
+                              Proxy "mClock"
+                            , Proxy "mClockFast"
                             , -- Or by the field type.
                               -- Thanks to Data.Generics.Product.Any
                               Ex03.Model
