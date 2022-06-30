@@ -13,6 +13,7 @@ module Ema.Route.Generic.Sub (
   WithSubRoutes (WithSubRoutes),
   WithSubModels (WithSubModels),
   The (..),
+  GSubModels (..),
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
   FolderRoute (FolderRoute),

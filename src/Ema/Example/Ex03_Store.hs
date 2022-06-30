@@ -48,16 +48,7 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
-  deriving
-    (HasSubModels)
-    via ( Route
-            `WithSubModels` [ ()
-                            , ()
-                            , RouteModel ProductRoute
-                            , RouteModel CategoryRoute
-                            ]
-        )
-  deriving (IsRoute) via (Route `WithModel` Model)
+  deriving (HasSubModels, IsRoute) via (Route `WithModel` Model)
 
 data ProductRoute
   = ProductRoute_Index
@@ -71,14 +62,7 @@ data ProductRoute
                              , StringRoute Product Slug
                              ]
         )
-  deriving
-    (HasSubModels)
-    via ( ProductRoute
-            `WithSubModels` [ ()
-                            , Map Slug Product
-                            ]
-        )
-  deriving (IsRoute) via (ProductRoute `WithModel` Map Slug Product)
+  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` Map Slug Product)
 
 data CategoryRoute
   = CategoryRoute_Index
@@ -92,14 +76,7 @@ data CategoryRoute
                              , StringRoute Category Slug
                              ]
         )
-  deriving
-    (HasSubModels)
-    via ( CategoryRoute
-            `WithSubModels` [ ()
-                            , Map Slug Category
-                            ]
-        )
-  deriving (IsRoute) via (CategoryRoute `WithModel` Map Slug Category)
+  deriving (HasSubModels, IsRoute) via (CategoryRoute `WithModel` Map Slug Category)
 
 -- | A route represented by a stringy type; associated with a foldable of the same as its model.
 newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}

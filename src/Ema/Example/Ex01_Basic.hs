@@ -21,10 +21,7 @@ data Route
     (SOP.Generic, SOP.HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
   deriving
-    (HasSubModels)
-    via (Route `WithSubModels` [(), ()])
-  deriving
-    (IsRoute)
+    (HasSubModels, IsRoute)
     via (Route `WithModel` ())
 
 instance EmaSite Route where
