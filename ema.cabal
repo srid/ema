@@ -59,7 +59,6 @@ library
     , neat-interpolation
     , optics-core
     , optparse-applicative
-    , profunctors
     , relude                  >=1.0
     , sop-core
     , text

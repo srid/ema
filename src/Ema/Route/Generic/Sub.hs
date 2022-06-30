@@ -31,7 +31,6 @@ import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 #else 
 import GHC.TypeLits
 #endif
-import Data.Type.Equality (type (==))
 import Generics.SOP (
   All,
   I (..),
@@ -182,14 +181,7 @@ instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) ( 'N
 
 instance
   {-# OVERLAPPING #-}
-  (Generic m, HasField' s m t, (t == ()) ~ 'False, GSubModels m ms ss) =>
+  (Generic m, HasField' s m t, GSubModels m ms ss) =>
   GSubModels m (t ': ms) (( 'Just s) ': ss)
   where
   gsubModels m = I (view (field' @s @m @t) m) :* gsubModels @m @ms @ss m
-
-{-
-instance {-# OVERLAPPABLE #-} (TypeErr ( 'Text "noooo")) => GSubModels m ms (s ': ss) where
-  gsubModels = impossible
-instance {-# OVERLAPPABLE #-} (TypeErr ( 'Text "noooo")) => GSubModels m (m ': ms) ss where
-  gsubModels = impossible
-  -}

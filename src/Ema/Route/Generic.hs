@@ -6,7 +6,6 @@ module Ema.Route.Generic (
   module X,
 ) where
 
-import Data.Profunctor (Profunctor (lmap, rmap))
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (mapRouteEncoder)
 import Ema.Route.Generic.Sub as X
@@ -21,11 +20,7 @@ import Prelude hiding (All, Generic)
 
 -- | Mark a route as associated with a model type.
 newtype WithModel r a = WithModel r
-
-instance HasSubRoutes r => HasSubRoutes (WithModel r a) where
-  type SubRoutes (WithModel r a) = SubRoutes r
-  subRoutesIso' =
-    bimap (lmap coerce) (rmap coerce) $ subRoutesIso' @r
+  deriving newtype (HasSubRoutes)
 
 instance
   ( HasSubRoutes r
