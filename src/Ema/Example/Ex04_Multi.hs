@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -fprint-potential-instances #-}
 
 {- | Demonstration of merging multiple sites
 
@@ -10,7 +9,6 @@ module Ema.Example.Ex04_Multi where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
-
 import Ema.Example.Common (tailwindLayout)
 import Ema.Example.Ex00_Hello qualified as Ex00
 import Ema.Example.Ex01_Basic qualified as Ex01
@@ -45,12 +43,12 @@ data R
   deriving
     (HasSubModels)
     via ( R
-            `WithSubModels` [ 'Left '()
-                            , 'Left '()
-                            , 'Left '()
-                            , 'Right "mClock"
-                            , 'Right "mClockFast"
-                            , 'Right "mStore"
+            `WithSubModels` [ 'Nothing
+                            , 'Nothing
+                            , 'Nothing
+                            , 'Just "mClock"
+                            , 'Just "mClockFast"
+                            , 'Just "mStore"
                             ]
         )
   deriving (IsRoute) via (R `WithModel` M)

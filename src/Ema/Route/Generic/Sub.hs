@@ -150,7 +150,7 @@ class HasSubRoutes r => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
   subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
 
-newtype r `WithSubModels` (subModels :: [Either () Symbol]) = WithSubModels r
+newtype r `WithSubModels` (subModels :: [Maybe Symbol]) = WithSubModels r
   deriving stock (Eq, Show)
   deriving newtype (IsRoute, HasSubRoutes)
 
@@ -171,19 +171,19 @@ instance
       @subModels
       m
 
-class GSubModels m (ms :: [Type]) (subModels :: [Either () Symbol]) where
+class GSubModels m (ms :: [Type]) (subModels :: [Maybe Symbol]) where
   gsubModels :: m -> NP I ms
 
 instance GSubModels m '[] '[] where
   gsubModels _ = Nil
 
-instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) (( 'Left '()) ': ss) where
+instance {-# OVERLAPPABLE #-} GSubModels m ms ss => GSubModels m (() ': ms) ( 'Nothing ': ss) where
   gsubModels m = I () :* gsubModels @m @ms @ss m
 
 instance
   {-# OVERLAPPING #-}
   (Generic m, HasField' s m t, (t == ()) ~ 'False, GSubModels m ms ss) =>
-  GSubModels m (t ': ms) (( 'Right s) ': ss)
+  GSubModels m (t ': ms) (( 'Just s) ': ss)
   where
   gsubModels m = I (view (field' @s @m @t) m) :* gsubModels @m @ms @ss m
 
