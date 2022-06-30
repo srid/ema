@@ -153,33 +153,30 @@ class HasSubRoutes r => HasSubModels r where
 
 {- | DerivingVia type for HasSubModels
 
-  List element types:
-  - Const (): no model.
-  - The "field": sub model lookup via `the` from generic-optics
-  - Identity: same model as larger route.
+  The `lookups` are processed using `HasAny`'s `the`.
 -}
-newtype r `WithSubModels` (subModels :: [k]) = WithSubModels r
+newtype r `WithSubModels` (lookups :: [k]) = WithSubModels r
   deriving stock (Eq, Show)
   deriving newtype (IsRoute, HasSubRoutes)
 
 instance
-  ( HasSubRoutes (r `WithSubModels` subModels)
+  ( HasSubRoutes (r `WithSubModels` lookups)
   , GSubModels
       (RouteModel r)
       (MultiModel (SubRoutes r))
-      subModels
+      lookups
   ) =>
-  HasSubModels (r `WithSubModels` (subModels :: [k]))
+  HasSubModels (r `WithSubModels` (lookups :: [k]))
   where
   subModels m =
     gsubModels
       @_
       @(RouteModel r)
       @(MultiModel (SubRoutes r))
-      @subModels
+      @lookups
       m
 
-class GSubModels m (ms :: [Type]) (subModels :: [k]) where
+class GSubModels m (ms :: [Type]) (lookups :: [k]) where
   gsubModels :: m -> NP I ms
 
 instance GSubModels m '[] '[] where
