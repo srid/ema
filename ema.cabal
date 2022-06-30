@@ -59,7 +59,6 @@ library
     , neat-interpolation
     , optics-core
     , optparse-applicative
-    , profunctors
     , relude                  >=1.0
     , sop-core
     , text
@@ -91,6 +90,7 @@ library
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
     -Wmissing-deriving-strategies -Wunused-foralls -Wunused-foralls
     -fprint-explicit-foralls -fprint-explicit-kinds
+    -fprint-potential-instances
 
   default-extensions:
     NoStarIsType

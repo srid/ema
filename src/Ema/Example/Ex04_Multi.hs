@@ -28,6 +28,7 @@ data M = M
   , mClockFast :: Ex02.Model
   , mStore :: Ex03.Model
   }
+  deriving stock (GHC.Generic)
 
 data R
   = R_Index
@@ -39,11 +40,23 @@ data R
   deriving stock (Show, Ord, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
+  deriving
+    (HasSubModels)
+    via ( R
+            `WithSubModels` [ ()
+                            , ()
+                            , ()
+                            , -- You can refer to a record field by the field name
+                              -- (We use `Proxy` only because heteregenous type
+                              -- lists must be uni-kind).
+                              Proxy "mClock"
+                            , Proxy "mClockFast"
+                            , -- Or by the field type.
+                              -- Thanks to Data.Generics.Product.Any
+                              Ex03.Model
+                            ]
+        )
   deriving (IsRoute) via (R `WithModel` M)
-
-instance HasSubModels R where
-  subModels m =
-    I () :* I () :* I () :* I (mClock m) :* I (mClockFast m) :* I (mStore m) :* Nil
 
 main :: IO ()
 main = do
