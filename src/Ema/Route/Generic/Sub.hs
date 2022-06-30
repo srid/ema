@@ -12,6 +12,7 @@ module Ema.Route.Generic.Sub (
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
   WithSubModels (WithSubModels),
+  The (..),
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
   FolderRoute (FolderRoute),
@@ -204,8 +205,18 @@ instance
 instance {-# OVERLAPPING #-} HasAny () s s () () where
   the = united
 
-instance HasAny s s s s s where
+instance HasAny sel s t a b => HasAny (Proxy sel) s t a b where
+  the = the @sel
+
+data The = TheUnit | TheId | TheField Symbol | TheType Type
+instance {-# OVERLAPPING #-} HasAny 'TheUnit s s () () where
+  the = united
+
+instance {-# OVERLAPPING #-} HasAny 'TheId s s s s where
   the = castOptic equality
 
-instance HasAny sel s t a b => HasAny (Proxy sel) s t a b where
+instance HasAny sel s t a b => HasAny ( 'TheField sel) s t a b where
+  the = the @sel
+
+instance HasAny sel s t a b => HasAny ( 'TheType sel) s t a b where
   the = the @sel
