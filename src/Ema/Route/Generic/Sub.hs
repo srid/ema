@@ -194,7 +194,7 @@ instance
 
 instance
   {-# OVERLAPPING #-}
-  (Generic m, HasAny s m m t t, GSubModels m ms ss) =>
+  (HasAny s m m t t, GSubModels m ms ss) =>
   GSubModels m (t ': ms) (s ': ss)
   where
   gsubModels m = I (view (the @s @m @_ @t @_) m) :* gsubModels @_ @m @ms @ss m
