@@ -10,7 +10,6 @@ import Control.Exception (throwIO)
 import Control.Monad.Logger (MonadLogger, logInfoNS)
 import Data.Aeson (FromJSON, FromJSONKey, eitherDecodeFileStrict')
 import Data.Map.Strict qualified as Map
-import Data.SOP (I (I), NP (Nil, (:*)))
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
@@ -49,12 +48,8 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
+  deriving (HasSubModels) via (Route `WithSubModels` [(), (), Proxy "modelProducts", Proxy "modelCategories"])
   deriving (IsRoute) via (Route `WithModel` Model)
-
--- TODO: Can we derive this automatically?
-instance HasSubModels Route where
-  subModels m =
-    I () :* I () :* I (modelProducts m) :* I (modelCategories m) :* Nil
 
 data ProductRoute
   = ProductRoute_Index

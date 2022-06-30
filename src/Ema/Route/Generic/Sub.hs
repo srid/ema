@@ -42,7 +42,7 @@ import Generics.SOP (
   Top,
  )
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', castOptic, equality, iso, lens, united, view)
+import Optics.Core (Iso', castOptic, equality, iso, united, view)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
