@@ -1,7 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -21,7 +20,6 @@ module Ema.Route.Generic.Sub (
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Route.Class (IsRoute (RouteModel))
-
 import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))

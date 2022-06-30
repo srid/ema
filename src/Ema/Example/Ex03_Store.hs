@@ -48,7 +48,15 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
-  deriving (HasSubModels) via (Route `WithSubModels` [(), (), Proxy "modelProducts", Proxy "modelCategories"])
+  deriving
+    (HasSubModels)
+    via ( Route
+            `WithSubModels` [ ()
+                            , ()
+                            , RouteModel ProductRoute
+                            , RouteModel CategoryRoute
+                            ]
+        )
   deriving (IsRoute) via (Route `WithModel` Model)
 
 data ProductRoute
