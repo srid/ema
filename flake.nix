@@ -52,8 +52,8 @@
             };
             overrides = self: super: with pkgs.haskell.lib; {
               relude = dontCheck super.relude; # Not in nixpkgs for GHC 9.2
-              retry = dontCheck super.retry; # Test fails on macOS M1
-              #http2 = dontCheck super.http2; # Fails on darwin
+              retry = dontCheck super.retry; # Fails on 9.2 / macOS M1
+              http2 = dontCheck super.http2; # Fails on 9.2 / macOS M1
               #streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
             };
           };
