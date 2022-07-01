@@ -10,7 +10,6 @@ import Control.Exception (throwIO)
 import Control.Monad.Logger (MonadLogger, logInfoNS)
 import Data.Aeson (FromJSON, FromJSONKey, eitherDecodeFileStrict')
 import Data.Map.Strict qualified as Map
-import Data.SOP (I (I), NP (Nil, (:*)))
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
@@ -49,12 +48,7 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving anyclass (HasSubRoutes)
-  deriving (IsRoute) via (Route `WithModel` Model)
-
--- TODO: Can we derive this automatically?
-instance HasSubModels Route where
-  subModels m =
-    I () :* I () :* I (modelProducts m) :* I (modelCategories m) :* Nil
+  deriving (HasSubModels, IsRoute) via (Route `WithModel` Model)
 
 data ProductRoute
   = ProductRoute_Index
@@ -82,7 +76,7 @@ data CategoryRoute
                              , StringRoute Category Slug
                              ]
         )
-  deriving (IsRoute, HasSubModels) via (CategoryRoute `WithModel` Map Slug Category)
+  deriving (HasSubModels, IsRoute) via (CategoryRoute `WithModel` Map Slug Category)
 
 -- | A route represented by a stringy type; associated with a foldable of the same as its model.
 newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}

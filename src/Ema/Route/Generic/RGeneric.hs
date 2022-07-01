@@ -1,7 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
-module Ema.Route.Generic.RGeneric where
+module Ema.Route.Generic.RGeneric (
+  RGeneric (RCode, rfrom, rto),
+  RHasDatatypeInfo (RDatatypeName, RConstructorNames),
+) where
 
 import GHC.TypeLits (ErrorMessage (Text), TypeError)
 import GHC.TypeLits.Extra (Impossible (impossible), TypeErr)
@@ -12,17 +15,21 @@ import Prelude hiding (All, Generic)
 -- | Like `Generic` but for Route types only.
 class (Generic r, HasDatatypeInfo r) => RGeneric r where
   type RCode r :: [Type]
-  type RDatatypeName r :: SOPM.DatatypeName
-  type RConstructorNames r :: [SOPM.ConstructorName]
   rfrom :: r -> NS I (RCode r)
   rto :: NS I (RCode r) -> r
 
+class (RGeneric r, HasDatatypeInfo r) => RHasDatatypeInfo r where
+  type RDatatypeName r :: SOPM.DatatypeName
+  type RConstructorNames r :: [SOPM.ConstructorName]
+
 instance (Generic r, HasDatatypeInfo r, RGeneric' (Code r), All RouteNP (Code r)) => RGeneric r where
   type RCode r = RCode' (Code r)
-  type RDatatypeName r = RDatatypeName' (DatatypeInfoOf r)
-  type RConstructorNames r = RConstructorNames' (DatatypeInfoOf r)
   rfrom = rfrom' @(Code r) . unSOP . from
   rto = to . SOP . rto' @(Code r)
+
+instance (RGeneric r, HasDatatypeInfo r) => RHasDatatypeInfo r where
+  type RDatatypeName r = RDatatypeName' (DatatypeInfoOf r)
+  type RConstructorNames r = RConstructorNames' (DatatypeInfoOf r)
 
 class RGeneric' (xss :: [[Type]]) where
   type RCode' xss :: [Type]

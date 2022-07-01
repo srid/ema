@@ -25,6 +25,11 @@ extra-source-files:
 flag with-examples
   description: Include examples and their dependencies
   default:     True
+flag with-extra
+  description: Include non-core functionality
+  default:     True
+
+
 
 library
   -- Modules included in this executable, other than Main.
@@ -54,7 +59,6 @@ library
     , neat-interpolation
     , optics-core
     , optparse-applicative
-    , profunctors
     , relude                  >=1.0
     , sop-core
     , text
@@ -72,6 +76,10 @@ library
       , blaze-markup
       , fsnotify
       , time
+  if flag(with-extra)
+    build-depends:
+      , time
+      , unionmount
 
   mixins:
     base hiding (Prelude),
@@ -82,6 +90,7 @@ library
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
     -Wmissing-deriving-strategies -Wunused-foralls -Wunused-foralls
     -fprint-explicit-foralls -fprint-explicit-kinds
+    -fprint-potential-instances
 
   default-extensions:
     NoStarIsType
@@ -137,7 +146,8 @@ library
     Ema.Route.Encoder.Type
     Ema.Route.Generic
     Ema.Route.Generic.RGeneric
-    Ema.Route.Generic.Sub
+    Ema.Route.Generic.SubRoute
+    Ema.Route.Generic.SubModel
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Lib.Multi
@@ -146,6 +156,9 @@ library
     Ema.Site
     GHC.TypeLits.Extra
 
+  if (flag(with-extra))
+    exposed-modules:
+      Ema.Route.Lib.Extra.StaticRoute
   if impl(ghc >=9.2)
     exposed-modules: GHC.TypeLits.Extra.Symbol
 

@@ -2,12 +2,10 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
 
-module Ema.Route.Generic.Sub (
+module Ema.Route.Generic.SubRoute (
   HasSubRoutes (SubRoutes, subRoutesIso'),
   subRoutesIso,
-  HasSubModels (subModels),
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
   -- Export these for DerivingVia coercion representations
@@ -17,25 +15,17 @@ module Ema.Route.Generic.Sub (
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
-import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
-import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
+import Ema.Route.Lib.Multi (MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 #else 
 import GHC.TypeLits
 #endif
-import Generics.SOP (
-  All,
-  I (..),
-  NP,
-  NS,
-  SameShapeAs,
-  Top,
- )
+import Generics.SOP (All, I (..), NS, SameShapeAs, Top)
 import Generics.SOP.Type.Metadata qualified as SOPM
 import Optics.Core (Iso', iso)
 import Prelude hiding (All)
@@ -141,7 +131,3 @@ type family
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
   GSubRoutes _ _ _ = TypeError ('Text "GHC 9.2 is required for anyclass deriving of HasSubRoutes")
 #endif
-
-class HasSubRoutes r => HasSubModels r where
-  -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
-  subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
