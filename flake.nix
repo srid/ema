@@ -31,7 +31,7 @@
           };
           ghc92 = {
             root = ./.;
-            haskellPackages = pkgs.haskell.packages.ghc922; # Needed for `UnconsSymbol`
+            haskellPackages = pkgs.haskell.packages.ghc923; # Needed for `UnconsSymbol`
             buildTools = hp:
               let
                 # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
@@ -51,11 +51,10 @@
               inherit (inputs) relude;
             };
             overrides = self: super: with pkgs.haskell.lib; {
-              # All these below are for GHC 9.2 compat.
-              relude = dontCheck super.relude;
-              retry = dontCheck super.retry;
-              http2 = dontCheck super.http2; # Fails on darwin
-              streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
+              relude = dontCheck super.relude; # Not in nixpkgs for GHC 9.2
+              retry = dontCheck super.retry; # Fails on 9.2 / macOS M1
+              http2 = dontCheck super.http2; # Fails on 9.2 / macOS M1
+              streaming-commons = dontCheck super.streaming-commons; # Fails on 9.2 / macOS M1
             };
           };
         };
