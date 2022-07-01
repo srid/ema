@@ -5,7 +5,6 @@
 module Ema.Route.Generic.SubModel (
   HasSubModels (subModels),
   -- DerivingVia types
-  WithSubModels (WithSubModels),
   GSubModels (..),
 ) where
 
@@ -20,31 +19,6 @@ import Prelude hiding (All)
 class HasSubRoutes r => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
   subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
-
-{- | DerivingVia type for HasSubModels
-
-  The `lookups` are processed using `HasAny`'s `the`.
--}
-newtype r `WithSubModels` (lookups :: [k]) = WithSubModels r
-  deriving stock (Eq, Show)
-  deriving newtype (IsRoute, HasSubRoutes)
-
-instance
-  ( HasSubRoutes (r `WithSubModels` lookups)
-  , GSubModels
-      (RouteModel r)
-      (MultiModel (SubRoutes r))
-      lookups
-  ) =>
-  HasSubModels (r `WithSubModels` (lookups :: [k]))
-  where
-  subModels m =
-    gsubModels
-      @_
-      @(RouteModel r)
-      @(MultiModel (SubRoutes r))
-      @lookups
-      m
 
 class GSubModels m (ms :: [Type]) (lookups :: [k]) where
   gsubModels :: m -> NP I ms

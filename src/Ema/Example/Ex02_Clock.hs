@@ -31,10 +31,9 @@ data Route
   deriving stock
     (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
   deriving
-    (HasSubModels, IsRoute)
-    via (Route `WithModel` Model)
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via (GenericRoute Route '[ 'RWithModel Model])
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh

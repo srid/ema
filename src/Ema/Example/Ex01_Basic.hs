@@ -19,10 +19,9 @@ data Route
     (Show, Eq, Ord, Generic)
   deriving anyclass
     (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
   deriving
-    (HasSubModels, IsRoute)
-    via (Route `WithModel` ())
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via (GenericRoute Route '[])
 
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()

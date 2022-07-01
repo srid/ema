@@ -48,8 +48,9 @@ data Route
   | Route_Category CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
-  deriving (HasSubModels, IsRoute) via (Route `WithModel` Model)
+  deriving
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via (GenericRoute Route '[ 'RWithModel Model])
 
 data ProductRoute
   = ProductRoute_Index
@@ -57,13 +58,16 @@ data ProductRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
-    (HasSubRoutes)
-    via ( ProductRoute
-            `WithSubRoutes` '[ FileRoute "index.html"
-                             , StringRoute Product Slug
-                             ]
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via ( GenericRoute
+            ProductRoute
+            '[ 'RWithModel (Map Slug Product)
+             , 'RWithSubRoutes
+                '[ FileRoute "index.html"
+                 , StringRoute Product Slug
+                 ]
+             ]
         )
-  deriving (IsRoute, HasSubModels) via (ProductRoute `WithModel` Map Slug Product)
 
 data CategoryRoute
   = CategoryRoute_Index
@@ -71,13 +75,16 @@ data CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
-    (HasSubRoutes)
-    via ( CategoryRoute
-            `WithSubRoutes` '[ FileRoute "index.html"
-                             , StringRoute Category Slug
-                             ]
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via ( GenericRoute
+            CategoryRoute
+            '[ 'RWithModel (Map Slug Category)
+             , 'RWithSubRoutes
+                '[ FileRoute "index.html"
+                 , StringRoute Category Slug
+                 ]
+             ]
         )
-  deriving (HasSubModels, IsRoute) via (CategoryRoute `WithModel` Map Slug Category)
 
 -- | A route represented by a stringy type; associated with a foldable of the same as its model.
 newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}

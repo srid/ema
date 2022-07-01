@@ -22,7 +22,7 @@ type M = (Int, Int, String)
 data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute) via (WithModel R M)
+  deriving (IsRoute) via (GenericRoute R '[ 'RWithModel M])
 -- ^ HasSubRoutes instance generates:
 
 {-
@@ -68,8 +68,9 @@ type TM = (M, String)
 
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute) via (WithModel TR TM)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (HasSubRoutes) via (GenericRoute TR '[])
+  deriving (IsRoute) via (GenericRoute TR '[ 'RWithModel TM])
 
 instance HasSubModels TR where
   subModels (m, _) =
@@ -102,12 +103,12 @@ type M2 = (Int, String)
 data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute, HasSubModels) via (WithModel R2 M2)
+  deriving (IsRoute, HasSubModels) via (GenericRoute R2 '[ 'RWithModel M2])
 
 data BarRoute = BarRoute
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute, HasSubModels) via (WithModel BarRoute M2)
+  deriving (IsRoute, HasSubModels) via (GenericRoute BarRoute '[ 'RWithModel M2])
 
 instance EmaSite R2 where
   siteInput _ () = pure $ pure (21, "inner")
