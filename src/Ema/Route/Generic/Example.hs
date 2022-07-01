@@ -37,7 +37,7 @@ instance HasSubRoutes R where
 -}
 
 data NumRoute = NumRoute
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Generic)
 
 instance IsRoute NumRoute where
   type RouteModel NumRoute = Int

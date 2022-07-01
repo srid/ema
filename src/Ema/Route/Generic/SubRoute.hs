@@ -25,9 +25,10 @@ import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 #else 
 import GHC.TypeLits
 #endif
-import Generics.SOP (All, I (..), NS, SameShapeAs, Top)
+import GHC.Generics qualified as GHC
+import Generics.SOP (All, I (..), NS, SameShapeAs, Top, unI)
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', iso)
+import Optics.Core (Iso', iso, view)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -77,7 +78,7 @@ gtoSubRoutes ::
   ) =>
   NS I (RCode r) ->
   MultiRoute subRoutes
-gtoSubRoutes = trans_NS (Proxy @Coercible) coerce
+gtoSubRoutes = trans_NS (Proxy @GIsomorphic) (I . view giso . unI)
 
 gfromSubRoutes ::
   forall r subRoutes.
@@ -86,7 +87,7 @@ gfromSubRoutes ::
   ) =>
   MultiRoute subRoutes ->
   NS I (RCode r)
-gfromSubRoutes = trans_NS (Proxy @Coercible) coerce
+gfromSubRoutes = trans_NS (Proxy @GIsomorphic) (I . view giso . unI)
 
 -- | @subRoutes@ are valid sub-routes of @r@
 type ValidSubRoutes r subRoutes =
@@ -94,9 +95,25 @@ type ValidSubRoutes r subRoutes =
   , SameShapeAs subRoutes (RCode r)
   , All Top (RCode r)
   , All Top subRoutes
-  , AllZipF Coercible (RCode r) subRoutes
-  , AllZipF Coercible subRoutes (RCode r)
+  , AllZipF GIsomorphic (RCode r) subRoutes
+  , AllZipF GIsomorphic subRoutes (RCode r)
   )
+
+{- | Types `a` and `b` are isomorphic via their generic representation
+
+  Unlike `Coercible` this constraint does not require that the two types have
+  identical *runtime* representation. For example, `data Foo = Foo` is not
+  coercible to `()` (they have different runtime representations), but they are
+  both isomorphic via their generic representation.
+-}
+class (Generic a, Generic b, GHC.Rep a () `Coercible` GHC.Rep b ()) => GIsomorphic a b where
+  giso :: Iso' a b
+
+instance (Generic a, Generic b, GHC.Rep a () `Coercible` GHC.Rep b ()) => GIsomorphic a b where
+  giso =
+    iso
+      (GHC.to @b @() . coerce . GHC.from @a @())
+      (GHC.to @a @() . coerce . GHC.from @b @())
 
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
