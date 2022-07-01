@@ -19,12 +19,19 @@ import Generics.SOP (I (..), NP)
 import Optics.Core (ReversibleOptic (re), equality, review)
 import Prelude hiding (All, Generic)
 
+-- | DerivingVia type to generically derive `IsRoute`
 newtype GenericRoute r (opts :: [Opt]) = GenericRoute r
   deriving stock (GHC.Generic)
 
 data Opt
-  = RWithModel Type
-  | RWithSubRoutes [Type]
+  = -- | Associatie the route with the given model type.
+    --
+    -- Default: `()`
+    RWithModel Type
+  | -- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
+    --
+    --    The isomorphism is specified by @GIsomorphic@ and is thus via generic representation.
+    RWithSubRoutes [Type]
   | RWithSubModels [Type]
 
 type family OptModel (opts :: [Opt]) :: Type where
