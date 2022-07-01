@@ -17,7 +17,7 @@ import Text.Show (Show (show))
 
 -- | A route that is prefixed at some URL prefix
 newtype FolderRoute (prefix :: Symbol) r = FolderRoute {unFolderRoute :: r}
-  deriving newtype (Eq, Ord)
+  deriving newtype (Eq, Ord, Generic)
 
 instance (Show r, KnownSymbol prefix) => Show (FolderRoute prefix r) where
   show (FolderRoute r) = symbolVal (Proxy @prefix) <> "/:" <> Text.Show.show r

@@ -33,6 +33,7 @@ data Model = Model
 
 newtype Slug = Slug Text
   deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON, FromJSONKey)
+  deriving stock (Generic)
 
 newtype Product = Product {unProduct :: Text}
   deriving newtype (Show, Eq, Ord, IsString, ToString, FromJSON)

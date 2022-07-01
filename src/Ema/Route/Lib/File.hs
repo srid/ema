@@ -16,13 +16,13 @@ import Optics.Core (equality, prism')
 
  TODO: Can this type be simplified? See https://stackoverflow.com/q/72755053/55246
 -}
-newtype FileRoute (filename :: Symbol) = FileRoute ()
-  deriving stock (Eq, Ord, Show)
+data FileRoute (filename :: Symbol) = FileRoute
+  deriving stock (Eq, Ord, Show, Generic)
 
 instance KnownSymbol fn => IsRoute (FileRoute fn) where
   type RouteModel (FileRoute fn) = ()
   routeEncoder =
     singletonRouteEncoder (symbolVal (Proxy @fn))
-      & mapRouteEncoder equality (prism' (const ()) (const $ Just $ FileRoute ())) id
+      & mapRouteEncoder equality (prism' (const ()) (const $ Just FileRoute)) id
   allRoutes () =
-    [FileRoute ()]
+    [FileRoute]
