@@ -54,7 +54,7 @@
               relude = dontCheck super.relude; # Not in nixpkgs for GHC 9.2
               retry = dontCheck super.retry; # Fails on 9.2 / macOS M1
               http2 = dontCheck super.http2; # Fails on 9.2 / macOS M1
-              #streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
+              streaming-commons = dontCheck super.streaming-commons; # Fails on 9.2 / macOS M1
             };
           };
         };
