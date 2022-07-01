@@ -32,14 +32,7 @@ import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 import GHC.TypeLits
 #endif
 import Data.Generics.Product (HasAny (the))
-import Generics.SOP (
-  All,
-  I (..),
-  NP (Nil, (:*)),
-  NS,
-  SameShapeAs,
-  Top,
- )
+import Generics.SOP (All, I (..), NP (Nil, (:*)), NS, SameShapeAs, Top)
 import Generics.SOP.Type.Metadata qualified as SOPM
 import Optics.Core (Iso', iso, united, view)
 import Prelude hiding (All)
