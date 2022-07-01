@@ -8,8 +8,7 @@ import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (..))
 import Ema
 import Ema.Asset qualified as Asset
-import Ema.Route.Generic (WithModel (..))
-import Ema.Route.Generic.Sub
+import Ema.Route.Generic
 import Generics.SOP qualified as SOP
 import Optics.Core ((%))
 import Optics.Prism (prism')

@@ -146,7 +146,8 @@ library
     Ema.Route.Encoder.Type
     Ema.Route.Generic
     Ema.Route.Generic.RGeneric
-    Ema.Route.Generic.Sub
+    Ema.Route.Generic.SubRoute
+    Ema.Route.Generic.SubModel
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Lib.Multi

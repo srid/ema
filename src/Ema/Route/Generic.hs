@@ -8,7 +8,8 @@ module Ema.Route.Generic (
 
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder.Type (mapRouteEncoder)
-import Ema.Route.Generic.Sub as X
+import Ema.Route.Generic.SubModel as X
+import Ema.Route.Generic.SubRoute as X
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import Generics.SOP (I (..), NP)
 import Optics.Core (ReversibleOptic (re), equality, review)

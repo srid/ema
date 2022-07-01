@@ -2,17 +2,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
-module Ema.Route.Generic.Sub (
+module Ema.Route.Generic.SubRoute (
   HasSubRoutes (SubRoutes, subRoutesIso'),
   subRoutesIso,
-  HasSubModels (subModels),
   -- DerivingVia types
   WithSubRoutes (WithSubRoutes),
-  WithSubModels (WithSubModels),
-  GSubModels (..),
   -- Export these for DerivingVia coercion representations
   FileRoute (FileRoute),
   FolderRoute (FolderRoute),
@@ -20,21 +15,19 @@ module Ema.Route.Generic.Sub (
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
-import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
-import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
+import Ema.Route.Lib.Multi (MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
 #else 
 import GHC.TypeLits
 #endif
-import Data.Generics.Product (HasAny (the))
-import Generics.SOP (All, I (..), NP (Nil, (:*)), NS, SameShapeAs, Top)
+import Generics.SOP (All, I (..), NS, SameShapeAs, Top)
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', iso, united, view)
+import Optics.Core (Iso', iso)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -138,53 +131,3 @@ type family
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where
   GSubRoutes _ _ _ = TypeError ('Text "GHC 9.2 is required for anyclass deriving of HasSubRoutes")
 #endif
-
-class HasSubRoutes r => HasSubModels r where
-  -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
-  subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
-
-{- | DerivingVia type for HasSubModels
-
-  The `lookups` are processed using `HasAny`'s `the`.
--}
-newtype r `WithSubModels` (lookups :: [k]) = WithSubModels r
-  deriving stock (Eq, Show)
-  deriving newtype (IsRoute, HasSubRoutes)
-
-instance
-  ( HasSubRoutes (r `WithSubModels` lookups)
-  , GSubModels
-      (RouteModel r)
-      (MultiModel (SubRoutes r))
-      lookups
-  ) =>
-  HasSubModels (r `WithSubModels` (lookups :: [k]))
-  where
-  subModels m =
-    gsubModels
-      @_
-      @(RouteModel r)
-      @(MultiModel (SubRoutes r))
-      @lookups
-      m
-
-class GSubModels m (ms :: [Type]) (lookups :: [k]) where
-  gsubModels :: m -> NP I ms
-
-instance GSubModels m '[] '[] where
-  gsubModels _ = Nil
-
-instance
-  {-# OVERLAPPING #-}
-  (HasAny s m m t t, GSubModels m ms ss) =>
-  GSubModels m (t ': ms) (s ': ss)
-  where
-  gsubModels m = I (view (the @s @m @_ @t @_) m) :* gsubModels @_ @m @ms @ss m
-
--- Useful instances to support varied types in `WithSubModels` list.
-
-instance {-# OVERLAPPING #-} HasAny () s s () () where
-  the = united
-
-instance HasAny sel s t a b => HasAny (Proxy sel) s t a b where
-  the = the @sel
