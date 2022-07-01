@@ -51,9 +51,8 @@
               inherit (inputs) relude;
             };
             overrides = self: super: with pkgs.haskell.lib; {
-              # All these below are for GHC 9.2 compat.
-              relude = dontCheck super.relude;
-              #retry = dontCheck super.retry;
+              relude = dontCheck super.relude; # Not in nixpkgs for GHC 9.2
+              retry = dontCheck super.retry; # Test fails on macOS M1
               #http2 = dontCheck super.http2; # Fails on darwin
               #streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
             };
