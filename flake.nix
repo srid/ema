@@ -48,11 +48,11 @@
                 ghcid = workaround140774 hp.ghcid;
               };
             source-overrides = {
-              #inherit (inputs) relude;
+              inherit (inputs) relude;
             };
             overrides = self: super: with pkgs.haskell.lib; {
               # All these below are for GHC 9.2 compat.
-              #relude = dontCheck super.relude;
+              relude = dontCheck super.relude;
               #retry = dontCheck super.retry;
               #http2 = dontCheck super.http2; # Fails on darwin
               #streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
