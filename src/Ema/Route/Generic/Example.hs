@@ -21,20 +21,13 @@ type M = (Int, Int, String)
 
 data R = R_Index | R_Foo | R_Bar NumRoute | R_Bar2 NumRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute) via (GenericRoute R '[ 'RWithModel M])
--- ^ HasSubRoutes instance generates:
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (HasSubRoutes, IsRoute) via (GenericRoute R '[ 'RWithModel M])
 
-{-
-instance HasSubRoutes R where
-  type
-    SubRoutes R =
-      '[ FileRoute "index.html"
-       , FileRoute "foo.html"
-       , FolderRoute "bar" NumRoute
-       , FolderRoute "bar2" NumRoute
-       ]
--}
+-- We must derive this manually due to ambiguity in field types (Int)
+instance HasSubModels R where
+  subModels (a, b, _) =
+    I () :* I () :* I a :* I b :* Nil
 
 data NumRoute = NumRoute
   deriving stock (Show, Eq, Generic)
@@ -47,10 +40,6 @@ instance IsRoute NumRoute where
           guard $ s == fp
           pure NumRoute
   allRoutes _ = [NumRoute]
-
-instance HasSubModels R where
-  subModels (a, b, _) =
-    I () :* I () :* I a :* I b :* Nil
 
 instance EmaSite R where
   siteInput _ () = pure $ pure (42, 21, "inner")
@@ -69,12 +58,7 @@ type TM = (M, String)
 data TR = TR_Index | TR_Inner R
   deriving stock (Show, Eq, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes) via (GenericRoute TR '[])
-  deriving (IsRoute) via (GenericRoute TR '[ 'RWithModel TM])
-
-instance HasSubModels TR where
-  subModels (m, _) =
-    I () :* I m :* Nil
+  deriving (HasSubRoutes, HasSubModels, IsRoute) via (GenericRoute TR '[ 'RWithModel TM])
 
 instance EmaSite TR where
   siteInput x () = do
@@ -102,13 +86,13 @@ type M2 = (Int, String)
 
 data R2 = R2_Index | R2_Foo | R2_Bar BarRoute | R2_Bar2 BarRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute, HasSubModels) via (GenericRoute R2 '[ 'RWithModel M2])
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (HasSubRoutes, HasSubModels, IsRoute) via (GenericRoute R2 '[ 'RWithModel M2])
 
 data BarRoute = BarRoute
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo, HasSubRoutes)
-  deriving (IsRoute, HasSubModels) via (GenericRoute BarRoute '[ 'RWithModel M2])
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (HasSubRoutes, HasSubModels, IsRoute) via (GenericRoute BarRoute '[ 'RWithModel M2])
 
 instance EmaSite R2 where
   siteInput _ () = pure $ pure (21, "inner")
