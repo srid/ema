@@ -5,6 +5,7 @@
 
 module Ema.Route.Lib.Extra.StaticRoute (
   StaticRoute,
+  Model,
 
   -- * Helpers
   staticRouteUrl,
@@ -25,24 +26,31 @@ import System.UnionMount qualified as UnionMount
 import UnliftIO (MonadUnliftIO)
 
 -- | Route to a static file under @baseDir@.
-newtype StaticRoute (baseDir :: Symbol) (a :: Type) = StaticRoute {unStaticRoute :: FilePath}
+newtype StaticRoute (baseDir :: Symbol) = StaticRoute {unStaticRoute :: FilePath}
   deriving newtype (Eq, Ord, Show)
   deriving stock (Generic)
 
-instance IsRoute (StaticRoute baseDir a) where
-  type RouteModel (StaticRoute baseDir a) = Map FilePath a
-  routeEncoder = Ema.mkRouteEncoder $ \files ->
+data Model = Model
+  { modelCliAction :: Some Ema.CLI.Action
+  , modelFiles :: Map FilePath UTCTime
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance IsRoute (StaticRoute baseDir) where
+  type RouteModel (StaticRoute baseDir) = Model
+  routeEncoder = Ema.mkRouteEncoder $ \(modelFiles -> files) ->
     let enc =
           unStaticRoute
         dec fp =
           StaticRoute fp <$ guard (Map.member fp files)
      in prism' enc dec
-  allRoutes files =
+  allRoutes (modelFiles -> files) =
     StaticRoute <$> Map.keys files
 
-instance KnownSymbol baseDir => EmaSite (StaticRoute baseDir UTCTime) where
-  siteInput _ _ = do
-    staticFilesDynamic $ symbolVal (Proxy @baseDir)
+instance KnownSymbol baseDir => EmaSite (StaticRoute baseDir) where
+  siteInput cliAct _ = do
+    files <- staticFilesDynamic $ symbolVal (Proxy @baseDir)
+    pure $ Model cliAct <$> files
   siteOutput _ _ (StaticRoute path) =
     Ema.AssetStatic $ symbolVal (Proxy @baseDir) </> path
 
@@ -70,28 +78,33 @@ staticFilesDynamic baseDir = do
 
 -- | Like `Ema.routeUrl`, but looks up the value and appends it to URL in live-server (for force-reload in browser)
 staticRouteUrl ::
-  forall a baseDir staticRoute.
-  (IsString a, staticRoute ~ StaticRoute baseDir UTCTime) =>
-  Some Ema.CLI.Action ->
+  forall s baseDir staticRoute.
+  (IsString s, staticRoute ~ StaticRoute baseDir) =>
   Prism' FilePath staticRoute ->
   RouteModel staticRoute ->
   FilePath ->
-  a
-staticRouteUrl cliAct rp model fp =
-  case Map.lookup fp model of
-    Just lastAccessed ->
-      let tag = toText $ formatTime defaultTimeLocale "%s" lastAccessed
-          url = Ema.routeUrl rp (StaticRoute fp)
-       in fromString . toString $ url <> refreshAddendum tag
-    Nothing -> throw $ MissingStaticFile fp
+  s
+staticRouteUrl rp model fp =
+  let lastAccessed = lookupMust fp model
+      tag = toText $ formatTime defaultTimeLocale "%s" lastAccessed
+      url = Ema.routeUrl rp $ StaticRoute fp
+   in fromString . toString $ url <> refreshAddendum tag
   where
     -- Force the browser to reload the static file referenced
     refreshAddendum tag =
       fromMaybe "" $ do
         -- In live server, force reload all (re-added/modified) static files.
         -- In statically generated site, do it only for CSS and JS files.
-        guard $ Ema.CLI.isLiveServer cliAct || takeExtension fp `List.elem` [".css", ".js"]
+        guard $
+          Ema.CLI.isLiveServer (modelCliAction model)
+            || takeExtension fp `List.elem` [".css", ".js"]
         pure $ "?" <> tag
+
+lookupMust :: FilePath -> Model -> UTCTime
+lookupMust fp model =
+  case Map.lookup fp (modelFiles model) of
+    Just lastAccessed -> lastAccessed
+    Nothing -> throw $ MissingStaticFile fp
 
 newtype MissingStaticFile = MissingStaticFile FilePath
   deriving stock (Eq, Show)
