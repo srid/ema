@@ -3,12 +3,23 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Ema.Route.Generic (
+  -- * Generic deriving types
   GenericRoute (GenericRoute),
+  HasSubRoutes,
+  HasSubModels,
+  WithModel,
+  WithSubRoutes,
+  WithSubModels,
+
+  -- * Customizing generic deriving
   GenericRouteOpt (..),
-  RWithModel,
-  RWithSubRoutes,
-  RWithSubModels,
-  module X,
+
+  -- * Handy functions
+  subModels,
+
+  -- * Export these for DerivingVia coercion representations
+  FileRoute (FileRoute),
+  FolderRoute (FolderRoute),
 ) where
 
 import Ema.Route.Class (IsRoute (..))
@@ -16,6 +27,8 @@ import Ema.Route.Encoder.Type (mapRouteEncoder)
 import Ema.Route.Generic.RGeneric
 import Ema.Route.Generic.SubModel as X
 import Ema.Route.Generic.SubRoute as X
+import Ema.Route.Lib.File (FileRoute (FileRoute))
+import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.Generics qualified as GHC
 import Generics.SOP (All, I (..), NP)
@@ -30,7 +43,7 @@ newtype GenericRoute r (opts :: [Type]) = GenericRoute r
 
  Default: `()`
 -}
-data RWithModel (r :: Type)
+data WithModel (r :: Type)
 
 {- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
 
@@ -39,13 +52,13 @@ data RWithModel (r :: Type)
     The default implementation uses @FileRoute@ for terminal routes, and
     @FolderRoute@ (with constructor prefix stripped) for wrapping sub-routes types.
 -}
-data RWithSubRoutes (subRoutes :: [Type])
+data WithSubRoutes (subRoutes :: [Type])
 
 {- | Specify the @Data.Generics.Product.Any.HasAny@ selector type for sub models
 
   Note: if the selector is a @Symbol@ you must wrap it in a @Proxy@.
 -}
-data RWithSubModels (subModels :: [Type])
+data WithSubModels (subModels :: [Type])
 
 {- | Typeclass to control `GenericRoute` behaviour.
 
@@ -73,18 +86,18 @@ class GenericRouteOpt (r :: Type) (opt :: Type) where
   type OptSubRoutesM r opt :: Maybe [Type]
   type OptSubModelsM r opt :: Maybe [Type]
 
-instance GenericRouteOpt r (RWithModel t) where
-  type OptModelM r (RWithModel t) = 'Just t
-  type OptSubRoutesM r (RWithModel t) = 'Nothing
-  type OptSubModelsM r (RWithModel t) = 'Nothing
-instance GenericRouteOpt r (RWithSubRoutes t) where
-  type OptModelM r (RWithSubRoutes _) = 'Nothing
-  type OptSubRoutesM r (RWithSubRoutes t) = 'Just t
-  type OptSubModelsM r (RWithSubRoutes _) = 'Nothing
-instance GenericRouteOpt r (RWithSubModels t) where
-  type OptModelM r (RWithSubModels t) = 'Nothing
-  type OptSubRoutesM r (RWithSubModels t) = 'Nothing
-  type OptSubModelsM r (RWithSubModels t) = 'Just t
+instance GenericRouteOpt r (WithModel t) where
+  type OptModelM r (WithModel t) = 'Just t
+  type OptSubRoutesM r (WithModel t) = 'Nothing
+  type OptSubModelsM r (WithModel t) = 'Nothing
+instance GenericRouteOpt r (WithSubRoutes t) where
+  type OptModelM r (WithSubRoutes _) = 'Nothing
+  type OptSubRoutesM r (WithSubRoutes t) = 'Just t
+  type OptSubModelsM r (WithSubRoutes _) = 'Nothing
+instance GenericRouteOpt r (WithSubModels t) where
+  type OptModelM r (WithSubModels t) = 'Nothing
+  type OptSubRoutesM r (WithSubModels t) = 'Nothing
+  type OptSubModelsM r (WithSubModels t) = 'Just t
 
 type family OptModel r (opts :: [Type]) :: Type where
   OptModel r '[] = ()

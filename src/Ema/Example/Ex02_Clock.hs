@@ -33,7 +33,7 @@ data Route
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
     (HasSubRoutes, HasSubModels, IsRoute)
-    via (GenericRoute Route '[RWithModel Model])
+    via (GenericRoute Route '[WithModel Model])
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh

@@ -50,7 +50,7 @@ data Route
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
     (HasSubRoutes, HasSubModels, IsRoute)
-    via (GenericRoute Route '[RWithModel Model])
+    via (GenericRoute Route '[WithModel Model])
 
 data ProductRoute
   = ProductRoute_Index
@@ -61,8 +61,8 @@ data ProductRoute
     (HasSubRoutes, HasSubModels, IsRoute)
     via ( GenericRoute
             ProductRoute
-            '[ RWithModel (Map Slug Product)
-             , RWithSubRoutes
+            '[ WithModel (Map Slug Product)
+             , WithSubRoutes
                 '[ FileRoute "index.html"
                  , StringRoute Product Slug
                  ]
@@ -78,8 +78,8 @@ data CategoryRoute
     (HasSubRoutes, HasSubModels, IsRoute)
     via ( GenericRoute
             CategoryRoute
-            '[ RWithModel (Map Slug Category)
-             , RWithSubRoutes
+            '[ WithModel (Map Slug Category)
+             , WithSubRoutes
                 '[ FileRoute "index.html"
                  , StringRoute Category Slug
                  ]
