@@ -47,7 +47,27 @@ data RWithSubRoutes (subRoutes :: [Type])
 -}
 data RWithSubModels (subModels :: [Type])
 
--- | Typeclass to control `GenericRoute` behaviour.
+{- | Typeclass to control `GenericRoute` behaviour.
+
+  The `FooM` type enables users to define their type optionally, whose default
+  is specified in the `Foo` type family (further below).
+
+  You can define your own options, for example:
+
+  @
+    data MySubRoutes
+    instance GenericRouteOpt r MySubRoutes where
+      type OptModelM r MySubRoutes = 'Nothing
+      type OptSubModelsM r MySubRoutes = 'Nothing
+      type
+        OptSubRoutesM r MySubRoutes =
+          'Just (GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r))
+  @
+
+  And use it as:
+
+  > deriving via (GenericRoute MyRoute '[MySubRoutes])
+-}
 class GenericRouteOpt (r :: Type) (opt :: Type) where
   type OptModelM r opt :: Maybe Type
   type OptSubRoutesM r opt :: Maybe [Type]
