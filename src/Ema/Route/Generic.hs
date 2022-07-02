@@ -18,7 +18,7 @@ import Ema.Route.Generic.SubModel as X
 import Ema.Route.Generic.SubRoute as X
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.Generics qualified as GHC
-import Generics.SOP (I (..), NP)
+import Generics.SOP (All, I (..), NP)
 import Optics.Core (ReversibleOptic (re), equality, review)
 import Prelude hiding (All, Generic)
 
@@ -35,9 +35,16 @@ data RWithModel (r :: Type)
 {- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
 
     The isomorphism is specified by @GIsomorphic@ and is thus via generic representation.
+
+    The default implementation uses @FileRoute@ for terminal routes, and
+    @FolderRoute@ (with constructor prefix stripped) for wrapping sub-routes types.
 -}
 data RWithSubRoutes (subRoutes :: [Type])
 
+{- | Specify the @Data.Generics.Product.Any.HasAny@ selector type for sub models
+
+  Note: if the selector is a @Symbol@ you must wrap it in a @Proxy@.
+-}
 data RWithSubModels (subModels :: [Type])
 
 -- | Typeclass to control `GenericRoute` behaviour.
@@ -75,7 +82,15 @@ type family FromMaybe (def :: a) (maybe :: Maybe a) :: a where
   FromMaybe def 'Nothing = def
   FromMaybe def ( 'Just a) = a
 
-instance (RGeneric r, ValidSubRoutes r (OptSubRoutes r opts)) => HasSubRoutes (GenericRoute r opts) where
+type GenericRouteOpts r opts = All (GenericRouteOpt r) opts
+
+instance
+  ( GenericRouteOpts r opts
+  , RGeneric r
+  , ValidSubRoutes r (OptSubRoutes r opts)
+  ) =>
+  HasSubRoutes (GenericRoute r opts)
+  where
   type SubRoutes (GenericRoute r opts) = OptSubRoutes r opts
   subRoutesIso' =
     (,)
@@ -85,6 +100,7 @@ instance (RGeneric r, ValidSubRoutes r (OptSubRoutes r opts)) => HasSubRoutes (G
 instance
   ( GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
   , HasSubRoutes (GenericRoute r opts)
+  , GenericRouteOpts r opts
   ) =>
   HasSubModels (GenericRoute r opts)
   where
@@ -106,6 +122,7 @@ instance
   , SubRoutes r ~ OptSubRoutes r opts
   , IsRoute mr
   , RouteModel mr ~ NP I mm
+  , GenericRouteOpts r opts
   ) =>
   IsRoute (GenericRoute r opts)
   where
