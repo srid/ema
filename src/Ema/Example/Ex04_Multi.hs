@@ -43,8 +43,8 @@ data R
     (HasSubRoutes, HasSubModels, IsRoute)
     via ( GenericRoute
             R
-            '[ 'RWithModel M
-             , 'RWithSubModels
+            '[ RWithModel M
+             , RWithSubModels
                 [ ()
                 , ()
                 , ()

@@ -4,7 +4,10 @@
 
 module Ema.Route.Generic (
   GenericRoute (GenericRoute),
-  Opt (..),
+  GenericRouteOpt (..),
+  RWithModel,
+  RWithSubRoutes,
+  RWithSubModels,
   module X,
 ) where
 
@@ -20,37 +23,57 @@ import Optics.Core (ReversibleOptic (re), equality, review)
 import Prelude hiding (All, Generic)
 
 -- | DerivingVia type to generically derive `IsRoute`
-newtype GenericRoute r (opts :: [Opt]) = GenericRoute r
+newtype GenericRoute r (opts :: [Type]) = GenericRoute r
   deriving stock (GHC.Generic)
 
-data Opt
-  = -- | Associatie the route with the given model type.
-    --
-    -- Default: `()`
-    RWithModel Type
-  | -- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
-    --
-    --    The isomorphism is specified by @GIsomorphic@ and is thus via generic representation.
-    RWithSubRoutes [Type]
-  | RWithSubModels [Type]
+{- | Associate the route with the given model type.
 
-type family OptModel (opts :: [Opt]) :: Type where
-  OptModel '[] = ()
-  OptModel ( 'RWithModel t ': _) = t
-  OptModel ( 'RWithSubRoutes _ ': opts) = OptModel opts
-  OptModel ( 'RWithSubModels _ ': opts) = OptModel opts
+ Default: `()`
+-}
+data RWithModel (r :: Type)
 
-type family OptSubRoutes r (opts :: [Opt]) :: [Type] where
+{- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
+
+    The isomorphism is specified by @GIsomorphic@ and is thus via generic representation.
+-}
+data RWithSubRoutes (subRoutes :: [Type])
+
+data RWithSubModels (subModels :: [Type])
+
+-- | Typeclass to control `GenericRoute` behaviour.
+class GenericRouteOpt (r :: Type) (opt :: Type) where
+  type OptModelM r opt :: Maybe Type
+  type OptSubRoutesM r opt :: Maybe [Type]
+  type OptSubModelsM r opt :: Maybe [Type]
+
+instance GenericRouteOpt r (RWithModel t) where
+  type OptModelM r (RWithModel t) = 'Just t
+  type OptSubRoutesM r (RWithModel t) = 'Nothing
+  type OptSubModelsM r (RWithModel t) = 'Nothing
+instance GenericRouteOpt r (RWithSubRoutes t) where
+  type OptModelM r (RWithSubRoutes _) = 'Nothing
+  type OptSubRoutesM r (RWithSubRoutes t) = 'Just t
+  type OptSubModelsM r (RWithSubRoutes _) = 'Nothing
+instance GenericRouteOpt r (RWithSubModels t) where
+  type OptModelM r (RWithSubModels t) = 'Nothing
+  type OptSubRoutesM r (RWithSubModels t) = 'Nothing
+  type OptSubModelsM r (RWithSubModels t) = 'Just t
+
+type family OptModel r (opts :: [Type]) :: Type where
+  OptModel r '[] = ()
+  OptModel r (opt ': opts) = FromMaybe (OptModel r opts) (OptModelM r opt)
+
+type family OptSubRoutes r (opts :: [Type]) :: [Type] where
   OptSubRoutes r '[] = GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
-  OptSubRoutes _ ( 'RWithSubRoutes ts ': _) = ts
-  OptSubRoutes r ( 'RWithSubModels _ ': opts) = OptSubRoutes r opts
-  OptSubRoutes r ( 'RWithModel _ ': opts) = OptSubRoutes r opts
+  OptSubRoutes r (opt ': opts) = FromMaybe (OptSubRoutes r opts) (OptSubRoutesM r opt)
 
-type family OptSubModels r (opts :: [Opt]) :: [Type] where
+type family OptSubModels r (opts :: [Type]) :: [Type] where
   OptSubModels r '[] = MultiModel (SubRoutes r)
-  OptSubModels _ ( 'RWithSubModels ts ': opts) = ts
-  OptSubModels r ( 'RWithSubRoutes _ ': opts) = OptSubModels r opts
-  OptSubModels r ( 'RWithModel _ ': opts) = OptSubModels r opts
+  OptSubModels r (opt ': opts) = FromMaybe (OptSubModels r opts) (OptSubModelsM r opt)
+
+type family FromMaybe (def :: a) (maybe :: Maybe a) :: a where
+  FromMaybe def 'Nothing = def
+  FromMaybe def ( 'Just a) = a
 
 instance (RGeneric r, ValidSubRoutes r (OptSubRoutes r opts)) => HasSubRoutes (GenericRoute r opts) where
   type SubRoutes (GenericRoute r opts) = OptSubRoutes r opts
@@ -79,14 +102,14 @@ instance
   , mr ~ MultiRoute (SubRoutes r)
   , mm ~ MultiModel (SubRoutes r)
   , a ~ RouteModel r
-  , a ~ OptModel opts
+  , a ~ OptModel r opts
   , SubRoutes r ~ OptSubRoutes r opts
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   ) =>
   IsRoute (GenericRoute r opts)
   where
-  type RouteModel (GenericRoute r opts) = OptModel opts
+  type RouteModel (GenericRoute r opts) = OptModel r opts
   routeEncoder =
     routeEncoder @mr
       & mapRouteEncoder equality (re subRoutesIso) (subModels @r)
