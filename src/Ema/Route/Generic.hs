@@ -32,7 +32,7 @@ import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.Generics qualified as GHC
 import Generics.SOP (All, I (..), NP)
-import Optics.Core (ReversibleOptic (re), equality, review)
+import Optics.Core (ReversibleOptic (re), coercedTo, equality, review, (%))
 import Prelude hiding (All, Generic)
 
 -- | DerivingVia type to generically derive `IsRoute`
@@ -125,10 +125,6 @@ instance
   HasSubRoutes (GenericRoute r opts)
   where
   type SubRoutes (GenericRoute r opts) = OptSubRoutes r opts
-  subRoutesIso' =
-    (,)
-      (gtoSubRoutes @r @(OptSubRoutes r opts) . rfrom . coerce @_ @r)
-      (coerce @r . rto . gfromSubRoutes @r)
 
 instance
   ( GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
@@ -152,7 +148,6 @@ instance
   , mm ~ MultiModel (SubRoutes r)
   , a ~ RouteModel r
   , a ~ OptModel r opts
-  , SubRoutes r ~ OptSubRoutes r opts
   , IsRoute mr
   , RouteModel mr ~ NP I mm
   , GenericRouteOpts r opts
@@ -162,7 +157,7 @@ instance
   type RouteModel (GenericRoute r opts) = OptModel r opts
   routeEncoder =
     routeEncoder @mr
-      & mapRouteEncoder equality (re subRoutesIso) (subModels @r)
+      & mapRouteEncoder equality (re (subRoutesIso @r) % coercedTo) (subModels @r)
   allRoutes m =
     GenericRoute . review subRoutesIso
       <$> allRoutes (subModels @r m)

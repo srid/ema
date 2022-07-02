@@ -4,7 +4,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Route.Generic.SubRoute (
-  HasSubRoutes (SubRoutes, subRoutesIso'),
+  HasSubRoutes (SubRoutes),
   subRoutesIso,
   -- DerivingVia types
   GSubRoutes,
@@ -15,7 +15,7 @@ module Ema.Route.Generic.SubRoute (
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
-import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
+import Ema.Route.Generic.RGeneric (RGeneric (..))
 import Ema.Route.Lib.Multi (MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
@@ -41,22 +41,15 @@ class HasSubRoutes r where
   -- | The sub-routes in the `r` (for each constructor).
   type SubRoutes r :: [Type]
 
-  type SubRoutes r = GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r)
-
-  -- You should use @subRoutesIso@ instead of this function directly.
-  subRoutesIso' :: ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
-  default subRoutesIso' ::
-    ( RGeneric r
-    , ValidSubRoutes r (SubRoutes r)
-    ) =>
-    ((r -> MultiRoute (SubRoutes r)), (MultiRoute (SubRoutes r) -> r))
-  subRoutesIso' =
-    (,) (gtoSubRoutes @r . rfrom) (rto . gfromSubRoutes @r)
-
--- We cannot put this inside the `HasSubRoutes` type-class due to coercion issues with DerivingVia
--- See https://stackoverflow.com/a/71490273/55246
-subRoutesIso :: HasSubRoutes r => Iso' r (MultiRoute (SubRoutes r))
-subRoutesIso = uncurry iso subRoutesIso'
+subRoutesIso ::
+  forall r.
+  ( RGeneric r
+  , HasSubRoutes r
+  , ValidSubRoutes r (SubRoutes r)
+  ) =>
+  Iso' r (MultiRoute (SubRoutes r))
+subRoutesIso =
+  iso (gtoSubRoutes @r . rfrom) (rto . gfromSubRoutes @r)
 
 gtoSubRoutes ::
   forall r subRoutes.
