@@ -27,6 +27,7 @@ import UnliftIO (MonadUnliftIO)
 -- | Route to a static file under @baseDir@.
 newtype StaticRoute (baseDir :: Symbol) (a :: Type) = StaticRoute {unStaticRoute :: FilePath}
   deriving newtype (Eq, Ord, Show)
+  deriving stock (Generic)
 
 instance IsRoute (StaticRoute baseDir a) where
   type RouteModel (StaticRoute baseDir a) = Map FilePath a
