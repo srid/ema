@@ -2,6 +2,6 @@ builds:
   include:
     - "packages.x86_64-linux.*"
     - "packages.aarch64-darwin.*"
-    - "devShell.x86_64-linux"
-    - "devShell.aarch64-darwin"
+    - "devShells.x86_64-linux.default"
+    - "devShells.aarch64-darwin.default"
   exclude: []
