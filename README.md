@@ -11,6 +11,8 @@ https://user-images.githubusercontent.com/3998/116333460-789c1400-a7a1-11eb-8d28
 
 ## Hacking
 
+NOTE: We are using GHC 9.2 which is not yet the default in `nixpkgs`, so you may want to use the [garnix cache](https://garnix.io/docs/caching) to avoid long compilation.
+
 Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock example (which updates every second, only to demonstrate hot reload); modify `./.ghcid` to run a different example. 
 
 ## Getting Started
