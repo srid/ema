@@ -70,8 +70,6 @@ data WithSubModels (subModels :: [Type])
   @
     data MySubRoutes
     instance GenericRouteOpt r MySubRoutes where
-      type OptModelM r MySubRoutes = 'Nothing
-      type OptSubModelsM r MySubRoutes = 'Nothing
       type
         OptSubRoutesM r MySubRoutes =
           'Just (GSubRoutes (RDatatypeName r) (RConstructorNames r) (RCode r))
@@ -83,20 +81,17 @@ data WithSubModels (subModels :: [Type])
 -}
 class GenericRouteOpt (r :: Type) (opt :: Type) where
   type OptModelM r opt :: Maybe Type
+  type OptModelM r opt = 'Nothing
   type OptSubRoutesM r opt :: Maybe [Type]
+  type OptSubRoutesM r opt = 'Nothing
   type OptSubModelsM r opt :: Maybe [Type]
+  type OptSubModelsM r opt = 'Nothing
 
 instance GenericRouteOpt r (WithModel t) where
   type OptModelM r (WithModel t) = 'Just t
-  type OptSubRoutesM r (WithModel t) = 'Nothing
-  type OptSubModelsM r (WithModel t) = 'Nothing
 instance GenericRouteOpt r (WithSubRoutes t) where
-  type OptModelM r (WithSubRoutes _) = 'Nothing
   type OptSubRoutesM r (WithSubRoutes t) = 'Just t
-  type OptSubModelsM r (WithSubRoutes _) = 'Nothing
 instance GenericRouteOpt r (WithSubModels t) where
-  type OptModelM r (WithSubModels t) = 'Nothing
-  type OptSubRoutesM r (WithSubModels t) = 'Nothing
   type OptSubModelsM r (WithSubModels t) = 'Just t
 
 type family OptModel r (opts :: [Type]) :: Type where
@@ -146,10 +141,9 @@ instance
   , RGeneric r
   , mr ~ MultiRoute (SubRoutes r)
   , mm ~ MultiModel (SubRoutes r)
-  , a ~ RouteModel r
-  , a ~ OptModel r opts
-  , IsRoute mr
+  , RouteModel r ~ OptModel r opts
   , RouteModel mr ~ NP I mm
+  , IsRoute mr
   , GenericRouteOpts r opts
   ) =>
   IsRoute (GenericRoute r opts)

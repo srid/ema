@@ -20,7 +20,7 @@ import Ema.Route.Lib.Multi (MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
-import Ema.Route.Lib.File (FileRoute )
+import Ema.Route.Lib.File (FileRoute)
 import Ema.Route.Lib.Folder (FolderRoute)
 #else 
 import GHC.TypeLits
