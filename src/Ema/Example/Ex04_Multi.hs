@@ -39,24 +39,26 @@ data R
   | R_Store Ex03.Route
   deriving stock (Show, Ord, Eq, GHC.Generic)
   deriving anyclass (Generic, HasDatatypeInfo)
-  deriving anyclass (HasSubRoutes)
   deriving
-    (HasSubModels)
-    via ( R
-            `WithSubModels` [ ()
-                            , ()
-                            , ()
-                            , -- You can refer to a record field by the field name
-                              -- (We use `Proxy` only because heteregenous type
-                              -- lists must be uni-kind).
-                              Proxy "mClock"
-                            , Proxy "mClockFast"
-                            , -- Or by the field type.
-                              -- Thanks to Data.Generics.Product.Any
-                              Ex03.Model
-                            ]
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via ( GenericRoute
+            R
+            '[ WithModel M
+             , WithSubModels
+                [ ()
+                , ()
+                , ()
+                , -- You can refer to a record field by the field name
+                  -- (We use `Proxy` only because heteregenous type
+                  -- lists must be uni-kind).
+                  Proxy "mClock"
+                , Proxy "mClockFast"
+                , -- Or by the field type.
+                  -- Thanks to Data.Generics.Product.Any
+                  Ex03.Model
+                ]
+             ]
         )
-  deriving (IsRoute) via (R `WithModel` M)
 
 main :: IO ()
 main = do

@@ -7,21 +7,21 @@ module Ema.Route.Generic.SubRoute (
   HasSubRoutes (SubRoutes, subRoutesIso'),
   subRoutesIso,
   -- DerivingVia types
-  WithSubRoutes (WithSubRoutes),
-  -- Export these for DerivingVia coercion representations
-  FileRoute (FileRoute),
-  FolderRoute (FolderRoute),
+  GSubRoutes,
+  gtoSubRoutes,
+  gfromSubRoutes,
+  ValidSubRoutes,
 ) where
 
 import Data.SOP.Constraint (AllZipF)
 import Data.SOP.NS (trans_NS)
 import Ema.Route.Generic.RGeneric (RConstructorNames, RDatatypeName, RGeneric (..))
-import Ema.Route.Lib.File (FileRoute (FileRoute))
-import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiRoute)
 import GHC.TypeLits (AppendSymbol, Symbol)
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 import GHC.TypeLits.Extra.Symbol (StripPrefix, ToLower)
+import Ema.Route.Lib.File (FileRoute )
+import Ema.Route.Lib.Folder (FolderRoute)
 #else 
 import GHC.TypeLits
 #endif
@@ -57,19 +57,6 @@ class HasSubRoutes r where
 -- See https://stackoverflow.com/a/71490273/55246
 subRoutesIso :: HasSubRoutes r => Iso' r (MultiRoute (SubRoutes r))
 subRoutesIso = uncurry iso subRoutesIso'
-
-newtype r `WithSubRoutes` (subRoutes :: [Type]) = WithSubRoutes r
-  deriving stock (Eq, Show)
-
-instance
-  ( RGeneric r
-  , ValidSubRoutes r subRoutes
-  ) =>
-  HasSubRoutes (r `WithSubRoutes` subRoutes)
-  where
-  type SubRoutes (r `WithSubRoutes` subRoutes) = subRoutes
-  subRoutesIso' =
-    (,) (gtoSubRoutes @r @subRoutes . rfrom . coerce @_ @r) (coerce @r . rto . gfromSubRoutes @r)
 
 gtoSubRoutes ::
   forall r subRoutes.
