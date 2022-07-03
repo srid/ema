@@ -5,7 +5,7 @@
 
 module Ema.Route.Lib.Extra.StaticRoute (
   StaticRoute,
-  Model,
+  Model (..),
 
   -- * Helpers
   staticRouteUrl,
