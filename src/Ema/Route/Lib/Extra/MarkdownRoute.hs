@@ -1,6 +1,18 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Ema.Route.Lib.Extra.MarkdownRoute where
+module Ema.Route.Lib.Extra.MarkdownRoute (
+  -- * Route
+  MarkdownRoute (..),
+  mkMarkdownRoute,
+
+  -- * Model and Arg
+  Model (..),
+  Arg (..),
+
+  -- * Rendering
+  MarkdownHtml (..),
+  MarkdownError (..),
+) where
 
 import Commonmark.Simple as Commonmark
 import Control.Exception (throw)
@@ -89,7 +101,7 @@ instance EmaSite MarkdownRoute where
     docsDyn <- markdownFilesDyn (argBaseDir arg)
     pure $ Model arg <$> docsDyn
   siteOutput _ model r =
-    let pandoc = Map.findWithDefault (throw $ Missing r) r $ modelPandocs model
+    let pandoc = Map.findWithDefault (throw $ MarkdownError_Missing r) r $ modelPandocs model
      in (pandoc, MarkdownHtml . renderHtml (argWriterOpts $ modelArg model))
 
 markdownFilesDyn :: (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Dynamic m (Map MarkdownRoute Pandoc))
@@ -125,9 +137,9 @@ logD = logDebugNS "MarkdownRoute"
 
 renderHtml :: Pandoc.WriterOptions -> Pandoc -> Text
 renderHtml writerSettings pandoc =
-  either (throw . RenderError . show) id $
+  either (throw . MarkdownError_RenderError . show) id $
     Pandoc.runPure $ Pandoc.writeHtml5String writerSettings pandoc
 
-data MarkdownError = Missing MarkdownRoute | RenderError Text
+data MarkdownError = MarkdownError_Missing MarkdownRoute | MarkdownError_RenderError Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
