@@ -78,6 +78,7 @@ library
       , time
       , pandoc 
       , pandoc-types
+      , commonmark-simple
   if flag(with-extra)
     build-depends:
       , time
