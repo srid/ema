@@ -76,6 +76,8 @@ library
       , blaze-markup
       , fsnotify
       , time
+      , pandoc 
+      , pandoc-types
   if flag(with-extra)
     build-depends:
       , time
@@ -159,6 +161,7 @@ library
   if (flag(with-extra))
     exposed-modules:
       Ema.Route.Lib.Extra.StaticRoute
+      Ema.Route.Lib.Extra.MarkdownRoute
   if impl(ghc >=9.2)
     exposed-modules: GHC.TypeLits.Extra.Symbol
 
