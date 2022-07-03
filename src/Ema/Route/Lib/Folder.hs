@@ -6,7 +6,7 @@ module Ema.Route.Lib.Folder (
 import Data.Text qualified as T
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder (RouteEncoder, mapRouteEncoder)
-import Ema.Site (EmaSite (..))
+import Ema.Site (EmaSite (..), EmaStaticSite)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism', (%))
 import System.FilePath ((</>))
@@ -24,7 +24,7 @@ instance (IsRoute r, KnownSymbol prefix) => IsRoute (FolderRoute prefix r) where
   routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
   allRoutes m = FolderRoute <$> allRoutes @r m
 
-instance (EmaSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r) where
+instance (EmaStaticSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r) where
   type SiteArg (FolderRoute prefix r) = SiteArg r
   siteInput cliAct =
     siteInput @r cliAct

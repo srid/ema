@@ -22,7 +22,7 @@ import Ema.Route.Encoder (
   applyRouteEncoder,
   checkRouteEncoderGivenRoute,
  )
-import Ema.Site (EmaSite (siteOutput))
+import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
 import Optics.Core (review)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
@@ -37,7 +37,7 @@ log = logWithoutLoc "ema.generate"
 -}
 generateSiteFromModel ::
   forall r m.
-  (MonadIO m, MonadLoggerIO m, MonadFail m, Eq r, Show r, IsRoute r, EmaSite r) =>
+  (MonadIO m, MonadLoggerIO m, MonadFail m, Eq r, Show r, IsRoute r, EmaStaticSite r) =>
   -- | Target directory to write files to. Must exist.
   FilePath ->
   -- | The model data used to generate assets.
@@ -61,7 +61,7 @@ generateSiteFromModel dest model =
 -- | Like `generateSiteFromModel` but without buffering or error handling.
 generateSiteFromModel' ::
   forall r m.
-  (MonadIO m, MonadLoggerIO m, MonadError Text m, Eq r, Show r, EmaSite r) =>
+  (MonadIO m, MonadLoggerIO m, MonadError Text m, Eq r, Show r, EmaStaticSite r) =>
   FilePath ->
   RouteModel r ->
   -- | List of generated files.

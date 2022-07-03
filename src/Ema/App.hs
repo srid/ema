@@ -19,7 +19,7 @@ import Ema.Dynamic (Dynamic (Dynamic))
 import Ema.Generate (generateSiteFromModel)
 import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Server qualified as Server
-import Ema.Site (EmaSite (SiteArg, siteInput))
+import Ema.Site (EmaSite (SiteArg, siteInput), EmaStaticSite)
 import System.Directory (getCurrentDirectory)
 
 {- | Run the given Ema site,
@@ -31,7 +31,7 @@ import System.Directory (getCurrentDirectory)
 -}
 runSite ::
   forall r.
-  (Show r, Eq r, EmaSite r) =>
+  (Show r, Eq r, EmaStaticSite r) =>
   -- | The input required to create the `Dynamic` of the `RouteModel`
   SiteArg r ->
   IO [FilePath]
@@ -46,7 +46,7 @@ runSite input = do
       pure fs
 
 -- | Like @runSite@ but discards the result
-runSite_ :: forall r. (Show r, Eq r, EmaSite r) => SiteArg r -> IO ()
+runSite_ :: forall r. (Show r, Eq r, EmaStaticSite r) => SiteArg r -> IO ()
 runSite_ = void . runSite @r
 
 {- | Like @runSite@ but takes the CLI action. Also returns more information.
@@ -57,7 +57,7 @@ runSite_ = void . runSite @r
 -}
 runSiteWithCli ::
   forall r.
-  (Show r, Eq r, EmaSite r) =>
+  (Show r, Eq r, EmaStaticSite r) =>
   CLI.Cli ->
   SiteArg r ->
   IO

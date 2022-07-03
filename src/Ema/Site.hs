@@ -2,6 +2,7 @@
 
 module Ema.Site (
   EmaSite (..),
+  EmaStaticSite,
 ) where
 
 import Control.Monad.Logger (MonadLoggerIO)
@@ -42,6 +43,9 @@ class IsRoute r => EmaSite r where
   -- By default Ema sites have no site arguments.
   type SiteArg r = ()
 
+  type SiteOutput r :: Type
+  type SiteOutput r = Asset LByteString
+
   {- Get the model's time-varying value as a `Dynamic`.
 
     If your model is not time-varying, use `pure` to produce a constant value.
@@ -59,4 +63,6 @@ class IsRoute r => EmaSite r where
     m (Dynamic m (RouteModel r))
 
   -- | Return the generated asset for the given route and model.
-  siteOutput :: Prism' FilePath r -> RouteModel r -> r -> Asset LByteString
+  siteOutput :: Prism' FilePath r -> RouteModel r -> r -> SiteOutput r
+
+type EmaStaticSite r = (EmaSite r, SiteOutput r ~ Asset LByteString)

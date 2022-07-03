@@ -21,7 +21,7 @@ import Ema.Route.Encoder (
   checkRouteEncoderGivenFilePath,
  )
 import Ema.Route.Url (urlToFilePath)
-import Ema.Site (EmaSite (siteOutput))
+import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
 import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
@@ -45,7 +45,7 @@ runServerWithWebSocketHotReload ::
   , MonadLoggerIO m
   , Eq r
   , IsRoute r
-  , EmaSite r
+  , EmaStaticSite r
   ) =>
   Host ->
   Maybe Port ->

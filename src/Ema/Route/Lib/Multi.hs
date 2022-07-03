@@ -13,7 +13,7 @@ module Ema.Route.Lib.Multi (
 import Data.SOP (I (..), NP (..), NS (..))
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Encoder
-import Ema.Site (EmaSite (..))
+import Ema.Site (EmaSite (..), EmaStaticSite)
 import Optics.Core (equality, iso, prism', (%))
 
 {- | The merged site's route is represented as a n-ary sum (`NS`) of the
@@ -59,8 +59,8 @@ instance EmaSite (MultiRoute '[]) where
   siteOutput _ Nil = \case {}
 
 instance
-  ( EmaSite r
-  , EmaSite (MultiRoute rs)
+  ( EmaStaticSite r
+  , EmaStaticSite (MultiRoute rs)
   , SiteArg (MultiRoute rs) ~ NP I (MultiSiteArg rs)
   , RouteModel (MultiRoute rs) ~ NP I (MultiModel rs)
   ) =>
