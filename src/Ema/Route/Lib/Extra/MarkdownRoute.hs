@@ -40,6 +40,9 @@ import UnliftIO (MonadUnliftIO)
 newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
   deriving stock (Eq, Ord, Show, Generic)
 
+instance IsString MarkdownRoute where
+  fromString = fromMaybe (error "Not a Markdown file") . mkMarkdownRoute
+
 mkMarkdownRoute :: FilePath -> Maybe MarkdownRoute
 mkMarkdownRoute = \case
   (splitExtension -> (fp, ".md")) ->
@@ -52,11 +55,13 @@ data Model = Model
   { modelArg :: Arg
   , modelPandocs :: Map MarkdownRoute Pandoc
   }
+  deriving stock (Show, Generic)
 
 data Arg = Arg
   { argBaseDir :: FilePath
   , argWriterOpts :: Pandoc.WriterOptions
   }
+  deriving stock (Show, Generic)
 
 instance Default Arg where
   def = Arg "." defaultWriterOpts
