@@ -16,8 +16,9 @@ import Optics.Core (Prism', review)
 
 {- | Return the relative URL of the given route
 
- As the returned URL is relative, you will have to either make it absolute (by
- prepending with `/`) or set the `<base>` URL in your HTML head element.
+ Note: when using relative URLs it is imperative to set the `<base>` URL to your
+ site's base URL or path (typically just `/`). Otherwise you must accordingly
+ make these URLs absolute yourself.
 -}
 routeUrlWith :: HasCallStack => UrlStrategy -> Prism' FilePath r -> r -> Text
 routeUrlWith urlStrategy rp =
@@ -58,11 +59,11 @@ routeUrl =
 
 -- | How to produce URL paths from routes
 data UrlStrategy
-  = -- | Use pretty URLs. "foo/bar.html" produces "/foo/bar" as URL.
+  = -- | Use pretty URLs. The route encoding "foo/bar.html" produces "foo/bar" as URL.
     UrlPretty
-  | -- | Use filepaths as URLs. "foo/bar.html" produces "/foo/bar.html" as URL.
+  | -- | Use filepaths as URLs. The route encoding "foo/bar.html" produces "foo/bar.html" as URL.
     UrlDirect
-  deriving stock (Eq, Show, Ord)
+  deriving stock (Eq, Show, Ord, Generic)
 
 instance FromJSON UrlStrategy where
   parseJSON val =

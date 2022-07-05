@@ -12,8 +12,9 @@ newtype Route = Route ()
     (Show, Eq, Ord, Generic, IsRoute)
 
 instance EmaSite Route where
-  siteInput _ _ = pure $ pure ()
-  siteOutput _rp () (Route ()) =
+  siteInput _ _ =
+    pure $ pure ()
+  siteOutput _ _ _ =
     Ema.AssetGenerated Ema.Html "<b>Hello</b>, Ema"
 
 main :: IO ()

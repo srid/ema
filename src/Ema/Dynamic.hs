@@ -6,12 +6,12 @@ import Control.Monad.Logger (MonadLogger, logDebugNS)
 import UnliftIO (MonadUnliftIO, race_)
 import UnliftIO.Concurrent (threadDelay)
 
-{- | A time-varying value
+{- | A time-varying value of type `a`, changing under monad `m`.
 
-  To create a Dynamic, supply the initial value along with a function that knows
-  how to update it using the given update function.
+  To create a `Dynamic`, supply the initial value along with a function that
+  forever updates it using the given monadic update function.
 
- Dynamic's can be composed using Applicative.
+ `Dynamic`'s can be composed using `Applicative`.
 -}
 newtype Dynamic m a
   = Dynamic
@@ -36,7 +36,6 @@ instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
       , \send -> do
           var <- newTVarIO (x0, y0)
           sendLock :: TMVar () <- newEmptyTMVarIO
-          -- TODO: Use site name in logging?
           race_
             ( do
                 xf $ \x -> do

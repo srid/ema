@@ -17,7 +17,7 @@ import UnliftIO (MonadUnliftIO)
 {- | Typeclass to orchestrate an Ema site
 
   Given a route `r` from the class of `IsRoute` types, instantiating EmaSite
-  on it enables defining the static site pipeline as follows:
+  on it enables defining the site build pipeline as follows:
 
   @
   SiteArg -> siteInput -> Dynamic model --[r, model]--> siteOutput
@@ -28,30 +28,29 @@ import UnliftIO (MonadUnliftIO)
   - `siteInput` returns a time-varying value (Dynamic) representing the data for
   your static site.
   - `siteOutput` takes this data model (oneshot value) and returns the generated
-  content (usually HTML) for the given route.
+  content (usually HTML asset, per `SiteOutput`) for the given route.
 
   Finally, `Ema.App.runSite @r arg` (where `arg` is of type `SiteArg`) is run
   from the `main` entry point to run your Ema site.
 -}
 class IsRoute r => EmaSite r where
-  {- `SiteArg` is typically settings from the environment (config file, or
-    command-line arguments) that your Dynamic-producing `siteInput` function
-    consumes as argument.
-  -}
+  -- | `SiteArg` is typically settings from the environment (config file, or
+  --    command-line arguments) that your Dynamic-producing `siteInput` function
+  --    consumes as argument.
   type SiteArg r :: Type
 
   -- By default Ema sites have no site arguments.
   type SiteArg r = ()
 
+  -- | Type of the value returned by `siteOutput`. Usually `Asset LByteString`
+  -- but it can be anything.
   type SiteOutput r :: Type
+
   type SiteOutput r = Asset LByteString
 
-  {- Get the model's time-varying value as a `Dynamic`.
-
-    If your model is not time-varying, use `pure` to produce a constant value.
-
-    The default implementation works with generic deriving of `IsRoute`.
-  -}
+  -- | Get the model's time-varying value as a `Dynamic`.
+  --
+  --    If your model is not time-varying, use `pure` to produce a constant value.
   siteInput ::
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
@@ -62,7 +61,8 @@ class IsRoute r => EmaSite r where
     -- `pure` to produce a constant value.
     m (Dynamic m (RouteModel r))
 
-  -- | Return the generated asset for the given route and model.
+  -- | Return the output (typically an `Asset`) for the given route and model.
   siteOutput :: Prism' FilePath r -> RouteModel r -> r -> SiteOutput r
 
+-- | Like `EmaSite` but `SiteOutput` is a bytestring `Asset`.
 type EmaStaticSite r = (EmaSite r, SiteOutput r ~ Asset LByteString)
