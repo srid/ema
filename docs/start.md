@@ -12,7 +12,7 @@ Before proceeding with the tutorial section below, let's get the template app up
 
 [^cabal]: If you are using `cabal` rather than Nix, run `ghcid` in place of `bin/run`.
 
-That should start the Ema dev server displaying a simple website. Go ahead and try modifying either the Markdown content in `./content` or the Haskell source in `./src/Main.hs`, and observe how the web view updates [instantly](concepts/hot-reload.md).
+That should start the Ema dev server displaying a simple website. Go ahead and try modifying either the Markdown content in `./content` or the Haskell source in `./src/Main.hs`, and observe how the web view updates [[hot-reload|instantly]].
 
 {.last}
 [Next]{.next}, [in the tutorial](start/tutorial.md) let's try using this template repo to create a basic website.
