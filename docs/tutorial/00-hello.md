@@ -1,0 +1,1 @@
+Explain the Hello World program, Ex00_Hello.hs.
