@@ -58,11 +58,10 @@ runServerWithWebSocketHotReload host mport model = do
         Warp.defaultSettings
           & Warp.setHost (fromString . toString . unHost $ host)
       app =
-        assetsMiddleware $
-          WaiWs.websocketsOr
-            WS.defaultConnectionOptions
-            (runM . wsApp)
-            (httpApp logger)
+        WaiWs.websocketsOr
+          WS.defaultConnectionOptions
+          (runM . wsApp)
+          (httpApp logger)
       banner port = do
         logInfoNS "ema" "==============================================="
         logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port
@@ -154,8 +153,6 @@ runServerWithWebSocketHotReload host mport model = do
                   _ ->
                     log LevelError $ "Websocket error: " <> show connExc
                 LVar.removeListener model subId
-    assetsMiddleware =
-      Static.static
     httpApp logger req f = do
       flip runLoggingT logger $ do
         val <- LVar.get model
