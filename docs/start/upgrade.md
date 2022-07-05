@@ -2,7 +2,7 @@
 order: 100
 ---
 
-# Upgrading to newer Ema
+# Upgrading
 
 Until 1.0 is released, newer releases of Ema may see breaking or significant changes. This page exists to help you with upgrading your apps to the subsequent versions.
 

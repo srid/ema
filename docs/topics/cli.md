@@ -3,6 +3,8 @@ order: 4
 ---
 # CLI
 
+- [ ] Improve this
+
 Ema apps have a basic CLI argument structure that you can invoke in two possible ways:
 
 1. `run` subcommand (or, no subcommand specified): Run the [[live-server]].

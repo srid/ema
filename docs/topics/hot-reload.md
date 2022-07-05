@@ -3,6 +3,8 @@ order: 1
 ---
 # Hot Reload
 
+- [ ] Update this
+
 **Hot Reloading** is a feature of Ema's dev server wherein any changes to your Haskell source or data files (such as Markdown files or HTML templates) _propagate instantly_ to the web browser without requiring any manual intervention like a full browser refresh. In practice, this is a such a delightful feature to work with. Imagine changing CSS style of an element, and see it reflect on your site in a split second.
 
 ## How Ema implements hot reload

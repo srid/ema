@@ -18,7 +18,7 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 :::{.my-8}
 * [[start]]
 * [[topics]]
-* [[howto]]
+* [[guide]]
 * [Ema News](https://srid.ca/ema)
 :::
 
