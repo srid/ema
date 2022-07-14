@@ -59,6 +59,16 @@ index 2bb65f9..37f2308 100644
 \ No newline at end of file
 ```
 
+Now that we have a model, we can define `allRoutes` to use it. `allRoutes` is used during static site generation -- to determine which routes to generate on disk:
+
+```haskell
+instance IsRoute Date where 
+  ..
+  allRoutes (Model moods) = Map.keys moods
+```
+
+## Use `Model`
+
 Note that we are not *using* our model yet.
 
 So why not do it now, by rendering a basic HTML of it? Change the `siteOutput` to following (we use blaze-html library):
@@ -87,4 +97,50 @@ instance EmaSite Route where
             H.pre $ show $ Map.lookup d (modelDays model)
 ```
 
-This should render both `/` (`Route_Index`) and, say, `/date/2020-01-01.html` (`Route_Date ...`) in your browser. However, it won't have any moods since our `Model` is empty per the `siteInput` definition! We will fix this in the next section -- by defining a [[dynamic]] of our `Model`. Finish this tutorial series by reading [[03-dynamic]].
+This should render both `/` (`Route_Index`) and, say, `/date/2020-01-01.html` (`Route_Date ...`) in your browser. However, it won't have any moods since our `Model` is empty per the `siteInput` definition! Let's fix that.
+
+## Represent `Model` using CSV
+
+Ultimately the value for our `Model` will come from elsewhere, such as a CSV file on disk.  Let's use [cassava](https://hackage.haskell.org/package/cassava) to parse this CSV and load it into our Model.
+
+First add a sample Csv file under `./data/moods.csv` containing:
+
+```csv
+2022-04-23,Good
+2022-04-24,Neutral
+```
+
+Now change the `siteInput` function to replace `mempty` with the contents of this Csv file loaded as `Model`:
+
+```haskell
+instance EmaSite Route where
+  siteInput _ _ = do
+    s <- readFileLBS "data/moods.csv"
+    case toList <$> Csv.decode Csv.NoHeader s of
+      Left err -> throw $ userError err
+      Right (moods :: [(Date, Mood)]) ->
+        pure $ pure $ Model $ Map.fromList moods
+```
+
+Note that this will require that you define cassava's `FromField` instances on `Date` and `Mood` types. A simple implementation is provided below:
+
+```haskell
+instance Csv.FromField Date where
+  parseField f = do
+    s <- Csv.parseField @String f
+    case parseTimeM False defaultTimeLocale "%Y-%m-%d" s of
+      Left err -> fail err
+      Right date ->
+        pure $ Date $ toGregorian date
+
+instance Csv.FromField Mood where
+  parseField f = do
+    s <- Csv.parseField @String f
+    case readEither @Mood s of
+      Left err -> fail $ toString err
+      Right v -> pure v
+```
+
+The result of this that our site's index page will display the moods in the CSV file, along with the link to the individual day routes (`Route_Date`). 
+
+This is great so far, but we don't have [[hot-reload]]. Changing `data/moods.csv` ought to update our site. We will do this in the next section -- by defining a [[dynamic]] of our `Model`. Finish this tutorial series by reading [[03-dynamic]].
