@@ -6,10 +6,11 @@ order: 3
 
 Writing an Ema comprises an act in three parts:
 
-1. Various **route** types: [[route]] and [[generic]]
-1. A time-varying **model** type using `Dynamic`: [[dynamic]]
-2. Connecting them all using `EmaSite`: [[site]]
+1. Define your site **routes** as Haskell ADTs:
+   - [[route]] and [[generic]]
+2. Define your site **data model** as a Haskell record:
+   - [[model]] and [[dynamic]]
+3. Connect it all using `EmaSite`
+    - [[site]]
+4. Optionally, [[compose|compose multiple apps]]
 
-```query
-path:./*
-```
