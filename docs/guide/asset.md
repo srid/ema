@@ -2,7 +2,7 @@
 order: 6
 ---
 
-# `Asset`
+# Asset
 
 - [ ] Explain
   - SiteOutput of [[site]], but not always
