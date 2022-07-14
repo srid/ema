@@ -2,30 +2,23 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Ema.Route.Generic.TH (
-  deriveIsRoute,
-  deriveIsRoute'
+  deriveIsRoute
 ) where
 
 import Ema.Route.Class (IsRoute)
-import Ema.Route.Generic (GenericRoute, HasSubRoutes, HasSubModels)
 import Language.Haskell.TH
 
-deriveIsRoute :: Name -> Name -> Q [Dec]
-deriveIsRoute route model =
-  deriveIsRoute' route model []
-
-deriveIsRoute' :: Name -> Name -> [Name] -> Q [Dec]
-deriveIsRoute' route model subroutes = do
+deriveIsRoute :: Name -> Name -> Maybe [Name] -> Q [Dec]
+deriveIsRoute route model subroutes = do
   let instances = 
         [ "HasSubRoutes"
         , "HasSubModels"
         , "IsRoute"
         ]
   let opts = 
-        toTyList 
-          [ ConT (mkName "WithModel") `AppT` (ConT model)
-          , ConT (mkName "WithSubRoutes") `AppT` toTyList (ConT <$> subroutes)
-          ]
+        toTyList $
+          [ ConT (mkName "WithModel") `AppT` (ConT model) ]
+            <> maybe [] (\s -> [ ConT (mkName "WithSubRoutes") `AppT` toTyList (ConT <$> s) ]) subroutes
   pure $ flip fmap instances $ \i ->
     StandaloneDerivD 
       (Just (ViaStrategy 
