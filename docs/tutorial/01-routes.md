@@ -70,7 +70,7 @@ ghci> Ema.routeUrl routePrism $ Route_Day (Date 2022 04 23)
 "date/2022-04-23.html" 
 ```
 
-Route encoders are `Prism`s underneath. You can use optics operators to directly operate with them.
+Route encoders are `Prism`s underneath. You can use optics operators to directly operate on them.
 
 ```haskell
 -- Using `routePrism` from GHCi session above

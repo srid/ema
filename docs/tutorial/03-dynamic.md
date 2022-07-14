@@ -1,6 +1,6 @@
 # 03 Dynamic Model
 
-Same as before, but a real Dynamic. Maybe read from moods.csv or something (similar to Ex03_Store.hs)
+- [ ] Write this
 
 ```csv
 day,mood
