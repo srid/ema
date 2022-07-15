@@ -5,9 +5,8 @@ module Ema.Route.Generic.TH (
 ) where
 
 import Ema.Route.Class (IsRoute)
-import Ema.Route.Generic (GenericRoute, HasSubRoutes, HasSubModels, WithSubRoutes)
+import Ema.Route.Generic (GenericRoute, HasSubRoutes, HasSubModels)
 import Language.Haskell.TH
-import Data.Proxy
 
 {-| @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
 
@@ -16,25 +15,19 @@ constructors in @route@.
 
 TODO: Add TypeErrors to catch mismatched 'WithSubRoutes' list shapes at the generic deriving level?
 -}
-deriveIsRoute :: Name -> Name -> Maybe [Name] -> Q [Dec]
-deriveIsRoute route model subroutes = do
+deriveIsRoute :: Name -> TypeQ -> Q [Dec]
+deriveIsRoute route opts = do
+  opts' <- opts
   let instances = 
         [ ''HasSubRoutes
         , ''HasSubModels
         , ''IsRoute
         ]
-  let opts = 
-        toTyList $
-          [ ConT (mkName "WithModel") `AppT` (ConT model) ]
-            <> maybe [] (\s -> [ ConT ''WithSubRoutes `AppT` toTyList (ConT <$> s) ]) subroutes
   pure $ flip fmap instances $ \i ->
     StandaloneDerivD 
       (Just (ViaStrategy 
         (ConT ''GenericRoute
           `AppT` (ConT route)
-          `AppT` opts)))
+          `AppT` opts')))
     []
     (ConT i `AppT` ConT route)
-  where
-    toTyList (n:ns) = PromotedConsT `AppT` n `AppT` toTyList ns 
-    toTyList []     = PromotedNilT
