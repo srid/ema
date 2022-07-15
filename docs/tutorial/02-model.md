@@ -88,8 +88,7 @@ instance EmaSite Route where
             forM_ (Map.toList $ modelDays model) $ \(date, mood) -> do
               H.li $ do
                 let url = Ema.routeUrl rp $ Route_Date date
-                H.a ! A.href (H.toValue url) $
-                  show date
+                H.a ! A.href (H.toValue url) $ show date
                 ": "
                 show mood
           Route_Date d -> do
@@ -113,12 +112,14 @@ First add a sample Csv file under `./data/moods.csv` containing:
 Now change the `siteInput` function to replace `mempty` with the contents of this Csv file loaded as `Model`:
 
 ```haskell
+import Data.Csv qualified as Csv
+
 instance EmaSite Route where
   siteInput _ _ = do
     s <- readFileLBS "data/moods.csv"
     case toList <$> Csv.decode Csv.NoHeader s of
       Left err -> throw $ userError err
-      Right (moods :: [(Date, Mood)]) ->
+      Right moods ->
         pure $ pure $ Model $ Map.fromList moods
 ```
 
