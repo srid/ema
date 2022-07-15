@@ -1,11 +1,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Ema.Route.Generic.TH (
-  deriveIsRoute
+  deriveIsRoute, test
 ) where
 
 import Ema.Route.Class (IsRoute)
+import Ema.Route.Generic (HasSubRoutes, HasSubModels, WithSubRoutes)
 import Language.Haskell.TH
+import Data.Proxy
+
+test :: Proxy x -> Q [Dec]
+test _ = pure []
 
 {-| @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
 
@@ -17,14 +22,14 @@ TODO: Add TypeErrors to catch mismatched 'WithSubRoutes' list shapes at the gene
 deriveIsRoute :: Name -> Name -> Maybe [Name] -> Q [Dec]
 deriveIsRoute route model subroutes = do
   let instances = 
-        [ "HasSubRoutes"
-        , "HasSubModels"
-        , "IsRoute"
+        [ ''HasSubRoutes
+        , ''HasSubModels
+        , ''IsRoute
         ]
   let opts = 
         toTyList $
           [ ConT (mkName "WithModel") `AppT` (ConT model) ]
-            <> maybe [] (\s -> [ ConT (mkName "WithSubRoutes") `AppT` toTyList (ConT <$> s) ]) subroutes
+            <> maybe [] (\s -> [ ConT ''WithSubRoutes `AppT` toTyList (ConT <$> s) ]) subroutes
   pure $ flip fmap instances $ \i ->
     StandaloneDerivD 
       (Just (ViaStrategy 
@@ -32,7 +37,7 @@ deriveIsRoute route model subroutes = do
           `AppT` (ConT route)
           `AppT` opts)))
     []
-    (ConT (mkName i) `AppT` ConT route)
+    (ConT i `AppT` ConT route)
   where
     toTyList (n:ns) = PromotedConsT `AppT` n `AppT` toTyList ns 
     toTyList []     = PromotedNilT
