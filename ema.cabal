@@ -62,6 +62,7 @@ library
     , relude                  >=1.0
     , sop-core
     , template-haskell
+    , type-errors-pretty
     , text
     , unliftio
     , url-slug
