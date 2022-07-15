@@ -1,12 +1,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Ema.Route.Generic.TH (
+  -- * Main TH
   deriveIsRoute,
+
+  -- * Convenient re-exports
+  deriveGeneric,
 ) where
 
-import Data.Proxy
 import Ema.Route.Class (IsRoute)
 import Ema.Route.Generic (GenericRoute, HasSubModels, HasSubRoutes, WithSubRoutes)
+import Generics.SOP.TH (deriveGeneric)
 import Language.Haskell.TH
 
 {- | @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
