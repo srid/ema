@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {- | A very simple site with routes, but based on dynamically changing values
@@ -16,8 +17,7 @@ import Data.List ((!!))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Generic
-import Generics.SOP qualified as SOP
+import Ema.Route.Generic.TH
 import Optics.Core (Prism')
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
@@ -28,12 +28,10 @@ type Model = UTCTime
 data Route
   = Route_Index
   | Route_OnlyTime
-  deriving stock
-    (Show, Eq, Ord, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via (GenericRoute Route '[WithModel Model])
+  deriving stock (Show, Eq, Ord, Generic)
+
+deriveGeneric ''Route
+deriveIsRoute ''Route ''Model Nothing
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh

@@ -11,7 +11,6 @@ import Ema
 import Ema.Asset qualified as Asset
 import Ema.Route.Generic
 import Ema.Route.Generic.TH
-import Ema.Route.Lib.File
 import Generics.SOP qualified as SOP
 import Generics.SOP.TH qualified as SOP
 import Optics.Core ((%))
