@@ -24,16 +24,21 @@ TODO: Add TypeErrors to catch mismatched 'WithSubRoutes' list shapes at the gene
 deriveIsRoute :: Name -> TypeQ -> Q [Dec]
 deriveIsRoute route opts = do
   opts' <- opts
-  let instances = 
+  let instances =
         [ ''HasSubRoutes
         , ''HasSubModels
         , ''IsRoute
         ]
-  pure $ flip fmap instances $ \i ->
-    StandaloneDerivD 
-      (Just (ViaStrategy 
-        (ConT ''GenericRoute
-          `AppT` (ConT route)
-          `AppT` opts')))
-    []
-    (ConT i `AppT` ConT route)
+  pure $
+    flip fmap instances $ \i ->
+      StandaloneDerivD
+        ( Just
+            ( ViaStrategy
+                ( ConT ''GenericRoute
+                    `AppT` (ConT route)
+                    `AppT` opts'
+                )
+            )
+        )
+        []
+        (ConT i `AppT` ConT route)

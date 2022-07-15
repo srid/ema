@@ -131,14 +131,16 @@ data R3_SubR
         )
 
 SOP.deriveGeneric ''R3
-deriveIsRoute ''R3 [t|
+deriveIsRoute
+  ''R3
+  [t|
     [ WithModel M3
     , WithSubRoutes
         [ R3_SubR
         , ()
         ]
     ]
-  |]
+    |]
 
 -- ---
 -- Ensure deriveIsRoute works in a no-subroute case
@@ -153,4 +155,4 @@ data R4
   | R3_About
 
 SOP.deriveGeneric ''R4
-deriveIsRoute ''R4 [t| '[ WithModel M4 ] |]
+deriveIsRoute ''R4 [t|'[WithModel M4]|]

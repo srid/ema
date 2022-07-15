@@ -31,7 +31,7 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
 
 deriveGeneric ''Route
-deriveIsRoute ''Route [t| '[WithModel Model] |]
+deriveIsRoute ''Route [t|'[WithModel Model]|]
 
 instance EmaSite Route where
   type SiteArg Route = Int -- Delay between clock refresh

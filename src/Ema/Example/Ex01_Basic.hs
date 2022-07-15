@@ -18,7 +18,7 @@ data Route
   deriving stock (Show, Eq, Ord, Generic)
 
 deriveGeneric ''Route
-deriveIsRoute ''Route [t| '[WithModel ()] |]
+deriveIsRoute ''Route [t|'[WithModel ()]|]
 
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()
