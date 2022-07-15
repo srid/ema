@@ -1,8 +1,12 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | A simple web store for products
+{- | A simple web store for products
+
+ Also demostrates both DerivingVia and TH based deriving of IsRoute.
+-}
 module Ema.Example.Ex03_Store where
 
 import Control.Concurrent (readChan)
@@ -14,6 +18,7 @@ import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
 import Ema.Route.Encoder
 import Ema.Route.Generic
+import Ema.Route.Generic.TH (deriveGeneric, deriveIsRoute)
 import Generics.SOP qualified as SOP
 import Optics.Core (coercedTo, iso, prism', (%))
 import System.FSNotify qualified as FSNotify
@@ -47,32 +52,17 @@ data Route
   | Route_Products ProductRoute
   | Route_Category CategoryRoute
   deriving stock (Show, Eq, Ord, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via (GenericRoute Route '[WithModel Model])
 
 data ProductRoute
   = ProductRoute_Index
   | ProductRoute_Product Slug
   deriving stock (Show, Eq, Ord, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via ( GenericRoute
-            ProductRoute
-            '[ WithModel (Map Slug Product)
-             , WithSubRoutes
-                '[ FileRoute "index.html"
-                 , StringRoute Product Slug
-                 ]
-             ]
-        )
 
 data CategoryRoute
   = CategoryRoute_Index
   | CategoryRoute_Category Slug
   deriving stock (Show, Eq, Ord, Generic)
+  -- We can also do this using TemplateHaskell (see ProductRoute deriving below)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
     (HasSubRoutes, HasSubModels, IsRoute)
@@ -102,6 +92,21 @@ instance (IsString r, ToString r, Eq r, Ord r) => IsRoute (StringRoute a r) wher
       mapMemberPrism m =
         prism' id $ \r -> do pure r <* (guard $ r `Map.member` m)
   allRoutes as = StringRoute <$> Map.keys as
+
+deriveGeneric ''ProductRoute
+deriveIsRoute
+  ''ProductRoute
+  [t|
+    '[ WithModel (Map Slug Product)
+     , WithSubRoutes
+        '[ FileRoute "index.html"
+         , StringRoute Product Slug
+         ]
+     ]
+    |]
+
+deriveGeneric ''Route
+deriveIsRoute ''Route [t|'[WithModel Model]|]
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

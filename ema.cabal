@@ -61,6 +61,7 @@ library
     , optparse-applicative
     , relude                  >=1.0
     , sop-core
+    , template-haskell
     , text
     , unliftio
     , url-slug
@@ -151,6 +152,7 @@ library
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.SubRoute
     Ema.Route.Generic.SubModel
+    Ema.Route.Generic.TH
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Lib.Multi
