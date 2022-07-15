@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | A very simple site in three parts: route types, `main` and rendering implementation.
@@ -7,7 +8,7 @@ module Ema.Example.Ex01_Basic where
 import Ema
 import Ema.Example.Common (tailwindLayout)
 import Ema.Route.Generic
-import Generics.SOP qualified as SOP
+import Ema.Route.Generic.TH (deriveGeneric, deriveIsRoute)
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -15,13 +16,10 @@ import Text.Blaze.Html5.Attributes qualified as A
 data Route
   = Route_Index
   | Route_About
-  deriving stock
-    (Show, Eq, Ord, Generic)
-  deriving anyclass
-    (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via (GenericRoute Route '[])
+  deriving stock (Show, Eq, Ord, Generic)
+
+deriveGeneric ''Route
+deriveIsRoute ''Route ''() Nothing
 
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()
