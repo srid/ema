@@ -1,7 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Route.Generic.Example where
 
@@ -11,7 +11,6 @@ import Ema
 import Ema.Asset qualified as Asset
 import Ema.Route.Generic
 import Ema.Route.Generic.TH
-import Ema.Route.Lib.File
 import Generics.SOP qualified as SOP
 import Generics.SOP.TH qualified as SOP
 import Optics.Core ((%))
@@ -109,27 +108,27 @@ mainConst = Ema.runSite_ @R2 ()
 -- Ensure deriveIsRoute works with (partial) subroutes
 -- --
 
-data M3 
-  = M3 
+data M3
+  = M3
   deriving stock (Eq, Show, Generic)
 
-data R3 
-  = R3_Sub R3_SubR 
+data R3
+  = R3_Sub R3_SubR
   | R3_Index
 
-data R3_SubR 
+data R3_SubR
   = R3_SubR
   deriving stock (Show, Eq, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-    deriving
-      (HasSubRoutes, HasSubModels, IsRoute)
-      via ( GenericRoute
-              R3_SubR
-              '[ WithSubRoutes
-                  '[ FileRoute "example.html"
-                   ]
-               ]
-          )
+  deriving
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via ( GenericRoute
+            R3_SubR
+            '[ WithSubRoutes
+                '[ FileRoute "example.html"
+                 ]
+             ]
+        )
 
 SOP.deriveGeneric ''R3
 deriveIsRoute ''R3 [t|
@@ -149,7 +148,7 @@ data M4
   = M4
   deriving stock (Eq, Show, Generic)
 
-data R4 
+data R4
   = R4_Index
   | R3_About
 

@@ -1,14 +1,20 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Ema.Route.Generic.TH (
-  deriveIsRoute
+  -- * Main TH
+  deriveIsRoute,
+
+  -- * Convenient re-exports
+  deriveGeneric,
+  module X,
 ) where
 
 import Ema.Route.Class (IsRoute)
-import Ema.Route.Generic (GenericRoute, HasSubRoutes, HasSubModels)
+import Ema.Route.Generic as X
+import Generics.SOP.TH (deriveGeneric)
 import Language.Haskell.TH
 
-{-| @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
+{- | @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
 
 Subroutes are optionally supplied, but if they are then the length of the list must be the same as the number of
 constructors in @route@.
