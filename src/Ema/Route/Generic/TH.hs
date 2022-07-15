@@ -6,10 +6,11 @@ module Ema.Route.Generic.TH (
 
   -- * Convenient re-exports
   deriveGeneric,
+  module X,
 ) where
 
 import Ema.Route.Class (IsRoute)
-import Ema.Route.Generic (GenericRoute, HasSubModels, HasSubRoutes, WithSubRoutes)
+import Ema.Route.Generic as X
 import Generics.SOP.TH (deriveGeneric)
 import Language.Haskell.TH
 

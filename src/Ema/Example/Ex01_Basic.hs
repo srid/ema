@@ -7,8 +7,7 @@ module Ema.Example.Ex01_Basic where
 
 import Ema
 import Ema.Example.Common (tailwindLayout)
-import Ema.Route.Generic
-import Ema.Route.Generic.TH (deriveGeneric, deriveIsRoute)
+import Ema.Route.Generic.TH
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
