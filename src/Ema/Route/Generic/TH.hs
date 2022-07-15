@@ -1,16 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Ema.Route.Generic.TH (
-  deriveIsRoute, test
+  deriveIsRoute
 ) where
 
 import Ema.Route.Class (IsRoute)
-import Ema.Route.Generic (HasSubRoutes, HasSubModels, WithSubRoutes)
+import Ema.Route.Generic (GenericRoute, HasSubRoutes, HasSubModels, WithSubRoutes)
 import Language.Haskell.TH
 import Data.Proxy
-
-test :: Proxy x -> Q [Dec]
-test _ = pure []
 
 {-| @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
 
@@ -33,7 +30,7 @@ deriveIsRoute route model subroutes = do
   pure $ flip fmap instances $ \i ->
     StandaloneDerivD 
       (Just (ViaStrategy 
-        (ConT (mkName "GenericRoute")
+        (ConT ''GenericRoute
           `AppT` (ConT route)
           `AppT` opts)))
     []
