@@ -17,10 +17,10 @@ import Control.Monad.Logger (
  )
 import Ema.Asset (Asset (..))
 import Ema.CLI (crash)
-import Ema.Route.Class (IsRoute (RouteModel, routeEncoder, routeUniverse))
+import Ema.Route.Class (IsRoute (RouteModel, routePrism, routeUniverse))
 import Ema.Route.Encoder (
-  applyRouteEncoder,
-  checkRouteEncoderGivenRoute,
+  applyRoutePrism,
+  checkRoutePrismGivenRoute,
  )
 import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
 import Optics.Core (review)
@@ -67,8 +67,8 @@ generateSiteFromModel' ::
   -- | List of generated files.
   m [FilePath]
 generateSiteFromModel' dest model = do
-  let enc = routeEncoder @r
-      rp = applyRouteEncoder enc model
+  let enc = routePrism @r
+      rp = applyRoutePrism enc model
   -- Sanity checks
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     throwError $ "Destination directory does not exist: " <> toText dest
@@ -76,7 +76,7 @@ generateSiteFromModel' dest model = do
   when (null routes) $
     throwError "Your app's `routeUniverse` is empty; nothing to generate!"
   forM_ routes $ \route ->
-    checkRouteEncoderGivenRoute enc model route
+    checkRoutePrismGivenRoute enc model route
       `whenLeft_` throwError
   -- For Github Pages
   noBirdbrainedJekyll dest

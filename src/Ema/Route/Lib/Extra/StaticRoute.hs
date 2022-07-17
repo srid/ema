@@ -38,7 +38,7 @@ data Model = Model
 
 instance IsRoute (StaticRoute baseDir) where
   type RouteModel (StaticRoute baseDir) = Model
-  routeEncoder = Ema.mkRouteEncoder $ \(modelFiles -> files) ->
+  routePrism = Ema.mkRoutePrism $ \(modelFiles -> files) ->
     let enc =
           unStaticRoute
         dec fp =

@@ -23,7 +23,7 @@ module Ema.Route.Generic (
 ) where
 
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder.Type (mapRouteEncoder)
+import Ema.Route.Encoder.Type (mapRoutePrism)
 import Ema.Route.Generic.RGeneric
 import Ema.Route.Generic.SubModel as X
 import Ema.Route.Generic.SubRoute as X
@@ -149,9 +149,9 @@ instance
   IsRoute (GenericRoute r opts)
   where
   type RouteModel (GenericRoute r opts) = OptModel r opts
-  routeEncoder =
-    routeEncoder @mr
-      & mapRouteEncoder equality (re (subRoutesIso @r) % coercedTo) (subModels @r)
+  routePrism =
+    routePrism @mr
+      & mapRoutePrism equality (re (subRoutesIso @r) % coercedTo) (subModels @r)
   routeUniverse m =
     GenericRoute . review subRoutesIso
       <$> routeUniverse (subModels @r m)

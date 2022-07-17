@@ -1,11 +1,11 @@
 module Ema.Route.Lib.Folder (
   FolderRoute (FolderRoute, unFolderRoute),
-  prefixRouteEncoder,
+  prefixRoutePrism,
 ) where
 
 import Data.Text qualified as T
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder (RouteEncoder, mapRouteEncoder)
+import Ema.Route.Encoder (Prism_, mapRoutePrism)
 import Ema.Site (EmaSite (..), EmaStaticSite)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism', (%))
@@ -21,7 +21,7 @@ instance (Show r, KnownSymbol prefix) => Show (FolderRoute prefix r) where
 
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (FolderRoute prefix r) where
   type RouteModel (FolderRoute prefix r) = RouteModel r
-  routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
+  routePrism = prefixRoutePrism @prefix @r $ routePrism @r
   routeUniverse m = FolderRoute <$> routeUniverse @r m
 
 instance (EmaStaticSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r) where
@@ -31,10 +31,14 @@ instance (EmaStaticSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r)
   siteOutput rp m r =
     siteOutput @r (rp % coercedTo) m (unFolderRoute r)
 
--- | Prefix the encoding of the given RouteEncoder.
-prefixRouteEncoder :: forall prefix r a. KnownSymbol prefix => RouteEncoder a r -> RouteEncoder a (FolderRoute prefix r)
-prefixRouteEncoder =
-  mapRouteEncoder
+-- | Prefix the encoding of the given route prism.
+prefixRoutePrism ::
+  forall prefix r.
+  KnownSymbol prefix =>
+  (RouteModel r -> Prism_ FilePath r) ->
+  (RouteModel r -> Prism_ FilePath (FolderRoute prefix r))
+prefixRoutePrism =
+  mapRoutePrism
     (prism' (prefix </>) stripPrefix)
     coercedTo
     id

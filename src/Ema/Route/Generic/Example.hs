@@ -37,7 +37,7 @@ data NumRoute = NumRoute
 
 instance IsRoute NumRoute where
   type RouteModel NumRoute = Int
-  routeEncoder = mkRouteEncoder $ \n ->
+  routePrism = mkRoutePrism $ \n ->
     let fp = show n <> ".html"
      in prism' (const fp) $ \s -> do
           guard $ s == fp

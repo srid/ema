@@ -43,7 +43,7 @@ newtype Date = Date (Integer, Int, Int)
 
 instance IsRoute Date where
   type RouteModel Date = ()
-  routeEncoder = mkRouteEncoder $ \() ->
+  routePrism = mkRoutePrism $ \() ->
     prism'
       ( \(Date (y, m, d)) ->
           formatTime defaultTimeLocale "%Y-%m-%d.html" $
@@ -56,14 +56,14 @@ instance IsRoute Date where
 ```
 
 1. We don't need any special data value to encode a `Day` route, thus `RouteModel` is a unit.
-2. `mkRouteEncoder` takes a function returning a `Prism` that knows how to encode and decode the `Day` route. The `Prism` is built using `formatTime` and `parseTimeM`.
+2. `mkRoutePrism` takes a function returning a `Prism` that knows how to encode and decode the `Day` route. The `Prism` is built using `formatTime` and `parseTimeM`.
 
 The result is that we can use `routeUrl` to get the URL to our routes. In GHCi:
 
 ```haskell
-ghci> import Ema.Route.Encoder (applyRouteEncoder)
+ghci> import Ema.Route.Encoder (applyRoutePrism)
 ghci> -- First get hold of the route Prism, which is passed to `siteOutput`
-ghci> let routePrism = applyRouteEncoder (routeEncoder @Route) ()
+ghci> let routePrism = applyRoutePrism (routePrism @Route) ()
 ghci> Ema.routeUrl routePrism Route_Index
 "" -- The 'index.html' is dropped as it is redundant in HTML.
 ghci> Ema.routeUrl routePrism $ Route_Day (Date 2022 04 23)

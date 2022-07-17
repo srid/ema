@@ -80,7 +80,7 @@ instance Default Arg where
 
 instance IsRoute MarkdownRoute where
   type RouteModel MarkdownRoute = Model
-  routeEncoder = mkRouteEncoder $ \m ->
+  routePrism = mkRoutePrism $ \m ->
     let encode (MarkdownRoute slugs) =
           toString $ T.intercalate "/" $ Slug.unSlug <$> toList slugs
         decode fp = do

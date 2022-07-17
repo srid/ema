@@ -8,4 +8,4 @@ order: 1
   - Routes are ADTs
   - Routes can be nested (sub-routes) i.e. hierarchical
   - Routes must be an instance of `IsRoute`
-  - `mkRouteEncoder` and `routeUniverse`
+  - `mkRoutePrism` and `routeUniverse`

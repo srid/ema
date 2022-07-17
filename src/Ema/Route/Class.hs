@@ -1,8 +1,8 @@
 module Ema.Route.Class (
-  IsRoute (RouteModel, routeEncoder, routeUniverse),
+  IsRoute (RouteModel, routePrism, routeUniverse),
 ) where
 
-import Ema.Route.Encoder (RouteEncoder, singletonRouteEncoder)
+import Ema.Route.Encoder (Prism_, singletonRoutePrism)
 import Prelude hiding (All, Generic)
 
 {- | Class of Ema routes
@@ -15,11 +15,11 @@ import Prelude hiding (All, Generic)
 -}
 class IsRoute r where
   type RouteModel r :: Type
-  routeEncoder :: RouteEncoder (RouteModel r) r
+  routePrism :: RouteModel r -> Prism_ FilePath r
   routeUniverse :: RouteModel r -> [r]
 
 -- Single element routes are represented by `()`
 instance IsRoute () where
   type RouteModel () = ()
-  routeEncoder = singletonRouteEncoder "index.html"
+  routePrism = singletonRoutePrism "index.html"
   routeUniverse _ = [()]
