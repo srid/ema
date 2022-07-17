@@ -15,6 +15,8 @@ NOTE: We are using GHC 9.2 which is not yet the default in `nixpkgs`, so you may
 
 Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the clock example (which updates every second, only to demonstrate hot reload); modify `./.ghcid` to run a different example. 
 
+To run the docs, run `nix run github:srid/emanote -- -L ./docs`.
+
 ## Getting Started
 
 https://ema.srid.ca/start
