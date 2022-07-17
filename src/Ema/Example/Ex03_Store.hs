@@ -16,9 +16,9 @@ import Data.Aeson (FromJSON, FromJSONKey, eitherDecodeFileStrict')
 import Data.Map.Strict qualified as Map
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
-import Ema.Route.Encoder
 import Ema.Route.Generic
 import Ema.Route.Generic.TH (deriveGeneric, deriveIsRoute)
+import Ema.Route.Prism
 import Generics.SOP qualified as SOP
 import Optics.Core (coercedTo, iso, prism', (%))
 import System.FSNotify qualified as FSNotify

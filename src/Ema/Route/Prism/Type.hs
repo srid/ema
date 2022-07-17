@@ -1,4 +1,4 @@
-module Ema.Route.Encoder.Type where
+module Ema.Route.Prism.Type where
 
 import Optics.Core (A_Prism, Is, NoIx, Optic', Prism', castOptic, preview, prism', review, (%))
 

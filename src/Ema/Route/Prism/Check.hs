@@ -1,11 +1,11 @@
-module Ema.Route.Encoder.Check (
+module Ema.Route.Prism.Check (
   checkRoutePrismGivenFilePath,
   checkRoutePrismGivenRoute,
 ) where
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Text qualified as T
-import Ema.Route.Encoder.Type (Prism_, applyRoutePrism)
+import Ema.Route.Prism.Type (Prism_, applyRoutePrism)
 import Optics.Core (Prism', preview, review)
 import System.FilePath ((</>))
 

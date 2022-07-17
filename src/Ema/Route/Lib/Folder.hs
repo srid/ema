@@ -5,7 +5,7 @@ module Ema.Route.Lib.Folder (
 
 import Data.Text qualified as T
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder (Prism_, mapRoutePrism)
+import Ema.Route.Prism (Prism_, mapRoutePrism)
 import Ema.Site (EmaSite (..), EmaStaticSite)
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
 import Optics.Core (coercedTo, prism', (%))

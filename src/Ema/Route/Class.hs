@@ -2,7 +2,7 @@ module Ema.Route.Class (
   IsRoute (RouteModel, routePrism, routeUniverse),
 ) where
 
-import Ema.Route.Encoder (Prism_, singletonRoutePrism)
+import Ema.Route.Prism (Prism_, singletonRoutePrism)
 import Prelude hiding (All, Generic)
 
 {- | Class of Ema routes

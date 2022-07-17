@@ -1,4 +1,4 @@
-module Ema.Route.Encoder (
+module Ema.Route.Prism (
   module X,
 
   -- * Handy encoders
@@ -13,8 +13,8 @@ module Ema.Route.Encoder (
 ) where
 
 import Data.Text qualified as T
-import Ema.Route.Encoder.Check as X
-import Ema.Route.Encoder.Type as X
+import Ema.Route.Prism.Check as X
+import Ema.Route.Prism.Type as X
 import Optics.Core (Iso', Prism', iso, preview, prism', review)
 
 stringIso :: (ToString a, IsString a) => Iso' String a

@@ -26,7 +26,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (htmlSuffixPrism)
+import Ema.Route.Prism (htmlSuffixPrism)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
 import Optics.Core (prism', (%))

@@ -3,7 +3,7 @@ module Ema.Route.Lib.File (
 ) where
 
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder (
+import Ema.Route.Prism (
   mapRoutePrism,
   singletonRoutePrism,
  )

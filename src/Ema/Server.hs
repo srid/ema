@@ -16,7 +16,7 @@ import Ema.Asset (
  )
 import Ema.CLI (Host (unHost))
 import Ema.Route.Class (IsRoute (RouteModel, routePrism))
-import Ema.Route.Encoder (
+import Ema.Route.Prism (
   applyRoutePrism,
   checkRoutePrismGivenFilePath,
  )

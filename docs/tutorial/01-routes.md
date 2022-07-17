@@ -61,7 +61,7 @@ instance IsRoute Date where
 The result is that we can use `routeUrl` to get the URL to our routes. In GHCi:
 
 ```haskell
-ghci> import Ema.Route.Encoder (applyRoutePrism)
+ghci> import Ema.Route.Prism (applyRoutePrism)
 ghci> -- First get hold of the route Prism, which is passed to `siteOutput`
 ghci> let routePrism = applyRoutePrism (routePrism @Route) ()
 ghci> Ema.routeUrl routePrism Route_Index

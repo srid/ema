@@ -18,7 +18,7 @@ import Control.Monad.Logger (
 import Ema.Asset (Asset (..))
 import Ema.CLI (crash)
 import Ema.Route.Class (IsRoute (RouteModel, routePrism, routeUniverse))
-import Ema.Route.Encoder (
+import Ema.Route.Prism (
   applyRoutePrism,
   checkRoutePrismGivenRoute,
  )

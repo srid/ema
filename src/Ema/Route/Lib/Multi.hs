@@ -12,7 +12,7 @@ module Ema.Route.Lib.Multi (
 
 import Data.SOP (I (..), NP (..), NS (..))
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder
+import Ema.Route.Prism
 import Ema.Site (EmaSite (..), EmaStaticSite)
 import Optics.Core (equality, iso, prism', (%))
 
