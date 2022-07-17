@@ -46,19 +46,19 @@ eitherRoutePrism ::
   (a -> Prism_ FilePath r1) ->
   (b -> Prism_ FilePath r2) ->
   ((a, b) -> Prism_ FilePath (Either r1 r2))
-eitherRoutePrism enc1 enc2 m =
-  -- TODO: this can be made safe, using lens composition.
-  let rp1 = fromPrism_ $ enc1 $ fst m
-      rp2 = fromPrism_ $ enc2 $ snd m
-   in toPrism_ $
-        prism'
-          ( either
-              (review rp1)
-              (review rp2)
-          )
-          ( \fp ->
-              asum
-                [ Left <$> preview rp1 fp
-                , Right <$> preview rp2 fp
-                ]
-          )
+eitherRoutePrism enc1 enc2 (m1, m2) =
+  toPrism_ $ eitherPrism (fromPrism_ $ enc1 m1) (fromPrism_ $ enc2 m2)
+
+eitherPrism :: Prism' FilePath a -> Prism' FilePath b -> Prism' FilePath (Either a b)
+eitherPrism p1 p2 =
+  prism'
+    ( either
+        (review p1)
+        (review p2)
+    )
+    ( \fp ->
+        asum
+          [ Left <$> preview p1 fp
+          , Right <$> preview p2 fp
+          ]
+    )

@@ -12,9 +12,11 @@ import Optics.Core (A_Prism, Is, NoIx, Optic', Prism', castOptic, preview, prism
 -}
 type Prism_ s a = (a -> s, s -> Maybe a)
 
+-- | Convert a `Prism_` to a `Prism'`.
 fromPrism_ :: Prism_ s a -> Prism' s a
 fromPrism_ = uncurry prism'
 
+-- | Convert a `Prism'` to a `Prism_`.
 toPrism_ :: Prism' s a -> Prism_ s a
 toPrism_ = review &&& preview
 
