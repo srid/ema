@@ -37,11 +37,12 @@ data NumRoute = NumRoute
 
 instance IsRoute NumRoute where
   type RouteModel NumRoute = Int
-  routePrism = mkRoutePrism $ \n ->
+  routePrism n =
     let fp = show n <> ".html"
-     in prism' (const fp) $ \s -> do
-          guard $ s == fp
-          pure NumRoute
+     in toPrism_ $
+          prism' (const fp) $ \s -> do
+            guard $ s == fp
+            pure NumRoute
   routeUniverse _ = [NumRoute]
 
 instance EmaSite R where

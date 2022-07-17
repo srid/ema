@@ -32,8 +32,8 @@ htmlSuffixPrism = prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . t
   See `()` which has an @IsRoute@ instance using this encoder.
 -}
 singletonRoutePrism :: FilePath -> (a -> Prism_ FilePath ())
-singletonRoutePrism fp =
-  mkRoutePrism $ \_ -> singletonPrism fp
+singletonRoutePrism fp _ =
+  toPrism_ $ singletonPrism fp
 
 singletonPrism :: Eq a => a -> Prism' a ()
 singletonPrism x = prism' (\() -> x) (\s -> guard (s == x))
@@ -46,12 +46,12 @@ eitherRoutePrism ::
   (a -> Prism_ FilePath r1) ->
   (b -> Prism_ FilePath r2) ->
   ((a, b) -> Prism_ FilePath (Either r1 r2))
-eitherRoutePrism enc1 enc2 =
+eitherRoutePrism enc1 enc2 m =
   -- TODO: this can be made safe, using lens composition.
-  mkRoutePrism $ \m ->
-    let rp1 = applyRoutePrism enc1 $ fst m
-        rp2 = applyRoutePrism enc2 $ snd m
-     in prism'
+  let rp1 = applyRoutePrism enc1 $ fst m
+      rp2 = applyRoutePrism enc2 $ snd m
+   in toPrism_ $
+        prism'
           ( either
               (review rp1)
               (review rp2)

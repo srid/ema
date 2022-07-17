@@ -38,12 +38,12 @@ data Model = Model
 
 instance IsRoute (StaticRoute baseDir) where
   type RouteModel (StaticRoute baseDir) = Model
-  routePrism = Ema.mkRoutePrism $ \(modelFiles -> files) ->
+  routePrism (modelFiles -> files) =
     let enc =
           unStaticRoute
         dec fp =
           StaticRoute fp <$ guard (Map.member fp files)
-     in prism' enc dec
+     in toPrism_ $ prism' enc dec
   routeUniverse (modelFiles -> files) =
     StaticRoute <$> Map.keys files
 

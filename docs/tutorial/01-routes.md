@@ -43,7 +43,7 @@ newtype Date = Date (Integer, Int, Int)
 
 instance IsRoute Date where
   type RouteModel Date = ()
-  routePrism = mkRoutePrism $ \() ->
+  routePrism () = toPrism_ $
     prism'
       ( \(Date (y, m, d)) ->
           formatTime defaultTimeLocale "%Y-%m-%d.html" $
@@ -52,11 +52,11 @@ instance IsRoute Date where
       ( fmap (Date . toGregorian)
           . parseTimeM False defaultTimeLocale "%Y-%m-%d.html"
       )
-  routeUniverse _ = [] -- need model for this
+  routeUniverse () = [] -- need model for this
 ```
 
 1. We don't need any special data value to encode a `Day` route, thus `RouteModel` is a unit.
-2. `mkRoutePrism` takes a function returning a `Prism` that knows how to encode and decode the `Day` route. The `Prism` is built using `formatTime` and `parseTimeM`.
+2. `toPrism_` converts the optics-core `Prism'` into a coercible `Prism_` type that Ema internally uses. A route prism knows how to encode and decode the `Day` route. The `Prism'` is built using `formatTime` and `parseTimeM`.
 
 The result is that we can use `routeUrl` to get the URL to our routes. In GHCi:
 

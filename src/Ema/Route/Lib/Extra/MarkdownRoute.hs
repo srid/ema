@@ -80,7 +80,7 @@ instance Default Arg where
 
 instance IsRoute MarkdownRoute where
   type RouteModel MarkdownRoute = Model
-  routePrism = mkRoutePrism $ \m ->
+  routePrism m =
     let encode (MarkdownRoute slugs) =
           toString $ T.intercalate "/" $ Slug.unSlug <$> toList slugs
         decode fp = do
@@ -89,7 +89,7 @@ instance IsRoute MarkdownRoute where
           let r = MarkdownRoute slugs
           guard $ Map.member r $ modelPandocs m
           pure r
-     in htmlSuffixPrism % prism' encode decode
+     in toPrism_ $ htmlSuffixPrism % prism' encode decode
   routeUniverse =
     Map.keys . modelPandocs
 

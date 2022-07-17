@@ -34,8 +34,8 @@ instance IsRoute (MultiRoute '[]) where
   routePrism = impossiblePrism
     where
       impossiblePrism :: (NP I '[] -> Prism_ FilePath (MultiRoute '[]))
-      impossiblePrism = mkRoutePrism $ \Nil ->
-        prism' (\case {}) (const Nothing)
+      impossiblePrism Nil =
+        toPrism_ $ prism' (\case {}) (const Nothing)
   routeUniverse Nil = mempty
 
 instance

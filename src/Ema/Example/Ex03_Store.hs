@@ -83,11 +83,12 @@ newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}
 
 instance (IsString r, ToString r, Eq r, Ord r) => IsRoute (StringRoute a r) where
   type RouteModel (StringRoute a r) = Map r a
-  routePrism = mkRoutePrism \(as :: Map r a) ->
-    htmlSuffixPrism
-      % iso fromString toString
-      % mapMemberPrism as
-      % coercedTo
+  routePrism as =
+    toPrism_ $
+      htmlSuffixPrism
+        % iso fromString toString
+        % mapMemberPrism as
+        % coercedTo
     where
       mapMemberPrism m =
         prism' id $ \r -> do pure r <* (guard $ r `Map.member` m)

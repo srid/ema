@@ -32,9 +32,9 @@ index 2bb65f9..37f2308 100644
  
  instance IsRoute Date where
 -  type RouteModel Date = ()
--  routePrism = mkRoutePrism $ \() ->
+-  routePrism () = toPrism_ $
 +  type RouteModel Date = Model
-+  routePrism = mkRoutePrism $ \(Model moods) ->
++  routePrism (Model moods) = toPrism_ $
      prism'
        ( \(Date (y, m, d)) ->
            formatTime defaultTimeLocale "%Y-%m-%d.html" $

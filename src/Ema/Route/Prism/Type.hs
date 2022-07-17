@@ -18,10 +18,6 @@ fromPrism_ = uncurry prism'
 toPrism_ :: Prism' s a -> Prism_ s a
 toPrism_ = review &&& preview
 
--- | Make a route prism manually.
-mkRoutePrism :: (a -> Prism' FilePath r) -> (a -> Prism_ FilePath r)
-mkRoutePrism f = toPrism_ . f
-
 applyRoutePrism :: (a -> Prism_ FilePath r) -> a -> Prism' FilePath r
 applyRoutePrism f = fromPrism_ . f
 
@@ -37,7 +33,7 @@ mapRoutePrism ::
   (a -> Prism_ FilePath r1) ->
   (b -> Prism_ FilePath r2)
 mapRoutePrism fp r m enc =
-  mkRoutePrism $ cpmap (castOptic fp) (castOptic r) m $ applyRoutePrism enc
+  toPrism_ . cpmap (castOptic fp) (castOptic r) m (applyRoutePrism enc)
   where
     cpmap ::
       forall a b c d x y.
