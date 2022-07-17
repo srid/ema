@@ -2,7 +2,8 @@ module Ema.Route.Class (
   IsRoute (RouteModel, routePrism, routeUniverse),
 ) where
 
-import Ema.Route.Prism (Prism_, singletonRoutePrism)
+import Ema.Route.Prism (Prism_, toPrism_)
+import Optics.Core (only)
 import Prelude hiding (All, Generic)
 
 {- | Class of Ema routes
@@ -21,5 +22,5 @@ class IsRoute r where
 -- Single element routes are represented by `()`
 instance IsRoute () where
   type RouteModel () = ()
-  routePrism = singletonRoutePrism "index.html"
+  routePrism _ = toPrism_ $ only "index.html"
   routeUniverse _ = [()]

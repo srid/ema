@@ -4,11 +4,10 @@ module Ema.Route.Lib.File (
 
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Prism (
-  mapRoutePrism,
-  singletonRoutePrism,
+  toPrism_,
  )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Optics.Core (equality, prism')
+import Optics.Core (iso, only, (%))
 
 {- | A type-level singleton route, whose encoding is given by the symbol parameter.
 
@@ -21,8 +20,9 @@ data FileRoute (filename :: Symbol) = FileRoute
 
 instance KnownSymbol fn => IsRoute (FileRoute fn) where
   type RouteModel (FileRoute fn) = ()
-  routePrism =
-    singletonRoutePrism (symbolVal (Proxy @fn))
-      & mapRoutePrism equality (prism' (const ()) (const $ Just FileRoute)) id
+  routePrism () =
+    toPrism_ $
+      only (symbolVal (Proxy @fn))
+        % iso (\() -> FileRoute) (\FileRoute -> ())
   routeUniverse () =
     [FileRoute]

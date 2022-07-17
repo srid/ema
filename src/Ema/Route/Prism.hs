@@ -2,14 +2,12 @@ module Ema.Route.Prism (
   module X,
 
   -- * Handy encoders
-  singletonRoutePrism,
   eitherRoutePrism,
 
   -- * Handy lenses
   htmlSuffixPrism,
   stringIso,
   showReadPrism,
-  singletonPrism,
 ) where
 
 import Data.Text qualified as T
@@ -25,18 +23,6 @@ showReadPrism = prism' show readMaybe
 
 htmlSuffixPrism :: Prism' FilePath FilePath
 htmlSuffixPrism = prism' (<> ".html") (fmap toString . T.stripSuffix ".html" . toText)
-
-{- | A route @Prism_@ representing the singleton route, using the given encoding for that singleton value.
-
-  Typically used as `singletonRoutePrism "index.html"` for a single-page site.
-  See `()` which has an @IsRoute@ instance using this encoder.
--}
-singletonRoutePrism :: FilePath -> (a -> Prism_ FilePath ())
-singletonRoutePrism fp _ =
-  toPrism_ $ singletonPrism fp
-
-singletonPrism :: Eq a => a -> Prism' a ()
-singletonPrism x = prism' (\() -> x) (\s -> guard (s == x))
 
 {- | Returns a new route `Prism_` that supports *either* of the input routes.
 
