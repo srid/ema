@@ -5,7 +5,7 @@ module Ema.Route.Prism.Check (
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Text qualified as T
-import Ema.Route.Prism.Type (Prism_, applyRoutePrism)
+import Ema.Route.Prism.Type (Prism_, fromPrism_)
 import Optics.Core (Prism', preview, review)
 import System.FilePath ((</>))
 
@@ -16,7 +16,7 @@ checkRoutePrismGivenRoute ::
   r ->
   Either Text ()
 checkRoutePrismGivenRoute enc a r =
-  let s = review (applyRoutePrism enc a) r
+  let s = review (fromPrism_ $ enc a) r
    in checkRoutePrism enc a r s
 
 checkRoutePrismGivenFilePath ::
@@ -28,7 +28,7 @@ checkRoutePrismGivenFilePath ::
 checkRoutePrismGivenFilePath enc a s = do
   -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
   let candidates = [s, s <> ".html", s </> "index.html"]
-      rp = applyRoutePrism enc a
+      rp = fromPrism_ $ enc a
   case asum (preview rp <$> candidates) of
     Nothing -> pure Nothing
     Just r -> do
@@ -68,7 +68,7 @@ routePrismIsLawfulFor ::
   FilePath ->
   Writer [Text] Bool
 routePrismIsLawfulFor enc =
-  prismIsLawfulFor . applyRoutePrism enc
+  prismIsLawfulFor . fromPrism_ . enc
 
 prismIsLawfulFor ::
   forall s a.

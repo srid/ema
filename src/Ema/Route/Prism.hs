@@ -48,8 +48,8 @@ eitherRoutePrism ::
   ((a, b) -> Prism_ FilePath (Either r1 r2))
 eitherRoutePrism enc1 enc2 m =
   -- TODO: this can be made safe, using lens composition.
-  let rp1 = applyRoutePrism enc1 $ fst m
-      rp2 = applyRoutePrism enc2 $ snd m
+  let rp1 = fromPrism_ $ enc1 $ fst m
+      rp2 = fromPrism_ $ enc2 $ snd m
    in toPrism_ $
         prism'
           ( either

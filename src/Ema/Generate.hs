@@ -19,8 +19,8 @@ import Ema.Asset (Asset (..))
 import Ema.CLI (crash)
 import Ema.Route.Class (IsRoute (RouteModel, routePrism, routeUniverse))
 import Ema.Route.Prism (
-  applyRoutePrism,
   checkRoutePrismGivenRoute,
+  fromPrism_,
  )
 import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
 import Optics.Core (review)
@@ -68,7 +68,7 @@ generateSiteFromModel' ::
   m [FilePath]
 generateSiteFromModel' dest model = do
   let enc = routePrism @r
-      rp = applyRoutePrism enc model
+      rp = fromPrism_ $ enc model
   -- Sanity checks
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     throwError $ "Destination directory does not exist: " <> toText dest
