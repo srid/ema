@@ -20,19 +20,20 @@ fromPrism_ = uncurry prism'
 toPrism_ :: Prism' s a -> Prism_ s a
 toPrism_ = review &&& preview
 
-{- | fmap over the filepath, route and model in a route prism.
-
-  Typically you want to use one of the specific variants below.
--}
+-- | map over the filepath, route and model of the given route prism.
 mapRoutePrism ::
   (pr `Is` A_Prism, pf `Is` A_Prism) =>
+  -- | How to transform the encoded `FilePath`
   Optic' pf NoIx FilePath FilePath ->
+  -- | How to transform the decode route
   Optic' pr NoIx r1 r2 ->
+  -- | How to transform (contramap) the resultant model
   (b -> a) ->
+  -- | The route prism to fmap.
   (a -> Prism_ FilePath r1) ->
   (b -> Prism_ FilePath r2)
-mapRoutePrism fp r m enc =
-  toPrism_ . cpmap (castOptic fp) (castOptic r) m (fromPrism_ . enc)
+mapRoutePrism (castOptic -> fp) (castOptic -> rp) m enc =
+  toPrism_ . cpmap fp rp m (fromPrism_ . enc)
   where
     cpmap ::
       forall a b c d x y.
@@ -41,5 +42,5 @@ mapRoutePrism fp r m enc =
       (y -> x) ->
       (x -> Prism' a c) ->
       (y -> Prism' b d)
-    cpmap p q f r' ctx =
-      p % r' (f ctx) % q
+    cpmap p q f r x =
+      p % r (f x) % q
