@@ -52,7 +52,7 @@ instance IsRoute Date where
       ( fmap (Date . toGregorian)
           . parseTimeM False defaultTimeLocale "%Y-%m-%d.html"
       )
-  allRoutes _ = [] -- need model for this
+  routeUniverse _ = [] -- need model for this
 ```
 
 1. We don't need any special data value to encode a `Day` route, thus `RouteModel` is a unit.

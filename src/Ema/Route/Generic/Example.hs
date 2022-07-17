@@ -42,7 +42,7 @@ instance IsRoute NumRoute where
      in prism' (const fp) $ \s -> do
           guard $ s == fp
           pure NumRoute
-  allRoutes _ = [NumRoute]
+  routeUniverse _ = [NumRoute]
 
 instance EmaSite R where
   siteInput _ () = pure $ pure (42, 21, "inner")

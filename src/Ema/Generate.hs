@@ -17,7 +17,7 @@ import Control.Monad.Logger (
  )
 import Ema.Asset (Asset (..))
 import Ema.CLI (crash)
-import Ema.Route.Class (IsRoute (RouteModel, allRoutes, routeEncoder))
+import Ema.Route.Class (IsRoute (RouteModel, routeEncoder, routeUniverse))
 import Ema.Route.Encoder (
   applyRouteEncoder,
   checkRouteEncoderGivenRoute,
@@ -72,9 +72,9 @@ generateSiteFromModel' dest model = do
   -- Sanity checks
   unlessM (liftIO $ doesDirectoryExist dest) $ do
     throwError $ "Destination directory does not exist: " <> toText dest
-  let routes = allRoutes @r model
+  let routes = routeUniverse @r model
   when (null routes) $
-    throwError "Your app's `allRoutes` is empty; nothing to generate!"
+    throwError "Your app's `routeUniverse` is empty; nothing to generate!"
   forM_ routes $ \route ->
     checkRouteEncoderGivenRoute enc model route
       `whenLeft_` throwError

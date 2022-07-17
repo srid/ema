@@ -44,7 +44,7 @@ instance IsRoute (StaticRoute baseDir) where
         dec fp =
           StaticRoute fp <$ guard (Map.member fp files)
      in prism' enc dec
-  allRoutes (modelFiles -> files) =
+  routeUniverse (modelFiles -> files) =
     StaticRoute <$> Map.keys files
 
 instance KnownSymbol baseDir => EmaSite (StaticRoute baseDir) where

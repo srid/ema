@@ -24,5 +24,5 @@ instance KnownSymbol fn => IsRoute (FileRoute fn) where
   routeEncoder =
     singletonRouteEncoder (symbolVal (Proxy @fn))
       & mapRouteEncoder equality (prism' (const ()) (const $ Just FileRoute)) id
-  allRoutes () =
+  routeUniverse () =
     [FileRoute]

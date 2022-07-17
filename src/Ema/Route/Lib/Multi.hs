@@ -36,7 +36,7 @@ instance IsRoute (MultiRoute '[]) where
       impossibleEncoder :: RouteEncoder (NP I '[]) (MultiRoute '[])
       impossibleEncoder = mkRouteEncoder $ \Nil ->
         prism' (\case {}) (const Nothing)
-  allRoutes Nil = mempty
+  routeUniverse Nil = mempty
 
 instance
   ( IsRoute r
@@ -49,9 +49,9 @@ instance
   routeEncoder =
     routeEncoder @r
       `nsRouteEncoder` routeEncoder @(MultiRoute rs)
-  allRoutes (I m :* ms) =
-    fmap (toNS . Left) (allRoutes @r m)
-      <> fmap (toNS . Right) (allRoutes @(MultiRoute rs) ms)
+  routeUniverse (I m :* ms) =
+    fmap (toNS . Left) (routeUniverse @r m)
+      <> fmap (toNS . Right) (routeUniverse @(MultiRoute rs) ms)
 
 instance EmaSite (MultiRoute '[]) where
   type SiteArg (MultiRoute '[]) = NP I '[]

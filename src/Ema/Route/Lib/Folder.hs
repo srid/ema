@@ -22,7 +22,7 @@ instance (Show r, KnownSymbol prefix) => Show (FolderRoute prefix r) where
 instance (IsRoute r, KnownSymbol prefix) => IsRoute (FolderRoute prefix r) where
   type RouteModel (FolderRoute prefix r) = RouteModel r
   routeEncoder = prefixRouteEncoder @prefix @r @(RouteModel r) $ routeEncoder @r
-  allRoutes m = FolderRoute <$> allRoutes @r m
+  routeUniverse m = FolderRoute <$> routeUniverse @r m
 
 instance (EmaStaticSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r) where
   type SiteArg (FolderRoute prefix r) = SiteArg r

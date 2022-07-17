@@ -90,7 +90,7 @@ instance IsRoute MarkdownRoute where
           guard $ Map.member r $ modelPandocs m
           pure r
      in htmlSuffixPrism % prism' encode decode
-  allRoutes =
+  routeUniverse =
     Map.keys . modelPandocs
 
 newtype MarkdownHtml = MarkdownHtml {unMarkdownHtml :: Text}

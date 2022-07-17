@@ -40,7 +40,7 @@ index 2bb65f9..37f2308 100644
            formatTime defaultTimeLocale "%Y-%m-%d.html" $
 @@ -47,9 +48,15 @@ instance IsRoute Date where
        )
-   allRoutes _ = []
+   routeUniverse _ = []
  
 +data Model = Model
 +  { modelDays :: Map Date Mood
@@ -59,12 +59,12 @@ index 2bb65f9..37f2308 100644
 \ No newline at end of file
 ```
 
-Now that we have a model, we can define `allRoutes` to use it. `allRoutes` is used during static site generation -- to determine which routes to generate on disk:
+Now that we have a model, we can define `routeUniverse` to use it. `routeUniverse` is used during static site generation -- to determine which routes to generate on disk:
 
 ```haskell
 instance IsRoute Date where 
   ..
-  allRoutes (Model moods) = Map.keys moods
+  routeUniverse (Model moods) = Map.keys moods
 ```
 
 ## Use `Model`

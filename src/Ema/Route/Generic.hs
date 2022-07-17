@@ -152,6 +152,6 @@ instance
   routeEncoder =
     routeEncoder @mr
       & mapRouteEncoder equality (re (subRoutesIso @r) % coercedTo) (subModels @r)
-  allRoutes m =
+  routeUniverse m =
     GenericRoute . review subRoutesIso
-      <$> allRoutes (subModels @r m)
+      <$> routeUniverse (subModels @r m)

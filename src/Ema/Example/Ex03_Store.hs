@@ -91,7 +91,7 @@ instance (IsString r, ToString r, Eq r, Ord r) => IsRoute (StringRoute a r) wher
     where
       mapMemberPrism m =
         prism' id $ \r -> do pure r <* (guard $ r `Map.member` m)
-  allRoutes as = StringRoute <$> Map.keys as
+  routeUniverse as = StringRoute <$> Map.keys as
 
 deriveGeneric ''ProductRoute
 deriveIsRoute
