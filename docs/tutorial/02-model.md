@@ -1,6 +1,10 @@
-# 02 Add a Model
+---
+order: 2
+---
 
-In order to generate our mood tracker website, we need ... mood data. If we record our mood each day, then Haskell's `Map` type is one way to represent the moods overtime.
+# Add a Model
+
+In order to generate our mood tracker website, we need ... mood data, ie., the mood [[model]]. If we record our mood each day, then Haskell's `Map` type is one way to represent moods overtime.
 
 ```haskell
 data Model = Model 
@@ -10,7 +14,7 @@ data Model = Model
 data Mood = Bad | Neutral | Good
 ```
 
-Now we want to associate our `Route` type with this `Model`. This can be done as follows:
+Now we want to *associate* our `Route` type with this `Model`. This can be done as follows:
 
 1. When [[generic|genericaly deriving]] routes, use `WithModel` option to associate a model for that route. 
 2. Use the same[^same] model in the `IsRoute` instance for subroutes (here, `Date`). 
@@ -42,7 +46,7 @@ instance IsRoute Date where
   routeUniverse (Model moods) = Map.keys moods
 ```
 
-Notice how this time we are able to prop define `routeUniverse` (used during static site generation, to determine which routes to generate on disk), because the model value is available. `routePrism` also gets the model as an argument, but in this case we have no need for it (in theory, we could check that a date exists before decoding successfully).
+Notice how this time we are able to properly define `routeUniverse` (it is used during static site generation, to determine which routes to generate on disk), because the model value is available. `routePrism` also gets the model as an argument, but in this case we have no need for it (in theory, we could check that a date exists before decoding successfully).
 
 Finally, (3) is where we get to produce (`siteInput`) and consume (`siteOutput`) the model. This is explained in the subsequent section..
 
@@ -81,7 +85,7 @@ This should render both `/` (`Route_Index`) and, say, `/date/2020-01-01.html` (`
 
 Ultimately the value for our `Model` will come from elsewhere, such as a CSV file on disk.  Let's use [cassava](https://hackage.haskell.org/package/cassava) to parse this CSV and load it into our Model.
 
-First add a sample Csv file under `./data/moods.csv` containing:
+First add a sample CSV file under `./data/moods.csv` containing:
 
 ```csv
 2022-04-23,Good

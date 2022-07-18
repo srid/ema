@@ -1,4 +1,8 @@
-# 01 Add Routes
+---
+order: 1
+---
+
+# Add Routes
 
 We want to write a application to track moods, ie., a [mood tracking](https://en.wikipedia.org/wiki/Mood_tracking) app. 
 
@@ -42,7 +46,7 @@ instance IsRoute Date where
   routeUniverse () = [] -- need model for this
 ```
 
-1. We don't need any special [[model]] to encode a `Day` route, thus `RouteModel` is a unit.
+1. We don't need any special [[model]] to encode a `Day` route, thus `RouteModel` is a unit. But we'll modify this in next step (to implement `routeUniverse`).
 2. `toPrism_` converts the optics-core `Prism'` into a coercible `Prism_` type that Ema internally uses. A route prism knows how to encode and decode the `Day` route. Our route `Prism'` is built using `formatTime` and `parseTimeM`.
 
 The result is that we can use `routeUrl` to get the URL to our routes. In GHCi:
@@ -59,7 +63,7 @@ ghci> Ema.routeUrl rp $ Route_Day $ Date (2022, 04, 23)
 You also can use [optics](https://hackage.haskell.org/package/optics-core) operators to directly operate on route prisms.
 
 ```haskell
--- Using `routePrism` from GHCi session above
+-- NOTE: Using `rp` from GHCi session above
 ghci> import Optics.Core
 ghci> review rp Route_Index
 "index.html"
@@ -69,4 +73,4 @@ ghci> preview rp "date/2022-04-23.html"
 Just (Route_Date (Date (2022,4,23)))
 ```
 
-See [[route]] for full details.
+See [[route]] for details.
