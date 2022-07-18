@@ -9,7 +9,6 @@ module Ema.Route.Generic.Verification (
 import Data.Type.Bool (If, type (||), type (&&))
 import Data.Type.Equality (type (==))
 import GHC.Generics qualified as GHC
-import Generics.SOP (Code)
 import GHC.TypeLits (Symbol, type (-))
 import Type.Errors.Pretty (TypeError)
 import Type.Errors.Pretty qualified as P
