@@ -14,10 +14,22 @@ import GHC.TypeLits (Symbol, type (-))
 import Type.Errors.Pretty (TypeError)
 import Type.Errors.Pretty qualified as P
 
-type family Indexed (i :: Nat) (xs :: [k]) :: k where
-  Indexed n '[]       = TypeError ("Type list indexing: out of bounds index " P.<> n P.% "")
-  Indexed 0 (x ': _)  = x
-  Indexed n (_ ': xs) = Indexed (n - 1) xs
+-- Index into the nth field of a single-constructor generic type rep, returning its type
+type family Indexed (i :: Nat) (xs :: Type) :: Type where
+  Indexed n (GHC.D1 _ (GHC.C1 _ fields) _) = 
+    Indexed n (fields ())
+  Indexed 1 ((GHC.S1 _ (GHC.K1 _ t) GHC.:*: nxt) _) = 
+    t
+  Indexed n ((GHC.S1 _ _ GHC.:*: nxt) _) = 
+    Indexed (n - 1) (nxt ())
+  Indexed 1 (GHC.S1 _ (GHC.K1 _ t) _) =
+    t
+  Indexed 0 (GHC.S1 _ _ _) =
+    TypeError ("Type rep indexing: generic selector indexing starts at 1" P.% "")
+  Indexed n (GHC.S1 _ _ _) =
+    TypeError ("Type rep indexing: out of bounds index " P.<> n)
+  Indexed _ _ = 
+    TypeError ("Type rep indexing: multiple constructors" P.% "") 
 
 -- | Extract the type of a field of name @s@ from a generic type representation @t@
 type family FieldType (s :: Symbol) (t :: Type) :: Type where
@@ -34,15 +46,11 @@ type family ContainsSubModel (t :: Type) (r :: Type) :: Bool where
   ContainsSubModel t (GHC.D1 _ (GHC.C1 _ fields) _) = 
     ContainsSubModel t (fields ())
   ContainsSubModel t ((GHC.S1 _ (GHC.K1 _ t') GHC.:*: nxt) _) = 
-    If (t == t') 'True (ContainsSubModel t (nxt ()))
+    t == t' || ContainsSubModel t (nxt ())
   ContainsSubModel t (GHC.S1 _ (GHC.K1 _ t') _) =
     t == t'
   ContainsSubModel t _ = 
     'False
-
-type family Head (xs :: [k]) :: k where
-  Head (x ': _) = x
-  Head _        = TypeError ("Type list head: empty list" P.% "")
 
 type family ModelShapeMismatchError r where
   ModelShapeMismatchError r =  TypeError ("WithSubModelss list does not match the shape of " P.<> r)
@@ -57,21 +65,21 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
   -- TODO: Does not verify if the model is SOP.Generic, and some models don't have /any/ generic instance to begin with,
   -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) = 
-    If (f == Indexed n (Head (Code model)))
+    If (f == Indexed n (GHC.Rep model ()))
       (VerifyModels model fs ss)
       (TypeError 
-        ("Submodel at index " P.<> n P.<> " of " 
-        P.% model 
-        P.% "Has type" 
-        P.% Indexed n (Head (Code model))
-        P.% "Subroute specification requires that this be " P.<> f P.% " instead."))
+        ("Submodel at index " P.<> n P.<> " of " P.<> model 
+        P.% "Has type:" 
+        P.% Indexed n (GHC.Rep model ())
+        P.% "Subroute specification requires that this instead be:" 
+        P.% f))
   -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
   -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (s :: Symbol) ': ss) = 
     If (f == FieldType s (GHC.Rep model ()))
       (VerifyModels model fs ss)
       (TypeError
-        ("A field " P.<> s P.<> " of type " 
+        ("A field " P.<> s P.<> " of type:" 
         P.% f 
         P.% "Does not exist in model " 
         P.% model))
@@ -84,13 +92,13 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       (If (f == ty)
         (VerifyModels model fs ss)
         (TypeError 
-          ("Subroute requires a submodel of type"
+          ("Subroute requires a submodel of type:"
           P.% f
-          P.% "But WithSubModels list at the same index specifies that this should be" 
+          P.% "But WithSubModels list at the same index specifies that this should be:" 
           P.% ty)))
       (TypeError 
         (model 
-        P.% "Is not a supermodel of the model" 
+        P.% "Is not a supermodel of the model:" 
         P.% ty
         P.% "Even though this is required by its WithSubRoutes list."))
 
@@ -99,24 +107,30 @@ type family RouteShapeMismatchError r where
 
 -- Attempts to 'unwrap' @r2@ to see if the constructor fields specified by @r1@ match its internal representation 1:1
 type family IsUnwrappedRoute (r1 :: [Type]) (r2 :: Type) :: Bool where
-  -- Special case since we can think of Unwrapped () ~ ()
-  IsUnwrappedRoute '[] (GHC.U1 ()) = 
-    'True
   -- For routes that derived /stock/ GHC.Generic;
   -- TODO: The implementation is a bit overkill here as it checks for all fields, but this could be useful
-  -- should semantics expand in the future.
+  -- should semantics expand in the future perhaps?
   IsUnwrappedRoute ts (GHC.D1 _ (GHC.C1 _ fields) _) = 
     IsUnwrappedRoute ts (fields ())
   IsUnwrappedRoute (t ': '[]) (GHC.S1 _ (GHC.K1 _ t') _) =
     t == t'
   IsUnwrappedRoute (t ': ts) ((GHC.S1 _ (GHC.K1 _ t') GHC.:*: nxt) _) =
     t == t' && IsUnwrappedRoute ts (nxt ())
-  -- Assume route derived /newtype/ GHC.Generic as a last resort; simply verify the reps are equal
-  IsUnwrappedRoute (t ': _) ts' = 
-    GHC.Rep t () == ts'
+  -- Special case for routes with no fields internally, since we can think of Unwrapped () ~ ()
+  IsUnwrappedRoute '[] (GHC.U1 ()) = 
+    'True
   -- Catch-all
   IsUnwrappedRoute _ _ = 
     'False
+
+-- We need to implement the matching logic as 2 type families here due to overlapping patterns
+type family IsUnwrappedRoute' (r1 :: [Type]) (r2 :: Type) :: Bool where
+  -- For routes that derived /newtype/ GHC.Generic; simply verify the reps are equal
+  -- Otherwise, pass it on to match with the assumption of /stock/ GHC.Generic deriving
+  IsUnwrappedRoute' (t ': ts) ts' = 
+    GHC.Rep t () == ts' || IsUnwrappedRoute (t ': ts) ts'
+  IsUnwrappedRoute' r1 r2 = 
+    IsUnwrappedRoute r1 r2
 
 {- | @VerifyRoutes route rep subroutes@ verifies the given @route@ to ensure that there
 exists a valid @HasSubRoutes@ instance for @route@ given its @rep@ and the @subroutes@ it is generic-deriving from. 
@@ -140,7 +154,7 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
   -- Constructor type ~ Unwrapped (Subroute spec) as a last-resort assumption
   -- TODO: Type specified may not be GHC.Generic; might be better to dispatch via class instance.
   VerifyRoutes r (r1 ': rs) (r2 ': rs') = 
-    If (r1 `IsUnwrappedRoute` (GHC.Rep r2 ()))
+    If (r1 `IsUnwrappedRoute'` (GHC.Rep r2 ()))
       (VerifyRoutes r rs rs')
       (TypeError
         ("Route constructor with representation:" 
