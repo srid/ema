@@ -154,6 +154,7 @@ library
     Ema.Route.Generic.SubRoute
     Ema.Route.Generic.SubModel
     Ema.Route.Generic.TH
+    Ema.Route.Generic.Verification
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Lib.Multi

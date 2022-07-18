@@ -27,11 +27,12 @@ import Ema.Route.Encoder.Type (mapRouteEncoder)
 import Ema.Route.Generic.RGeneric
 import Ema.Route.Generic.SubModel as X
 import Ema.Route.Generic.SubRoute as X
+import Ema.Route.Generic.Verification
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import GHC.Generics qualified as GHC
-import Generics.SOP (All, I (..), NP)
+import Generics.SOP (All, I (..), NP, Code)
 import Optics.Core (ReversibleOptic (re), coercedTo, equality, review, (%))
 import Prelude hiding (All, Generic)
 
@@ -122,7 +123,13 @@ instance
   type SubRoutes (GenericRoute r opts) = OptSubRoutes r opts
 
 instance
-  ( GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
+  ( VerifyModels 
+      (RouteModel (GenericRoute r opts)) 
+      (MultiModel (SubRoutes (GenericRoute r opts))) 
+      (OptSubModels r opts)
+      ~ (() :: Constraint)
+  , VerifyRoutes r (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  , GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
   , HasSubRoutes (GenericRoute r opts)
   , GenericRouteOpts r opts
   ) =>
@@ -135,7 +142,8 @@ instance
       m
 
 instance
-  ( HasSubRoutes r
+  ( VerifyRoutes r (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  , HasSubRoutes r
   , HasSubModels r
   , ValidSubRoutes r (SubRoutes r)
   , RGeneric r
