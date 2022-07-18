@@ -15,10 +15,10 @@ import Ema.Asset (
   Format (Html, Other),
  )
 import Ema.CLI (Host (unHost))
-import Ema.Route.Class (IsRoute (RouteModel, routeEncoder))
-import Ema.Route.Encoder (
-  applyRouteEncoder,
-  checkRouteEncoderGivenFilePath,
+import Ema.Route.Class (IsRoute (RouteModel, routePrism))
+import Ema.Route.Prism (
+  checkRoutePrismGivenFilePath,
+  fromPrism_,
  )
 import Ema.Route.Url (urlToFilePath)
 import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
@@ -68,7 +68,7 @@ runServerWithWebSocketHotReload host mport model = do
         logInfoNS "ema" "==============================================="
   liftIO $ warpRunSettings settings mport (runM . banner) app
   where
-    enc = routeEncoder @r
+    enc = routePrism @r
     -- Like Warp.runSettings but takes *optional* port. When no port is set, a
     -- free (random) port is used.
     warpRunSettings :: Warp.Settings -> Maybe Port -> (Port -> IO a) -> Wai.Application -> IO ()
@@ -118,7 +118,7 @@ runServerWithWebSocketHotReload host mport model = do
                         AssetGenerated Other _s ->
                           -- HACK: Websocket client should check for REDIRECT prefix.
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (applyRouteEncoder enc s) r)
+                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
                       log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
                   -- Notice that we @askClientForRoute@ in succession twice here.
@@ -176,10 +176,10 @@ runServerWithWebSocketHotReload host mport model = do
                 let s = html <> wsClientHtml <> wsClientJS
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
-                let mimeType = Static.getMimeType $ review (applyRouteEncoder enc val) r
+                let mimeType = Static.getMimeType $ review (fromPrism_ $ enc val) r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
     renderCatchingErrors logger m r =
-      unsafeCatch (siteOutput (applyRouteEncoder enc m) m r) $ \(err :: SomeException) ->
+      unsafeCatch (siteOutput (fromPrism_ $ enc m) m r) $ \(err :: SomeException) ->
         unsafePerformIO $ do
           -- Log the error first.
           flip runLoggingT logger $ logErrorNS "App" $ show @Text err
@@ -197,7 +197,7 @@ runServerWithWebSocketHotReload host mport model = do
     -- isomoprhic, this returns a Left, with the mismatched encoding.
     decodeUrlRoute :: RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
     decodeUrlRoute m (urlToFilePath -> s) = do
-      case checkRouteEncoderGivenFilePath enc m s of
+      case checkRoutePrismGivenFilePath enc m s of
         Left (r, log) -> Left $ BadRouteEncoding s r log
         Right mr -> Right mr
 
@@ -239,7 +239,7 @@ badRouteEncodingMsg BadRouteEncoding {..} =
       <> show _bre_decodedRoute
       <> "' but it is not isomporphic on any candidates: \n"
       <> T.intercalate "\n" (_bre_checkLog <&> \(candidate, log) -> show candidate <> ": " <> log)
-      <> " \nYou should fix your `RouteEncoder`."
+      <> " \nYou should fix your routePrism."
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString

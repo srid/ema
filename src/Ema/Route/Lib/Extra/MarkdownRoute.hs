@@ -26,7 +26,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as T
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (htmlSuffixPrism)
+import Ema.Route.Prism (htmlSuffixPrism)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
 import Optics.Core (prism', (%))
@@ -80,7 +80,7 @@ instance Default Arg where
 
 instance IsRoute MarkdownRoute where
   type RouteModel MarkdownRoute = Model
-  routeEncoder = mkRouteEncoder $ \m ->
+  routePrism m =
     let encode (MarkdownRoute slugs) =
           toString $ T.intercalate "/" $ Slug.unSlug <$> toList slugs
         decode fp = do
@@ -89,8 +89,8 @@ instance IsRoute MarkdownRoute where
           let r = MarkdownRoute slugs
           guard $ Map.member r $ modelPandocs m
           pure r
-     in htmlSuffixPrism % prism' encode decode
-  allRoutes =
+     in toPrism_ $ htmlSuffixPrism % prism' encode decode
+  routeUniverse =
     Map.keys . modelPandocs
 
 newtype MarkdownHtml = MarkdownHtml {unMarkdownHtml :: Text}

@@ -1,6 +1,6 @@
 # 02 Add a Model
 
-What data do we need to generate our mood tracker website? If we record our mood each day, then Haskell's `Map` type is one way to represent the moods overtime.
+In order to generate our mood tracker website, we need ... mood data. If we record our mood each day, then Haskell's `Map` type is one way to represent the moods overtime.
 
 ```haskell
 data Model = Model 
@@ -10,62 +10,41 @@ data Model = Model
 data Mood = Bad | Neutral | Good
 ```
 
-Now we want to associate our `Route` types with this `Model`. In [[generic|generic deriving]] the `WithModel` option can be used to do this. And we must also use the same model in the `IsRoute` instance for subroutes. The specific changes required on top of [[01-routes]] is:
+Now we want to associate our `Route` type with this `Model`. This can be done as follows:
 
-```diff
-diff --git a/src/Main.hs b/src/Main.hs
-index 2bb65f9..37f2308 100644
---- a/src/Main.hs
-+++ b/src/Main.hs
-@@ -20,7 +20,8 @@ data Route
-     (HasSubRoutes, HasSubModels, IsRoute)
-     via ( GenericRoute
-             Route
--            '[ -- This is automatically deduced in GHC 9.2
-+            '[ WithModel Model
-+             , -- This is automatically deduced in GHC 9.2
-                -- But nixpkgs is still oin 9.0, so we must manually specify it.
-                WithSubRoutes
-                 '[ FileRoute "index.html"
-@@ -35,8 +36,8 @@ newtype Date = Date (Integer, Int, Int)
-     (Show, Eq, Ord, Generic)
- 
- instance IsRoute Date where
--  type RouteModel Date = ()
--  routeEncoder = mkRouteEncoder $ \() ->
-+  type RouteModel Date = Model
-+  routeEncoder = mkRouteEncoder $ \(Model moods) ->
-     prism'
-       ( \(Date (y, m, d)) ->
-           formatTime defaultTimeLocale "%Y-%m-%d.html" $
-@@ -47,9 +48,15 @@ instance IsRoute Date where
-       )
-   allRoutes _ = []
- 
-+data Model = Model
-+  { modelDays :: Map Date Mood
-+  }
-+
-+data Mood = Bad | Neutral | Good
-+
- instance EmaSite Route where
--  siteInput _ _ = pure $ pure ()
--  siteOutput rp () r = Ema.AssetGenerated Ema.Html "TODO"
-+  siteInput _ _ = pure $ pure $ Model mempty
-+  siteOutput rp _model r = Ema.AssetGenerated Ema.Html "TODO"
- 
- main :: IO ()
- main = Ema.runSite_ @Route ()
-\ No newline at end of file
-```
+1. When [[generic|genericaly deriving]] routes, use `WithModel` option to associate a model for that route. 
+2. Use the same[^same] model in the `IsRoute` instance for subroutes (here, `Date`). 
+3. Change `EmaSite`'s `siteInput` method to return the model; and `siteOutput` to use the new model
 
-Now that we have a model, we can define `allRoutes` to use it. `allRoutes` is used during static site generation -- to determine which routes to generate on disk:
+[^same]: Subroutes can of course use a different model. The `WithSubModels` option can be used to control this.
+
+To achieve (1), we would change the deriving clause for our `Route` to the following:
 
 ```haskell
-instance IsRoute Date where 
-  ..
-  allRoutes (Model moods) = Map.keys moods
+deriveGeneric ''Route
+deriveIsRoute ''Route [t|'[ WithModel Model ]|]
 ```
+
+To achieve (2):
+
+```haskell
+instance IsRoute Date where
+  type RouteModel Date = Model
+  routePrism (Model _moods) = toPrism_ $
+    prism'
+      ( \(Date (y, m, d)) ->
+          formatTime defaultTimeLocale "%Y-%m-%d.html" $
+            fromGregorian y m d
+      )
+      ( fmap (Date . toGregorian)
+          . parseTimeM False defaultTimeLocale "%Y-%m-%d.html"
+      )
+  routeUniverse (Model moods) = Map.keys moods
+```
+
+Notice how this time we are able to prop define `routeUniverse` (used during static site generation, to determine which routes to generate on disk), because the model value is available. `routePrism` also gets the model as an argument, but in this case we have no need for it (in theory, we could check that a date exists before decoding successfully).
+
+Finally, (3) is where we get to produce (`siteInput`) and consume (`siteOutput`) the model. This is explained in the subsequent section..
 
 ## Use `Model`
 

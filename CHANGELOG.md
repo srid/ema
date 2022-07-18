@@ -8,8 +8,8 @@ This releases brings a significant rewrite of Ema. If you choose to upgrade your
 - Better handling of URL anchors (#83; #87)
 - `routeUrl` uses `UrlDirect` by default. Use `routeUrlWith` if you want to change that.
 - Multisite rewrite (Ema is mostly rewritten)
-  - Add the notion of `RouteEncoder` (first-class values), along with a `IsRoute` class to define them.
-    - Optional generic deriving of `RouteEncoder`s, so you do not have to hand-write them.
+  - Add the notion of route `Prism_` (first-class values), along with a `IsRoute` class to define them.
+    - Optional generic deriving of route prisms, so you do not have to hand-write them.
     - Automatic isomorphism checks ensures that encoding and decoding are isomorphic.
   - Composable Ema apps 
     - There are two ways of composing Ema apps. Using heterogenous lists (see `Ema.Route.Lib.Multi`), or by defining a top-level route type (see `Ex04_Multi.hs`).

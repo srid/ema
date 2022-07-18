@@ -12,7 +12,7 @@ module Ema.Route.Lib.Multi (
 
 import Data.SOP (I (..), NP (..), NS (..))
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder
+import Ema.Route.Prism
 import Ema.Site (EmaSite (..), EmaStaticSite)
 import Optics.Core (equality, iso, prism', (%))
 
@@ -31,12 +31,12 @@ type family MultiSiteArg (rs :: [Type]) :: [Type] where
 
 instance IsRoute (MultiRoute '[]) where
   type RouteModel (MultiRoute '[]) = NP I '[]
-  routeEncoder = impossibleEncoder
+  routePrism = impossiblePrism
     where
-      impossibleEncoder :: RouteEncoder (NP I '[]) (MultiRoute '[])
-      impossibleEncoder = mkRouteEncoder $ \Nil ->
-        prism' (\case {}) (const Nothing)
-  allRoutes Nil = mempty
+      impossiblePrism :: (NP I '[] -> Prism_ FilePath (MultiRoute '[]))
+      impossiblePrism Nil =
+        toPrism_ $ prism' (\case {}) (const Nothing)
+  routeUniverse Nil = mempty
 
 instance
   ( IsRoute r
@@ -46,12 +46,12 @@ instance
   IsRoute (MultiRoute (r ': rs))
   where
   type RouteModel (MultiRoute (r ': rs)) = NP I (RouteModel r ': MultiModel rs)
-  routeEncoder =
-    routeEncoder @r
-      `nsRouteEncoder` routeEncoder @(MultiRoute rs)
-  allRoutes (I m :* ms) =
-    fmap (toNS . Left) (allRoutes @r m)
-      <> fmap (toNS . Right) (allRoutes @(MultiRoute rs) ms)
+  routePrism =
+    routePrism @r
+      `nsRoutePrism` routePrism @(MultiRoute rs)
+  routeUniverse (I m :* ms) =
+    fmap (toNS . Left) (routeUniverse @r m)
+      <> fmap (toNS . Right) (routeUniverse @(MultiRoute rs) ms)
 
 instance EmaSite (MultiRoute '[]) where
   type SiteArg (MultiRoute '[]) = NP I '[]
@@ -82,14 +82,14 @@ instance
       headRoute =
         (prism' (toNS . Left) (fromNS >>> leftToMaybe))
 
--- | Like `eitherRouteEncoder` but uses sop-core types instead of Either/Product.
-nsRouteEncoder ::
-  RouteEncoder a r ->
-  RouteEncoder (NP I as) (NS I rs) ->
-  RouteEncoder (NP I (a ': as)) (NS I (r ': rs))
-nsRouteEncoder a b =
-  eitherRouteEncoder a b
-    & mapRouteEncoder equality (iso toNS fromNS) fromNP
+-- | Like `eitherRoutePrism` but uses sop-core types instead of Either/Product.
+nsRoutePrism ::
+  (a -> Prism_ FilePath r) ->
+  (NP I as -> Prism_ FilePath (NS I rs)) ->
+  (NP I (a ': as) -> Prism_ FilePath (NS I (r ': rs)))
+nsRoutePrism a b =
+  eitherRoutePrism a b
+    & mapRoutePrism equality (iso toNS fromNS) fromNP
 
 fromNP :: NP I (a ': as) -> (a, NP I as)
 fromNP (I x :* y) = (x, y)

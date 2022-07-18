@@ -11,6 +11,8 @@ module Ema.Route.Generic.SubRoute (
   gtoSubRoutes,
   gfromSubRoutes,
   ValidSubRoutes,
+  GIsomorphic,
+  giso,
 ) where
 
 import Data.SOP.Constraint (AllZipF)

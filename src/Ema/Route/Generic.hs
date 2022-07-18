@@ -23,13 +23,13 @@ module Ema.Route.Generic (
 ) where
 
 import Ema.Route.Class (IsRoute (..))
-import Ema.Route.Encoder.Type (mapRouteEncoder)
 import Ema.Route.Generic.RGeneric
 import Ema.Route.Generic.SubModel as X
 import Ema.Route.Generic.SubRoute as X
 import Ema.Route.Lib.File (FileRoute (FileRoute))
 import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
+import Ema.Route.Prism.Type (mapRoutePrism)
 import GHC.Generics qualified as GHC
 import Generics.SOP (All, I (..), NP)
 import Optics.Core (ReversibleOptic (re), coercedTo, equality, review, (%))
@@ -149,9 +149,9 @@ instance
   IsRoute (GenericRoute r opts)
   where
   type RouteModel (GenericRoute r opts) = OptModel r opts
-  routeEncoder =
-    routeEncoder @mr
-      & mapRouteEncoder equality (re (subRoutesIso @r) % coercedTo) (subModels @r)
-  allRoutes m =
+  routePrism =
+    routePrism @mr
+      & mapRoutePrism equality (re (subRoutesIso @r) % coercedTo) (subModels @r)
+  routeUniverse m =
     GenericRoute . review subRoutesIso
-      <$> allRoutes (subModels @r m)
+      <$> routeUniverse (subModels @r m)

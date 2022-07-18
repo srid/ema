@@ -53,6 +53,7 @@ urlToFilePath :: Text -> FilePath
 urlToFilePath =
   toString . T.intercalate "/" . fmap (Slug.unSlug . Slug.decodeSlug) . T.splitOn "/"
 
+-- | Like `routeUrlWith` but uses @UrlDirect@ strategy
 routeUrl :: HasCallStack => Prism' FilePath r -> r -> Text
 routeUrl =
   routeUrlWith UrlDirect
