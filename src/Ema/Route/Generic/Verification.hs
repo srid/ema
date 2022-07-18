@@ -54,7 +54,7 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
   VerifyModels m '[] '[] = ()
   VerifyModels m '[] _ = ModelShapeMismatchError m
   VerifyModels m _ '[] = ModelShapeMismatchError m
-  -- TODO: Does not verify if the model is SOP.Generic, and some models don't have _any_ generic instance to begin with,
+  -- TODO: Does not verify if the model is SOP.Generic, and some models don't have /any/ generic instance to begin with,
   -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) = 
     If (f == Indexed n (Head (Code model)))
@@ -65,7 +65,7 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
         P.% "Has type" 
         P.% Indexed n (Head (Code model))
         P.% "Subroute specification requires that this be " P.<> f P.% " instead."))
-  -- TODO: Does not verify if the model is GHC.Generic, and some models don't have _any_ generic instance to begin with,
+  -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
   -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (s :: Symbol) ': ss) = 
     If (f == FieldType s (GHC.Rep model ()))
@@ -78,7 +78,7 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
   VerifyModels model (f ': fs) (ty ': ss) =
     -- | (ty == model) checks the simple case that (the model ~ the submodel),
     -- because it doesn't necessarily have to have a generic instance in this case.
-    -- After that, we can _assume_ the model has a generic instance to allow us to inspect its 
+    -- After that, we can /assume/ the model has a generic instance to allow us to inspect its 
     -- structure statically to verify that the correct submodel exists.
     If (ty == model || ContainsSubModel ty (GHC.Rep model ()))
       (If (f == ty)
@@ -102,15 +102,17 @@ type family IsUnwrappedRoute (r1 :: [Type]) (r2 :: Type) :: Bool where
   -- Special case since we can think of Unwrapped () ~ ()
   IsUnwrappedRoute '[] (GHC.U1 ()) = 
     'True
-  -- For routes that derived _stock_ GHC.Generic;
+  -- For routes that derived /stock/ GHC.Generic;
+  -- TODO: The implementation is a bit overkill here as it checks for all fields, but this could be useful
+  -- should semantics expand in the future.
   IsUnwrappedRoute ts (GHC.D1 _ (GHC.C1 _ fields) _) = 
     IsUnwrappedRoute ts (fields ())
   IsUnwrappedRoute (t ': '[]) (GHC.S1 _ (GHC.K1 _ t') _) =
     t == t'
   IsUnwrappedRoute (t ': ts) ((GHC.S1 _ (GHC.K1 _ t') GHC.:*: nxt) _) =
     t == t' && IsUnwrappedRoute ts (nxt ())
-  -- Assume route derived _newtype_ GHC.Generic as a last resort; simply verify the reps are equal
-  IsUnwrappedRoute (t ': ts) ts' = 
+  -- Assume route derived /newtype/ GHC.Generic as a last resort; simply verify the reps are equal
+  IsUnwrappedRoute (t ': _) ts' = 
     GHC.Rep t () == ts'
   -- Catch-all
   IsUnwrappedRoute _ _ = 
@@ -144,6 +146,6 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
         ("Route constructor with representation:" 
         P.% r1
         P.% "Does not contain a type matching the subroute, or an unwrapped representation of the subroute:"
-        P.% r2
+        P.% GHC.Rep r2 ()
         P.% "As specified in its (potentially inferred) WithSubRoutes list."))
 
