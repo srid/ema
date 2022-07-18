@@ -61,7 +61,7 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
   VerifyModels m '[] '[] = ()
   VerifyModels m '[] _ = ModelShapeMismatchError m
   VerifyModels m _ '[] = ModelShapeMismatchError m
-  -- TODO: Does not verify if the model is SOP.Generic, and some models don't have /any/ generic instance to begin with,
+  -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
   -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) = 
     If (f == Indexed n (GHC.Rep model ()))
