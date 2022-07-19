@@ -73,7 +73,25 @@
         "flake-parts": "flake-parts",
         "haskell-flake": "haskell-flake",
         "nixpkgs": "nixpkgs",
-        "relude": "relude"
+        "relude": "relude",
+        "type-errors-pretty": "type-errors-pretty"
+      }
+    },
+    "type-errors-pretty": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1657919375,
+        "narHash": "sha256-gROOQK9HTSLpmETA1V7XHhMBbNu1CWB68gDxev1Ud/k=",
+        "owner": "riugabachi",
+        "repo": "type-errors-pretty",
+        "rev": "0e2e8e74592d9e12be86e3ec7ba985794acc0f82",
+        "type": "github"
+      },
+      "original": {
+        "owner": "riugabachi",
+        "ref": "v0.0.1.3",
+        "repo": "type-errors-pretty",
+        "type": "github"
       }
     }
   },
