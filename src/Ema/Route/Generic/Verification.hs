@@ -159,6 +159,5 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
         ("Route constructor with representation:" 
         P.% r1
         P.% "Does not contain a type matching the subroute, or an unwrapped representation of the subroute:"
-        P.% ()
+        P.% r2
         P.% "As specified in its (potentially inferred) WithSubRoutes list."))
-
