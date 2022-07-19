@@ -1,29 +1,34 @@
-module Ema.Route.Encoder.Check (
-  checkRouteEncoderGivenFilePath,
-  checkRouteEncoderGivenRoute,
+module Ema.Route.Prism.Check (
+  checkRoutePrismGivenFilePath,
+  checkRoutePrismGivenRoute,
 ) where
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.Text qualified as T
-import Ema.Route.Encoder.Type (RouteEncoder, applyRouteEncoder)
+import Ema.Route.Prism.Type (Prism_, fromPrism_)
 import Optics.Core (Prism', preview, review)
 import System.FilePath ((</>))
 
-checkRouteEncoderGivenRoute :: (HasCallStack, Eq r, Show r) => RouteEncoder a r -> a -> r -> Either Text ()
-checkRouteEncoderGivenRoute enc a r =
-  let s = review (applyRouteEncoder enc a) r
-   in checkRouteEncoder enc a r s
-
-checkRouteEncoderGivenFilePath ::
+checkRoutePrismGivenRoute ::
   (HasCallStack, Eq r, Show r) =>
-  RouteEncoder a r ->
+  (a -> Prism_ FilePath r) ->
+  a ->
+  r ->
+  Either Text ()
+checkRoutePrismGivenRoute enc a r =
+  let s = review (fromPrism_ $ enc a) r
+   in checkRoutePrism enc a r s
+
+checkRoutePrismGivenFilePath ::
+  (HasCallStack, Eq r, Show r) =>
+  (a -> Prism_ FilePath r) ->
   a ->
   FilePath ->
   Either (r, [(FilePath, Text)]) (Maybe r)
-checkRouteEncoderGivenFilePath enc a s = do
+checkRoutePrismGivenFilePath enc a s = do
   -- We should treat /foo, /foo.html and /foo/index.html as equivalent.
   let candidates = [s, s <> ".html", s </> "index.html"]
-      rp = applyRouteEncoder enc a
+      rp = fromPrism_ $ enc a
   case asum (preview rp <$> candidates) of
     Nothing -> pure Nothing
     Just r -> do
@@ -32,17 +37,17 @@ checkRouteEncoderGivenFilePath enc a s = do
       let (failed, passed) =
             partitionEithers $
               candidates <&> \candidate ->
-                case checkRouteEncoder enc a r candidate of
+                case checkRoutePrism enc a r candidate of
                   Left err -> Left (candidate, err)
                   Right () -> Right ()
       if null passed
         then Left (r, failed)
         else Right (Just r)
 
-checkRouteEncoder :: (Eq r, Show r) => RouteEncoder a r -> a -> r -> FilePath -> Either Text ()
-checkRouteEncoder p a r s =
+checkRoutePrism :: (Eq r, Show r) => (a -> Prism_ FilePath r) -> a -> r -> FilePath -> Either Text ()
+checkRoutePrism p a r s =
   let (valid, checkLog) =
-        runWriter $ routeEncoderIsLawfulFor p a r s
+        runWriter $ routePrismIsLawfulFor p a r s
    in if valid
         then Right ()
         else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
@@ -54,16 +59,16 @@ checkRouteEncoder p a r s =
 
   Returns a Writer reporting logs.
 -}
-routeEncoderIsLawfulFor ::
+routePrismIsLawfulFor ::
   forall ctx a.
   (Eq a, Show a) =>
-  RouteEncoder ctx a ->
+  (ctx -> Prism_ FilePath a) ->
   ctx ->
   a ->
   FilePath ->
   Writer [Text] Bool
-routeEncoderIsLawfulFor enc =
-  prismIsLawfulFor . applyRouteEncoder enc
+routePrismIsLawfulFor enc =
+  prismIsLawfulFor . fromPrism_ . enc
 
 prismIsLawfulFor ::
   forall s a.

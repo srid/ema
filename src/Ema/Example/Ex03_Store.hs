@@ -16,9 +16,9 @@ import Data.Aeson (FromJSON, FromJSONKey, eitherDecodeFileStrict')
 import Data.Map.Strict qualified as Map
 import Ema
 import Ema.Example.Common (tailwindLayout, watchDirForked)
-import Ema.Route.Encoder
 import Ema.Route.Generic
 import Ema.Route.Generic.TH (deriveGeneric, deriveIsRoute)
+import Ema.Route.Prism
 import Generics.SOP qualified as SOP
 import Optics.Core (coercedTo, iso, prism', (%))
 import System.FSNotify qualified as FSNotify
@@ -83,15 +83,16 @@ newtype StringRoute (a :: Type) r = StringRoute {unStringRoute :: r}
 
 instance (IsString r, ToString r, Eq r, Ord r) => IsRoute (StringRoute a r) where
   type RouteModel (StringRoute a r) = Map r a
-  routeEncoder = mkRouteEncoder \(as :: Map r a) ->
-    htmlSuffixPrism
-      % iso fromString toString
-      % mapMemberPrism as
-      % coercedTo
+  routePrism as =
+    toPrism_ $
+      htmlSuffixPrism
+        % iso fromString toString
+        % mapMemberPrism as
+        % coercedTo
     where
       mapMemberPrism m =
         prism' id $ \r -> do pure r <* (guard $ r `Map.member` m)
-  allRoutes as = StringRoute <$> Map.keys as
+  routeUniverse as = StringRoute <$> Map.keys as
 
 deriveGeneric ''ProductRoute
 deriveIsRoute

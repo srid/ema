@@ -1,11 +1,11 @@
 {
   description = "Ema project";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
-    # 1.1 not in nixpkgs or cabal hasesh yet 
+    # 1.1 not in nixpkgs or cabal hashes yet 
     relude.url = "github:kowainik/relude/v1.1.0.0";
     relude.flake = false;
     # `base` bounds too strict on hackage, using a fork for now
@@ -34,7 +34,7 @@
           };
           ghc92 = {
             root = ./.;
-            haskellPackages = pkgs.haskell.packages.ghc922; # Needed for `UnconsSymbol`
+            haskellPackages = pkgs.haskell.packages.ghc923; # Needed for `UnconsSymbol`
             buildTools = hp:
               let
                 # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2

@@ -1,12 +1,13 @@
 ---
 order: 2
+page:
+  siteTitle: Ema
 ---
 
 # Tutorial
 
 - [ ] Write this tutorial series evolving it towards an useful app.
-    - [ ] Pick an app -- Mood tracker?
-- Create `EmaApps/MoodTracker.git` with four stages having separate files.
+- Link to `EmaApps/MoodTracker.git` 
 
 ```query
 path:./*

@@ -146,9 +146,9 @@ library
     Ema.Dynamic
     Ema.Generate
     Ema.Route.Class
-    Ema.Route.Encoder
-    Ema.Route.Encoder.Check
-    Ema.Route.Encoder.Type
+    Ema.Route.Prism
+    Ema.Route.Prism.Check
+    Ema.Route.Prism.Type
     Ema.Route.Generic
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.SubRoute
