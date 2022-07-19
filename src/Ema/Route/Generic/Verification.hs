@@ -57,7 +57,7 @@ type family FieldType (s :: Symbol) (t :: Type) :: Type where
     If (s == s') t (FieldType s (nxt ()))
   FieldType s (GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) _) =
     If (s == s') t (TypeError ("Field selector " P.<> s P.% " does not exist."))
-  Indexed _ _ =
+  FieldType _ _ =
     TypeError ("Type rep field name lookup: multiple constructors" P.% "")
 
 {- | Traverses the single-constructor generic type representation of a model @r@ to see if at least one of its
