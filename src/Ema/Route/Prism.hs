@@ -35,6 +35,12 @@ eitherRoutePrism ::
 eitherRoutePrism enc1 enc2 (m1, m2) =
   toPrism_ $ eitherPrism (fromPrism_ $ enc1 m1) (fromPrism_ $ enc2 m2)
 
+{- | Given two @Prism'@'s whose filepaths are distinct (ie., both @a@ and @b@
+ encode to distinct filepaths), return a new @Prism'@ that combines both.
+
+ If this distinctness property does not hold between the input @Prism'@'s, then
+ the resulting @Prism'@ will not be lawful.
+-}
 eitherPrism :: Prism' FilePath a -> Prism' FilePath b -> Prism' FilePath (Either a b)
 eitherPrism p1 p2 =
   prism'
