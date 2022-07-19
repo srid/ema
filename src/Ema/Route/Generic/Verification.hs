@@ -13,7 +13,16 @@ import GHC.TypeLits (Symbol, type (-))
 import Type.Errors.Pretty (TypeError)
 import Type.Errors.Pretty qualified as P
 
--- Index into the nth field of a single-constructor generic type rep, returning its type
+-- | Index into the nth field of a single-constructor generic type rep, returning its type
+--
+-- Examples:
+-- > data X = X Int | Y deriving GHC.Generic
+-- > Indexed 1 (GHC.Rep X ()) == \bottom -- X must only have one constructor
+--
+-- > data X = X Int Bool Float deriving GHC.Generic
+-- > Indexed 0 (GHC.Rep X ()) == \bottom -- Out of bounds
+-- > Indexed 4 (GHC.Rep X ()) == \bottom -- Out of bounds
+-- > Indexed 2 (GHC.Rep X ()) == Bool
 type family Indexed (i :: Nat) (xs :: Type) :: Type where
   Indexed n (GHC.D1 _ (GHC.C1 _ fields) _) = 
     Indexed n (fields ())
@@ -31,6 +40,14 @@ type family Indexed (i :: Nat) (xs :: Type) :: Type where
     TypeError ("Type rep indexing: multiple constructors" P.% "") 
 
 -- | Extract the type of a field of name @s@ from a generic type representation @t@
+-- 
+-- Examples:
+-- > data X = X Int | Y deriving GHC.Generic
+-- > FieldType "foo" (GHC.Rep X ()) == \bottom -- X must have only one constructor
+--
+-- > data X = X {y :: Int, z :: Bool} deriving GHC.Generic
+-- > FieldType "x" (GHC.Rep X ()) == \bottom -- No such selector
+-- > FieldType "z" (GHC.Rep X ()) == Bool
 type family FieldType (s :: Symbol) (t :: Type) :: Type where
   FieldType s (GHC.D1 _ (GHC.C1 _ selectors) _) = 
     FieldType s (selectors ())
@@ -38,7 +55,19 @@ type family FieldType (s :: Symbol) (t :: Type) :: Type where
     If (s == s') t (FieldType s (nxt ()))
   FieldType s (GHC.S1 ('GHC.MetaSel ('Just s') _ _ _) (GHC.K1 _ t) _) = 
     If (s == s') t (TypeError ("Field selector " P.<> s P.% " does not exist."))
+  Indexed _ _ = 
+    TypeError ("Type rep field name lookup: multiple constructors" P.% "") 
 
+-- | Traverses the single-constructor generic type representation of a model @r@ to see if at least one of its
+-- fields has a sunmodel of type @t@.
+--
+-- Examples:
+-- > data X = X Int | Y deriving GHC.Generic
+-- > ContainsSubModel Int (GHC.Rep X ()) == 'False -- X must have only one constructor
+--
+-- > data X = X {y :: Int, z :: Bool} deriving GHC.Generic
+-- > ContainsSubModel Bool (GHC.Rep X ()) == 'True 
+-- > ContainsSubModel Float (GHC.Rep X ()) == 'False
 type family ContainsSubModel (t :: Type) (r :: Type) :: Bool where
   ContainsSubModel () _ = 
     'True
@@ -55,7 +84,7 @@ type family ModelShapeMismatchError r where
   ModelShapeMismatchError r =  TypeError ("WithSubModelss list does not match the shape of " P.<> r)
 
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
-exists a valid @HasSubModels@ instance for the given combination of (model, Head routeModels, Head lookups). 
+exists a valid @HasSubModels@ instance for the given combination of (model, routeModels, lookups). 
 -}
 type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Constraint where
   VerifyModels m '[] '[] = ()
