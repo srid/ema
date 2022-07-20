@@ -10,8 +10,7 @@ import Data.Type.Bool (If, type (&&), type (||))
 import Data.Type.Equality (type (==))
 import GHC.Generics qualified as GHC
 import GHC.TypeLits (Symbol, type (-))
-import Type.Errors.Pretty (TypeError)
-import Type.Errors.Pretty qualified as P
+import Type.Errors.Pretty (TypeError, type (%), type (<>))
 
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
 exists a valid @HasSubModels@ instance for the given combination of (model, routeModels, lookups).
@@ -20,10 +19,10 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
   VerifyModels m '[] '[] = ()
   VerifyModels m '[] t =
     TypeError
-      ("'WithSubModels' has extra unnecessary types: " P.% "" P.% "\t" P.<> t)
+      ("'WithSubModels' has extra unnecessary types: " % "" % "\t" <> t)
   VerifyModels m f '[] =
     TypeError
-      ("'WithSubModels' is missing sub-models: " P.% "" P.% "\t" P.<> f)
+      ("'WithSubModels' is missing sub-models: " % "" % "\t" <> f)
 -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
 -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) =
@@ -31,11 +30,11 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       (f == Indexed n (GHC.Rep model ()))
       (VerifyModels model fs ss)
       ( TypeError
-          ( "Submodel at index " P.<> n P.<> " of " P.<> model
-              P.% "Has type:"
-              P.% Indexed n (GHC.Rep model ())
-              P.% "Subroute specification requires that this instead be:"
-              P.% f
+          ( "Submodel at index " <> n <> " of " <> model
+              % "Has type:"
+              % Indexed n (GHC.Rep model ())
+              % "Subroute specification requires that this instead be:"
+              % f
           )
       )
 -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
@@ -45,10 +44,10 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       (f == FieldType s (GHC.Rep model ()))
       (VerifyModels model fs ss)
       ( TypeError
-          ( "A field " P.<> s P.<> " of type:"
-              P.% f
-              P.% "Does not exist in model "
-              P.% model
+          ( "A field " <> s <> " of type:"
+              % f
+              % "Does not exist in model "
+              % model
           )
       )
   VerifyModels model (f ': fs) (ty ': ss) =
@@ -63,23 +62,23 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
           (VerifyModels model fs ss)
           ( TypeError
               ( "An argument to 'WithSubModels' contains incorrect submodel selector:"
-                  P.% ""
-                  P.% ("\t" P.<> ty)
-                  P.% ""
-                  P.% "instead of the expected:"
-                  P.% ""
-                  P.% ("\t" P.<> f)
+                  % ""
+                  % ("\t" <> ty)
+                  % ""
+                  % "instead of the expected:"
+                  % ""
+                  % ("\t" <> f)
               )
           )
       )
       ( TypeError
           ( "Type '"
-              P.<> model
-              P.<> "' does not contain a submodel of type:"
-                P.% ""
-                P.% ("\t" P.<> ty)
-                P.% ""
-                P.% "but it is specified in 'WithSubModels'"
+              <> model
+              <> "' does not contain a submodel of type:"
+                % ""
+                % ("\t" <> ty)
+                % ""
+                % "but it is specified in 'WithSubModels'"
           )
       )
 
@@ -93,12 +92,12 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
 -- Inconsistent lengths
   VerifyRoutes r '[] t =
     TypeError
-      ("'WithSubRoutes' has extra unnecessary types: " P.% "" P.% "\t" P.<> t)
+      ("'WithSubRoutes' has extra unnecessary types: " % "" % "\t" <> t)
   VerifyRoutes r t '[] =
     TypeError
       ( "'withSubRoutes' is missing subroutes for:"
-          P.% ""
-          P.% ("\t" P.<> t)
+          % ""
+          % ("\t" <> t)
       )
 -- Subroute rep is unit
   VerifyRoutes r ('[] ': rs) (() : rs') = VerifyRoutes r rs rs'
@@ -106,7 +105,7 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
   VerifyRoutes r (r' ': rs) (() : rs') =
     TypeError
       ( "WithSubRoutes list states that the route constructor at this index should only contain () or be empty"
-          P.% "But it is " P.<> r'
+          % "But it is " <> r'
       )
 -- Constructor type ~ Subroute spec
   VerifyRoutes r ('[r'] ': rs) (r' : rs') = VerifyRoutes r rs rs'
@@ -118,13 +117,13 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
       (VerifyRoutes r rs rs')
       ( TypeError
           ( "A 'WithSubRoutes' type:"
-              P.% ""
-              P.% ("\t" P.<> r2)
-              P.% ""
-              P.% "is not isomorphic to the corresponding route constructor type:"
-              P.% ""
-              P.% ("\t" P.<> r1)
-              P.% ""
+              % ""
+              % ("\t" <> r2)
+              % ""
+              % "is not isomorphic to the corresponding route constructor type:"
+              % ""
+              % ("\t" <> r1)
+              % ""
           )
       )
 
@@ -149,11 +148,11 @@ type family Indexed (i :: Nat) (xs :: Type) :: Type where
   Indexed 1 (GHC.S1 _ (GHC.K1 _ t) _) =
     t
   Indexed 0 (GHC.S1 _ _ _) =
-    TypeError ("Type rep indexing: generic selector indexing starts at 1" P.% "")
+    TypeError ("Type rep indexing: generic selector indexing starts at 1" % "")
   Indexed n (GHC.S1 _ _ _) =
-    TypeError ("Type rep indexing: out of bounds index " P.<> n)
+    TypeError ("Type rep indexing: out of bounds index " <> n)
   Indexed _ _ =
-    TypeError ("Type rep indexing: multiple constructors" P.% "")
+    TypeError ("Type rep indexing: multiple constructors" % "")
 
 {- | Extract the type of a field of name @s@ from a generic type representation @t@
 
@@ -171,9 +170,9 @@ type family FieldType (s :: Symbol) (t :: Type) :: Type where
   FieldType s ((GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) GHC.:*: nxt) _) =
     If (s == s') t (FieldType s (nxt ()))
   FieldType s (GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) _) =
-    If (s == s') t (TypeError ("Field selector " P.<> s P.% " does not exist."))
+    If (s == s') t (TypeError ("Field selector " <> s % " does not exist."))
   FieldType _ _ =
-    TypeError ("Type rep field name lookup: multiple constructors" P.% "")
+    TypeError ("Type rep field name lookup: multiple constructors" % "")
 
 {- | Traverses the single-constructor generic type representation of a model @r@ to see if at least one of its
  fields has a sunmodel of type @t@.
