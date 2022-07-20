@@ -30,11 +30,13 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       (f == Indexed n (GHC.Rep model ()))
       (VerifyModels model fs ss)
       ( TypeError
-          ( "Submodel at index " <> n <> " of " <> model
-              % "Has type:"
-              % Indexed n (GHC.Rep model ())
-              % "Subroute specification requires that this instead be:"
-              % f
+          ( "The product field at index " <> n <> " of '" <> model <> "' is of type:"
+              % ""
+              % "\t" <> Indexed n (GHC.Rep model ())
+              % ""
+              % "but in 'WithSubModels' we expect it to be:"
+              % ""
+              % "\t" <> f
           )
       )
 -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
