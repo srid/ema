@@ -1,6 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
 
--- TODO: Consider moving to Internal.Verification instead?
 module Ema.Route.Generic.Verification (
   type VerifyModels,
   type VerifyRoutes,
