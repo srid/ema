@@ -5,7 +5,7 @@ module Ema.Route.Generic.Verification (
   type VerifyRoutes,
 ) where
 
-import Data.Type.Bool (If, type (||))
+import Data.Type.Bool (If, type (&&), type (||))
 import Data.Type.Equality (type (==))
 import Ema.Route.Generic.Iso (IsUnwrappedRoute')
 import GHC.Generics qualified as GHC
@@ -53,29 +53,16 @@ type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Cons
     VerifyModels model fs ss
   VerifyModels model (f ': fs) (ty ': ss) =
     If
-      (HasTypeT ty model)
-      ( If
-          (f == ty)
-          (VerifyModels model fs ss)
-          ( TypeError
-              ( "An argument to 'WithSubModels' contains incorrect submodel selector:"
-                  % ""
-                  % ("\t" <> ty)
-                  % ""
-                  % "instead of the expected:"
-                  % ""
-                  % ("\t" <> f)
-              )
-          )
-      )
+      (HasTypeT ty model f)
+      (VerifyModels model fs ss)
       ( TypeError
-          ( "Type '"
-              <> model
-              <> "' does not contain a submodel of type:"
-                % ""
-                % ("\t" <> ty)
-                % ""
-                % "but it is specified in 'WithSubModels'"
+          ( "An argument to 'WithSubModels' contains incorrect submodel selector:"
+              % ""
+              % ("\t" <> ty)
+              % ""
+              % "instead of the expected:"
+              % ""
+              % ("\t" <> f)
           )
       )
 
@@ -190,8 +177,8 @@ type family HasFieldT' (s :: Symbol) (t :: Type) :: Type where
  > HasTypeT Bool X == 'True
  > HasTypeT Float X == 'False
 -}
-type family HasTypeT (t :: Type) (r :: Type) :: Bool where
-  HasTypeT t r = HasTypeT' t (GHC.Rep r ())
+type family HasTypeT (t :: Type) (r :: Type) (f :: Type) :: Bool where
+  HasTypeT t r f = HasTypeT' t (GHC.Rep r ()) && t == f
 
 type family HasTypeT' (t :: Type) (r :: Type) :: Bool where
   HasTypeT' () _ =
