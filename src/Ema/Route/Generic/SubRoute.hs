@@ -11,8 +11,6 @@ module Ema.Route.Generic.SubRoute (
   gtoSubRoutes,
   gfromSubRoutes,
   ValidSubRoutes,
-  GIsomorphic,
-  giso,
 ) where
 
 import Data.SOP.Constraint (AllZipF)
@@ -27,7 +25,7 @@ import Ema.Route.Lib.Folder (FolderRoute)
 #else 
 import GHC.TypeLits
 #endif
-import GHC.Generics qualified as GHC
+import Ema.Route.Generic.Iso (GIsomorphic (giso))
 import Generics.SOP (All, I (..), NS, SameShapeAs, Top, unI)
 import Generics.SOP.Type.Metadata qualified as SOPM
 import Optics.Core (Iso', iso, view)
@@ -80,22 +78,6 @@ type ValidSubRoutes r subRoutes =
   , AllZipF GIsomorphic (RCode r) subRoutes
   , AllZipF GIsomorphic subRoutes (RCode r)
   )
-
-{- | Types `a` and `b` are isomorphic via their generic representation
-
-  Unlike `Coercible` this constraint does not require that the two types have
-  identical *runtime* representation. For example, `data Foo = Foo` is not
-  coercible to `()` (they have different runtime representations), but they are
-  both isomorphic via their generic representation.
--}
-class (Generic a, Generic b, GHC.Rep a () `Coercible` GHC.Rep b ()) => GIsomorphic a b where
-  giso :: Iso' a b
-
-instance (Generic a, Generic b, GHC.Rep a () `Coercible` GHC.Rep b ()) => GIsomorphic a b where
-  giso =
-    iso
-      (GHC.to @b @() . coerce . GHC.from @a @())
-      (GHC.to @a @() . coerce . GHC.from @b @())
 
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
 type family GSubRoutes (name :: SOPM.DatatypeName) (constrs :: [SOPM.ConstructorName]) (xs :: [Type]) :: [Type] where

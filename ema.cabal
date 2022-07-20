@@ -62,6 +62,7 @@ library
     , relude                  >=1.0
     , sop-core
     , template-haskell
+    , type-errors-pretty
     , text
     , unliftio
     , url-slug
@@ -149,10 +150,13 @@ library
     Ema.Route.Prism.Check
     Ema.Route.Prism.Type
     Ema.Route.Generic
+    Ema.Route.Generic.Iso
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.SubRoute
     Ema.Route.Generic.SubModel
     Ema.Route.Generic.TH
+    Ema.Route.Generic.Verification
+    Ema.Route.Generic.Verification.Any
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Lib.Multi
