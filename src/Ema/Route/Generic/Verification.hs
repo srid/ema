@@ -23,8 +23,6 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
   VerifyModels m f '[] =
     TypeError
       ("'WithSubModels' is missing sub-models: " % "" % "\t" <> f)
--- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
--- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) =
     If
       (f == Indexed n (GHC.Rep model ()))
@@ -39,8 +37,6 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
               % "\t" <> f
           )
       )
--- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
--- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (s :: Symbol) ': ss) =
     If
       (f == FieldType s (GHC.Rep model ()))
@@ -112,7 +108,6 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
 -- Constructor type ~ Subroute spec
   VerifyRoutes r ('[r'] ': rs) (r' : rs') = VerifyRoutes r rs rs'
 -- Constructor type ~ Unwrapped (Subroute spec) as a last-resort assumption
--- TODO: Type specified may not be GHC.Generic; might be better to dispatch via class instance.
   VerifyRoutes r (r1 ': rs) (r2 ': rs') =
     If
       (r1 `IsUnwrappedRoute'` (GHC.Rep r2 ()))
