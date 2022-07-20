@@ -23,46 +23,21 @@ type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Cons
   VerifyModels m f '[] =
     TypeError
       ("'WithSubModels' is missing sub-models: " % "" % "\t" <> f)
-  VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) =
-    If
-      (HasPositionT n model f)
-      (VerifyModels model fs ss)
-      ( TypeError
-          ( "The product field at index " <> n <> " of '" <> model <> "' is not of expected type:"
-              % ""
-              % "\t" <> f
-              % ""
-          )
-      )
-  VerifyModels model (f ': fs) (Proxy (s :: Symbol) ': ss) =
-    If
-      (HasFieldT s model f)
-      (VerifyModels model fs ss)
-      ( TypeError
-          ( "The field '" <> s <> "' of '" <> model <> "' is not of expected type:"
-              % ""
-              % ("\t" <> f)
-              % ""
-          )
-      )
   VerifyModels model (model ': fs) (model ': ss) =
     -- This checks the simple case that (the model ~ the submodel),
     -- because it doesn't necessarily have to have a generic instance in this case.
     -- After that, we can /assume/ the model has a generic instance to allow us to inspect its
     -- structure statically to verify that the correct submodel exists.
     VerifyModels model fs ss
-  VerifyModels model (f ': fs) (ty ': ss) =
+  VerifyModels model (subModel ': subModels) (sel ': sels) =
     If
-      (HasTypeT ty model f)
-      (VerifyModels model fs ss)
+      (HasAnyT sel model subModel)
+      (VerifyModels model subModels sels)
       ( TypeError
-          ( "An argument to 'WithSubModels' contains incorrect submodel selector:"
+          ( "The 'WithSubModel' selector " <> sel <> " of '" <> model <> "' is not of expected type:"
               % ""
-              % ("\t" <> ty)
+              % "\t" <> subModel
               % ""
-              % "instead of the expected:"
-              % ""
-              % ("\t" <> f)
           )
       )
 
@@ -112,6 +87,11 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
 
 -- Type-level proofs of `HasAny` from generic-optics:
 -- --------------------------------------------------
+
+type family HasAnyT (sel :: Type) (s :: Type) (a :: Type) :: Bool where
+  HasAnyT (Proxy (n :: Nat)) s a = HasPositionT n s a
+  HasAnyT (Proxy (field :: Symbol)) s a = HasFieldT field s a
+  HasAnyT (ty :: Type) s a = HasTypeT ty s a
 
 {- | Index into the nth field of a single-constructor type, returning its type
 
