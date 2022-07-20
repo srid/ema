@@ -1,6 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Ema.Route.Generic.Iso where
+module Ema.Route.Generic.Iso (
+  GIsomorphic (giso),
+  IsUnwrappedRoute',
+) where
 
 import Data.Type.Bool (type (&&), type (||))
 import Data.Type.Equality (type (==))
