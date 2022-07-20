@@ -8,9 +8,6 @@
     # 1.1 not in nixpkgs or cabal hashes yet 
     relude.url = "github:kowainik/relude/v1.1.0.0";
     relude.flake = false;
-    # `base` bounds too strict on hackage, using a fork for now
-    type-errors-pretty.url = "github:riugabachi/type-errors-pretty/v0.0.1.3";
-    type-errors-pretty.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
@@ -52,14 +49,13 @@
               };
             source-overrides = {
               inherit (inputs) relude;
-              inherit (inputs) type-errors-pretty;
             };
             overrides = self: super: with pkgs.haskell.lib; {
               # All these below are for GHC 9.2 compat.
               relude = dontCheck super.relude;
               retry = dontCheck super.retry;
               http2 = dontCheck super.http2; # Fails on darwin
-              type-errors-pretty = dontCheck super.type-errors-pretty;
+              type-errors-pretty = dontCheck (doJailbreak super.type-errors-pretty);
               streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
             };
           };
