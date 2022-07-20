@@ -153,14 +153,6 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
           )
       )
 
-type family RouteShapeMismatchError r where
-  RouteShapeMismatchError r =
-    TypeError
-      ( "Arguments to 'WithSubRoutes' are not isomorphic to constructors of '"
-          P.<> r
-          P.<> "'"
-      )
-
 -- | Attempts to 'unwrap' @r2@ to see if the constructor fields specified by @r1@ match its internal representation 1:1
 type family IsUnwrappedRoute (r1 :: [Type]) (r2 :: Type) :: Bool where
 -- For routes that derived /stock/ GHC.Generic;
@@ -196,8 +188,15 @@ Invariant: rep ~ Code route
 type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type]) :: Constraint where
   VerifyRoutes _ '[] '[] = ()
 -- Inconsistent lengths
-  VerifyRoutes r '[] _ = RouteShapeMismatchError r
-  VerifyRoutes r _ '[] = RouteShapeMismatchError r
+  VerifyRoutes r '[] t =
+    TypeError
+      ("'WithSubRoutes' has extra unnecessary types: " P.% "" P.% "\t" P.<> t)
+  VerifyRoutes r t '[] =
+    TypeError
+      ( "'withSubRoutes' is missing subroutes for:"
+          P.% ""
+          P.% ("\t" P.<> t)
+      )
 -- Subroute rep is unit
   VerifyRoutes r ('[] ': rs) (() : rs') = VerifyRoutes r rs rs'
   VerifyRoutes r ('[()] ': rs) (() : rs') = VerifyRoutes r rs rs'
@@ -215,10 +214,13 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
       (r1 `IsUnwrappedRoute'` (GHC.Rep r2 ()))
       (VerifyRoutes r rs rs')
       ( TypeError
-          ( "Route constructor with representation:"
-              P.% r1
-              P.% "Does not contain a type matching the subroute, or an unwrapped representation of the subroute:"
-              P.% r2
-              P.% "As specified in its (potentially inferred) WithSubRoutes list."
+          ( "A 'WithSubRoutes' type:"
+              P.% ""
+              P.% ("\t" P.<> r2)
+              P.% ""
+              P.% "is not isomorphic to the corresponding route constructor type:"
+              P.% ""
+              P.% ("\t" P.<> r1)
+              P.% ""
           )
       )
