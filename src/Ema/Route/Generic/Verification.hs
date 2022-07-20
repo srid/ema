@@ -25,21 +25,18 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       ("'WithSubModels' is missing sub-models: " % "" % "\t" <> f)
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) =
     If
-      (f == HasPositionT n model)
+      (HasPositionT n model f)
       (VerifyModels model fs ss)
       ( TypeError
-          ( "The product field at index " <> n <> " of '" <> model <> "' is of type:"
-              % ""
-              % "\t" <> HasPositionT n model
-              % ""
-              % "but in 'WithSubModels' we expect it to be:"
+          ( "The product field at index " <> n <> " of '" <> model <> "' is not of expected type:"
               % ""
               % "\t" <> f
+              % ""
           )
       )
   VerifyModels model (f ': fs) (Proxy (s :: Symbol) ': ss) =
     If
-      (f == HasFieldT s model)
+      (HasFieldT s model f)
       (VerifyModels model fs ss)
       ( TypeError
           ( "The field '" <> s <> "' of '" <> model <> "' is not of expected type:"
@@ -138,8 +135,8 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
  > HasPositionT 4 X == \bottom -- Out of bounds
  > HasPositionT 2 X == Bool
 -}
-type family HasPositionT (i :: Nat) (xs :: Type) :: Type where
-  HasPositionT i t = HasPositionT' i (GHC.Rep t ())
+type family HasPositionT (i :: Nat) (xs :: Type) (f :: Type) :: Bool where
+  HasPositionT i t f = HasPositionT' i (GHC.Rep t ()) == f
 
 type family HasPositionT' (i :: Nat) (xs :: Type) :: Type where
   HasPositionT' n (GHC.D1 _ (GHC.C1 _ fields) _) =
@@ -167,8 +164,8 @@ type family HasPositionT' (i :: Nat) (xs :: Type) :: Type where
  > HasFieldT "x" X == \bottom -- No such selector
  > HasFieldT "z" X == Bool
 -}
-type family HasFieldT (s :: Symbol) (t :: Type) :: Type where
-  HasFieldT s t = HasFieldT' s (GHC.Rep t ())
+type family HasFieldT (s :: Symbol) (t :: Type) (f :: Type) :: Bool where
+  HasFieldT s t f = HasFieldT' s (GHC.Rep t ()) == f
 
 type family HasFieldT' (s :: Symbol) (t :: Type) :: Type where
   HasFieldT' s (GHC.D1 _ (GHC.C1 _ selectors) _) =
