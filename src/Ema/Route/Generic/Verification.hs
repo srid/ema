@@ -136,18 +136,24 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
           (f == ty)
           (VerifyModels model fs ss)
           ( TypeError
-              ( "Subroute requires a submodel of type:"
-                  P.% f
-                  P.% "But WithSubModels list at the same index specifies that this should be:"
-                  P.% ty
+              ( "An argument to 'WithSubModels' contains incorrect submodel selector:"
+                  P.% ""
+                  P.% ("\t" P.<> ty)
+                  P.% ""
+                  P.% "instead of the expected:"
+                  P.% ""
+                  P.% ("\t" P.<> f)
               )
           )
       )
       ( TypeError
-          ( model
-              P.% "Is not a supermodel of the model:"
-              P.% ty
-              P.% "Even though this is required by its WithSubRoutes list."
+          ( "Type '"
+              P.<> model
+              P.<> "' does not contain a submodel of type:"
+                P.% ""
+                P.% ("\t" P.<> ty)
+                P.% ""
+                P.% "but it is specified in 'WithSubModels'"
           )
       )
 
