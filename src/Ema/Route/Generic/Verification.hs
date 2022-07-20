@@ -93,7 +93,7 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
       ("'WithSubRoutes' has extra unnecessary types: " % "" % "\t" <> t)
   VerifyRoutes r t '[] =
     TypeError
-      ( "'withSubRoutes' is missing subroutes for:"
+      ( "'WithSubRoutes' is missing subroutes for:"
           % ""
           % ("\t" <> t)
       )
@@ -102,8 +102,8 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
   VerifyRoutes r ('[()] ': rs) (() : rs') = VerifyRoutes r rs rs'
   VerifyRoutes r (r' ': rs) (() : rs') =
     TypeError
-      ( "WithSubRoutes list states that the route constructor at this index should only contain () or be empty"
-          % "But it is " <> r'
+      ( "A 'WithSubRoutes' entry is '()' instead of the expected: "
+          % r'
       )
 -- Constructor type ~ Subroute spec
   VerifyRoutes r ('[r'] ': rs) (r' : rs') = VerifyRoutes r rs rs'
