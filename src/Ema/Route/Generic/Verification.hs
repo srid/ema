@@ -5,10 +5,9 @@ module Ema.Route.Generic.Verification (
   type VerifyRoutes,
 ) where
 
-import Data.Type.Bool (If, type (&&), type (||))
+import Data.Type.Bool (If, type (||))
 import Data.Type.Equality (type (==))
 import Ema.Route.Generic.Iso (IsUnwrappedRoute')
-import Ema.Route.Lib.File (FileRoute)
 import GHC.Generics qualified as GHC
 import GHC.TypeLits (Symbol, type (-))
 import Type.Errors.Pretty (TypeError, type (%), type (<>))
@@ -26,12 +25,12 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       ("'WithSubModels' is missing sub-models: " % "" % "\t" <> f)
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) =
     If
-      (f == Indexed n (GHC.Rep model ()))
+      (f == Indexed n model)
       (VerifyModels model fs ss)
       ( TypeError
           ( "The product field at index " <> n <> " of '" <> model <> "' is of type:"
               % ""
-              % "\t" <> Indexed n (GHC.Rep model ())
+              % "\t" <> Indexed n model
               % ""
               % "but in 'WithSubModels' we expect it to be:"
               % ""
@@ -40,7 +39,7 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       )
   VerifyModels model (f ': fs) (Proxy (s :: Symbol) ': ss) =
     If
-      (f == FieldType s (GHC.Rep model ()))
+      (f == FieldType s model)
       (VerifyModels model fs ss)
       ( TypeError
           ( "The field '" <> s <> "' of '" <> model <> "' is not of expected type:"
@@ -55,7 +54,7 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
     -- After that, we can /assume/ the model has a generic instance to allow us to inspect its
     -- structure statically to verify that the correct submodel exists.
     If
-      (ty == model || ContainsSubModel ty (GHC.Rep model ()))
+      (ty == model || ContainsSubModel ty model)
       ( If
           (f == ty)
           (VerifyModels model fs ss)
@@ -125,51 +124,57 @@ type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type])
           )
       )
 
-{- | Index into the nth field of a single-constructor generic type rep, returning its type
+{- | Index into the nth field of a single-constructor type, returning its type
 
  Examples:
  > data X = X Int | Y deriving GHC.Generic
- > Indexed 1 (GHC.Rep X ()) == \bottom -- X must only have one constructor
+ > Indexed 1 X  == \bottom -- X must only have one constructor
 
  > data X = X Int Bool Float deriving GHC.Generic
- > Indexed 0 (GHC.Rep X ()) == \bottom -- Out of bounds
- > Indexed 4 (GHC.Rep X ()) == \bottom -- Out of bounds
- > Indexed 2 (GHC.Rep X ()) == Bool
+ > Indexed 0 X == \bottom -- Out of bounds
+ > Indexed 4 X == \bottom -- Out of bounds
+ > Indexed 2 X == Bool
 -}
 type family Indexed (i :: Nat) (xs :: Type) :: Type where
-  Indexed n (GHC.D1 _ (GHC.C1 _ fields) _) =
-    Indexed n (fields ())
-  Indexed 1 ((GHC.S1 _ (GHC.K1 _ t) GHC.:*: nxt) _) =
+  Indexed i t = Indexed' i (GHC.Rep t ())
+
+type family Indexed' (i :: Nat) (xs :: Type) :: Type where
+  Indexed' n (GHC.D1 _ (GHC.C1 _ fields) _) =
+    Indexed' n (fields ())
+  Indexed' 1 ((GHC.S1 _ (GHC.K1 _ t) GHC.:*: nxt) _) =
     t
-  Indexed n ((GHC.S1 _ _ GHC.:*: nxt) _) =
-    Indexed (n - 1) (nxt ())
-  Indexed 1 (GHC.S1 _ (GHC.K1 _ t) _) =
+  Indexed' n ((GHC.S1 _ _ GHC.:*: nxt) _) =
+    Indexed' (n - 1) (nxt ())
+  Indexed' 1 (GHC.S1 _ (GHC.K1 _ t) _) =
     t
-  Indexed 0 (GHC.S1 _ _ _) =
+  Indexed' 0 (GHC.S1 _ _ _) =
     TypeError ("Type rep indexing: generic selector indexing starts at 1" % "")
-  Indexed n (GHC.S1 _ _ _) =
+  Indexed' n (GHC.S1 _ _ _) =
     TypeError ("Type rep indexing: out of bounds index " <> n)
-  Indexed _ _ =
+  Indexed' _ _ =
     TypeError ("Type rep indexing: multiple constructors" % "")
 
 {- | Extract the type of a field of name @s@ from a generic type representation @t@
 
  Examples:
  > data X = X Int | Y deriving GHC.Generic
- > FieldType "foo" (GHC.Rep X ()) == \bottom -- X must have only one constructor
+ > FieldType "foo" X == \bottom -- X must have only one constructor
 
  > data X = X {y :: Int, z :: Bool} deriving GHC.Generic
- > FieldType "x" (GHC.Rep X ()) == \bottom -- No such selector
- > FieldType "z" (GHC.Rep X ()) == Bool
+ > FieldType "x" X == \bottom -- No such selector
+ > FieldType "z" X == Bool
 -}
 type family FieldType (s :: Symbol) (t :: Type) :: Type where
-  FieldType s (GHC.D1 _ (GHC.C1 _ selectors) _) =
-    FieldType s (selectors ())
-  FieldType s ((GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) GHC.:*: nxt) _) =
-    If (s == s') t (FieldType s (nxt ()))
-  FieldType s (GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) _) =
+  FieldType s t = FieldType' s (GHC.Rep t ())
+
+type family FieldType' (s :: Symbol) (t :: Type) :: Type where
+  FieldType' s (GHC.D1 _ (GHC.C1 _ selectors) _) =
+    FieldType' s (selectors ())
+  FieldType' s ((GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) GHC.:*: nxt) _) =
+    If (s == s') t (FieldType' s (nxt ()))
+  FieldType' s (GHC.S1 ( 'GHC.MetaSel ( 'Just s') _ _ _) (GHC.K1 _ t) _) =
     If (s == s') t (TypeError ("Field selector " <> s % " does not exist."))
-  FieldType _ _ =
+  FieldType' _ _ =
     TypeError ("Type rep field name lookup: multiple constructors" % "")
 
 {- | Traverses the single-constructor generic type representation of a model @r@ to see if at least one of its
@@ -177,20 +182,23 @@ type family FieldType (s :: Symbol) (t :: Type) :: Type where
 
  Examples:
  > data X = X Int | Y deriving GHC.Generic
- > ContainsSubModel Int (GHC.Rep X ()) == 'False -- X must have only one constructor
+ > ContainsSubModel Int X == 'False -- X must have only one constructor
 
  > data X = X {y :: Int, z :: Bool} deriving GHC.Generic
- > ContainsSubModel Bool (GHC.Rep X ()) == 'True
- > ContainsSubModel Float (GHC.Rep X ()) == 'False
+ > ContainsSubModel Bool X == 'True
+ > ContainsSubModel Float X == 'False
 -}
 type family ContainsSubModel (t :: Type) (r :: Type) :: Bool where
-  ContainsSubModel () _ =
+  ContainsSubModel t r = ContainsSubModel' t (GHC.Rep r ())
+
+type family ContainsSubModel' (t :: Type) (r :: Type) :: Bool where
+  ContainsSubModel' () _ =
     'True
-  ContainsSubModel t (GHC.D1 _ (GHC.C1 _ fields) _) =
-    ContainsSubModel t (fields ())
-  ContainsSubModel t ((GHC.S1 _ (GHC.K1 _ t') GHC.:*: nxt) _) =
-    t == t' || ContainsSubModel t (nxt ())
-  ContainsSubModel t (GHC.S1 _ (GHC.K1 _ t') _) =
+  ContainsSubModel' t (GHC.D1 _ (GHC.C1 _ fields) _) =
+    ContainsSubModel' t (fields ())
+  ContainsSubModel' t ((GHC.S1 _ (GHC.K1 _ t') GHC.:*: nxt) _) =
+    t == t' || ContainsSubModel' t (nxt ())
+  ContainsSubModel' t (GHC.S1 _ (GHC.K1 _ t') _) =
     t == t'
-  ContainsSubModel t _ =
+  ContainsSubModel' t _ =
     'False
