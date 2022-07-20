@@ -83,21 +83,17 @@ type family ContainsSubModel (t :: Type) (r :: Type) :: Bool where
   ContainsSubModel t _ =
     'False
 
-type family ModelShapeMismatchError r where
-  ModelShapeMismatchError r =
-    TypeError
-      ( "Arguments to 'WithSubModels' do not select sub-models of sub-routes of '"
-          P.<> r
-          P.<> "'"
-      )
-
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
 exists a valid @HasSubModels@ instance for the given combination of (model, routeModels, lookups).
 -}
 type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Constraint where
   VerifyModels m '[] '[] = ()
-  VerifyModels m '[] _ = ModelShapeMismatchError m
-  VerifyModels m _ '[] = ModelShapeMismatchError m
+  VerifyModels m '[] t =
+    TypeError
+      ("'WithSubModels' has extra unnecessary types: " P.% "" P.% "\t" P.<> t)
+  VerifyModels m f '[] =
+    TypeError
+      ("'WithSubModels' is missing sub-models: " P.% "" P.% "\t" P.<> f)
 -- TODO: Does not verify if the model is GHC.Generic, and some models don't have /any/ generic instance to begin with,
 -- so if we want to be more robust we can dispatch via class instances. However, the base compiler error should look obvious enough.
   VerifyModels model (f ': fs) (Proxy (n :: Nat) ': ss) =
