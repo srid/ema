@@ -128,7 +128,7 @@ instance
       (MultiModel (SubRoutes (GenericRoute r opts)))
       (OptSubModels r opts)
       ~ (() :: Constraint)
-  , VerifyRoutes r (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  , VerifyRoutes (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
   , GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
   , HasSubRoutes (GenericRoute r opts)
   , GenericRouteOpts r opts
@@ -142,7 +142,7 @@ instance
       m
 
 instance
-  ( VerifyRoutes r (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  ( VerifyRoutes (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
   , HasSubRoutes r
   , HasSubModels r
   , ValidSubRoutes r (SubRoutes r)

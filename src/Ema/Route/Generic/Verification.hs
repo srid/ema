@@ -43,35 +43,35 @@ type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Cons
 {- | @VerifyRoutes route rep subroutes@ verifies the given @route@ to ensure that there
 exists a valid @HasSubRoutes@ instance for @route@ given its @rep@ and the @subroutes@ it is generic-deriving from.
 
-Invariant: rep ~ Code route
+Invariant: code ~ Code route
 -}
-type family VerifyRoutes (route :: Type) (rep :: [[Type]]) (subroutes :: [Type]) :: Constraint where
-  VerifyRoutes _ '[] '[] = ()
+type family VerifyRoutes (code :: [[Type]]) (subRoutes :: [Type]) :: Constraint where
+  VerifyRoutes '[] '[] = ()
 -- Inconsistent lengths
-  VerifyRoutes r '[] t =
+  VerifyRoutes '[] t =
     TypeError
       ("'WithSubRoutes' has extra unnecessary types: " % "" % "\t" <> t)
-  VerifyRoutes r t '[] =
+  VerifyRoutes t '[] =
     TypeError
       ( "'WithSubRoutes' is missing subroutes for:"
           % ""
           % ("\t" <> t)
       )
 -- Subroute rep is unit
-  VerifyRoutes r ('[] ': rs) (() : rs') = VerifyRoutes r rs rs'
-  VerifyRoutes r ('[()] ': rs) (() : rs') = VerifyRoutes r rs rs'
-  VerifyRoutes r (r' ': rs) (() : rs') =
+  VerifyRoutes ('[] ': rs) (() : rs') = VerifyRoutes rs rs'
+  VerifyRoutes ('[()] ': rs) (() : rs') = VerifyRoutes rs rs'
+  VerifyRoutes (r' ': rs) (() : rs') =
     TypeError
       ( "A 'WithSubRoutes' entry is '()' instead of the expected: "
           % r'
       )
 -- Constructor type ~ Subroute spec
-  VerifyRoutes r ('[r'] ': rs) (r' : rs') = VerifyRoutes r rs rs'
+  VerifyRoutes ('[r'] ': rs) (r' : rs') = VerifyRoutes rs rs'
 -- Constructor type ~ Unwrapped (Subroute spec) as a last-resort assumption
-  VerifyRoutes r (r1 ': rs) (r2 ': rs') =
+  VerifyRoutes (r1 ': rs) (r2 ': rs') =
     If
       (r1 `IsUnwrappedRoute'` (GHC.Rep r2 ()))
-      (VerifyRoutes r rs rs')
+      (VerifyRoutes rs rs')
       ( TypeError
           ( "A 'WithSubRoutes' type:"
               % ""
