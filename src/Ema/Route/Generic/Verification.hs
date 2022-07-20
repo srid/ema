@@ -84,7 +84,12 @@ type family ContainsSubModel (t :: Type) (r :: Type) :: Bool where
     'False
 
 type family ModelShapeMismatchError r where
-  ModelShapeMismatchError r = TypeError ("WithSubModelss list does not match the shape of " P.<> r)
+  ModelShapeMismatchError r =
+    TypeError
+      ( "Arguments to 'WithSubModels' do not select sub-models of sub-routes of '"
+          P.<> r
+          P.<> "'"
+      )
 
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
 exists a valid @HasSubModels@ instance for the given combination of (model, routeModels, lookups).
@@ -147,7 +152,12 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       )
 
 type family RouteShapeMismatchError r where
-  RouteShapeMismatchError r = TypeError ("WithSubRoutes list does not match the shape of " P.<> r)
+  RouteShapeMismatchError r =
+    TypeError
+      ( "Arguments to 'WithSubRoutes' are not isomorphic to constructors of '"
+          P.<> r
+          P.<> "'"
+      )
 
 -- | Attempts to 'unwrap' @r2@ to see if the constructor fields specified by @r1@ match its internal representation 1:1
 type family IsUnwrappedRoute (r1 :: [Type]) (r2 :: Type) :: Bool where
