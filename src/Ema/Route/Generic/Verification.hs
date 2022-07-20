@@ -44,10 +44,10 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
       (f == FieldType s (GHC.Rep model ()))
       (VerifyModels model fs ss)
       ( TypeError
-          ( "A field " <> s <> " of type:"
-              % f
-              % "Does not exist in model "
-              % model
+          ( "The field '" <> s <> "' of '" <> model <> "' is not of expected type:"
+              % ""
+              % ("\t" <> f)
+              % ""
           )
       )
   VerifyModels model (f ': fs) (ty ': ss) =
