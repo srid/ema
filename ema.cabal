@@ -150,6 +150,7 @@ library
     Ema.Route.Prism.Check
     Ema.Route.Prism.Type
     Ema.Route.Generic
+    Ema.Route.Generic.Iso
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.SubRoute
     Ema.Route.Generic.SubModel

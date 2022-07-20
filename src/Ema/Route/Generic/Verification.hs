@@ -7,6 +7,8 @@ module Ema.Route.Generic.Verification (
 
 import Data.Type.Bool (If, type (&&), type (||))
 import Data.Type.Equality (type (==))
+import Ema.Route.Generic.Iso (IsUnwrappedRoute')
+import Ema.Route.Lib.File (FileRoute)
 import GHC.Generics qualified as GHC
 import GHC.TypeLits (Symbol, type (-))
 import Type.Errors.Pretty (TypeError, type (%), type (<>))
@@ -192,30 +194,3 @@ type family ContainsSubModel (t :: Type) (r :: Type) :: Bool where
     t == t'
   ContainsSubModel t _ =
     'False
-
--- | Attempts to 'unwrap' @r2@ to see if the constructor fields specified by @r1@ match its internal representation 1:1
-type family IsUnwrappedRoute (r1 :: [Type]) (r2 :: Type) :: Bool where
--- For routes that derived /stock/ GHC.Generic;
--- TODO: The implementation is a bit overkill here as it checks for all fields, but this could be useful
--- should semantics expand in the future perhaps?
-  IsUnwrappedRoute ts (GHC.D1 _ (GHC.C1 _ fields) _) =
-    IsUnwrappedRoute ts (fields ())
-  IsUnwrappedRoute (t ': '[]) (GHC.S1 _ (GHC.K1 _ t') _) =
-    t == t'
-  IsUnwrappedRoute (t ': ts) ((GHC.S1 _ (GHC.K1 _ t') GHC.:*: nxt) _) =
-    t == t' && IsUnwrappedRoute ts (nxt ())
--- Special case for routes with no fields internally, since we can think of Unwrapped () ~ ()
-  IsUnwrappedRoute '[] (GHC.U1 ()) =
-    'True
--- Catch-all
-  IsUnwrappedRoute _ _ =
-    'False
-
--- We need to implement the matching logic as 2 type families here due to overlapping patterns
-type family IsUnwrappedRoute' (r1 :: [Type]) (r2 :: Type) :: Bool where
--- For routes that derived /newtype/ GHC.Generic; simply verify the reps are equal
--- Otherwise, pass it on to match with the assumption of /stock/ GHC.Generic deriving
-  IsUnwrappedRoute' (t ': ts) ts' =
-    GHC.Rep t () == ts' || IsUnwrappedRoute (t ': ts) ts'
-  IsUnwrappedRoute' r1 r2 =
-    IsUnwrappedRoute r1 r2
