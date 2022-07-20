@@ -15,7 +15,7 @@ import Type.Errors.Pretty (TypeError, type (%), type (<>))
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
 exists a valid @HasSubModels@ instance for the given combination of (model, routeModels, lookups).
 -}
-type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Constraint where
+type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Constraint where
   VerifyModels m '[] '[] = ()
   VerifyModels m '[] t =
     TypeError
@@ -45,13 +45,15 @@ type family VerifyModels model (routeModels :: [Type]) (lookups :: [Type]) :: Co
               % ""
           )
       )
-  VerifyModels model (f ': fs) (ty ': ss) =
-    -- (ty == model) checks the simple case that (the model ~ the submodel),
+  VerifyModels model (model ': fs) (model ': ss) =
+    -- This checks the simple case that (the model ~ the submodel),
     -- because it doesn't necessarily have to have a generic instance in this case.
     -- After that, we can /assume/ the model has a generic instance to allow us to inspect its
     -- structure statically to verify that the correct submodel exists.
+    VerifyModels model fs ss
+  VerifyModels model (f ': fs) (ty ': ss) =
     If
-      (ty == model || HasTypeT ty model)
+      (HasTypeT ty model)
       ( If
           (f == ty)
           (VerifyModels model fs ss)
