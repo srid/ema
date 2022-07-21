@@ -64,7 +64,7 @@ routeSpec desc ctorGen opts _ = do
   where
     routeName = 
       mkName 
-        $ ("Route" <>)
+        $ ("RouteSpec_" <>)
         . intercalate "" 
         . fmap (capitalize . filter isAlphaNum) 
         . words 
