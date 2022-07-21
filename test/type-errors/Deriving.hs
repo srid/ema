@@ -46,7 +46,7 @@ data PlainR_NiceNamedM
           '[ WithModel (NiceNamedM () ())
            ]
 
-{- | Nice route with NiceNamedM () () as model, wrapping something and deriving /newtype/
+{- | Nice route with NiceNamedM () () as model, wrapping something and deriving /stock/
  GHC.Generic.
 -}
 newtype StockWrappedR_NiceNamedM a
