@@ -19,11 +19,10 @@ newtype Slug = Slug Text
   deriving stock (GHC.Generic)
 
 -- | Nice model with named selectors deriving GHC.Generic
-data NiceNamedM a b
-  = M_Nice_Named 
-      { niceNamed1 :: a
-      , niceNamed2 :: b
-      }
+data NiceNamedM a b = M_Nice_Named
+  { niceNamed1 :: a
+  , niceNamed2 :: b
+  }
   deriving stock (GHC.Generic)
 
 -- | Nice model with anonymous fields deriving GHC.Generic
@@ -40,13 +39,16 @@ data PlainR_NiceNamedM
   = PlainR_NiceNamedM
   deriving stock (GHC.Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes, HasSubModels, IsRoute)
-    via GenericRoute PlainR_NiceNamedM
-      '[ WithModel (NiceNamedM () ())
-       ]
+  deriving
+    (HasSubRoutes, HasSubModels, IsRoute)
+    via GenericRoute
+          PlainR_NiceNamedM
+          '[ WithModel (NiceNamedM () ())
+           ]
 
--- | Nice route with NiceNamedM () () as model, wrapping something and deriving /newtype/
--- GHC.Generic.
+{- | Nice route with NiceNamedM () () as model, wrapping something and deriving /newtype/
+ GHC.Generic.
+-}
 newtype StockWrappedR_NiceNamedM a
   = StockWrappedR_NiceNamedM a
   deriving stock (Show, Eq, Ord, GHC.Generic)
@@ -57,8 +59,9 @@ instance IsRoute (StockWrappedR_NiceNamedM a) where
   routePrism = undefined
   routeUniverse = undefined
 
--- | Nice route with NiceNamedM () () as model, wrapping something and deriving /newtype/
--- GHC.Generic.
+{- | Nice route with NiceNamedM () () as model, wrapping something and deriving /newtype/
+ GHC.Generic.
+-}
 newtype NewtypeWrappedR_NiceNamedM a
   = NewtypeWrappedR_NiceNamedM a
   deriving newtype (GHC.Generic)
@@ -95,7 +98,7 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --   |]
 --   [r|
 -- 'WithSubRoutes' is missing subroutes for:
--- 
+--
 --   '[ '[()]]
 --   |]
 
@@ -109,8 +112,8 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --      ]
 --   |]
 --   [r|
--- 'WithSubRoutes' has extra unnecessary types: 
--- 
+-- 'WithSubRoutes' has extra unnecessary types:
+--
 --   '[()]
 --   |]
 
@@ -124,7 +127,7 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --      ]
 --   |]
 --   [r|
--- A 'WithSubRoutes' entry is '()' instead of the expected: 
+-- A 'WithSubRoutes' entry is '()' instead of the expected:
 -- '[Int]
 --   |]
 
@@ -139,13 +142,13 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --   |]
 --   [r|
 -- A 'WithSubRoutes' type:
--- 
+--
 --   Bool
--- 
+--
 -- is not isomorphic to the corresponding route constructor type:
--- 
+--
 --   '[()]
--- 
+--
 --   |]
 
 -------------------------------------------
@@ -209,8 +212,8 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --      ]
 --   |]
 --   [r|
--- 'WithSubModels' is missing submodel types: 
--- 
+-- 'WithSubModels' is missing submodel types:
+--
 --   '[()]
 --   |]
 
@@ -225,8 +228,8 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --      ]
 --   |]
 --   [r|
--- 'WithSubModels' has extra unnecessary types: 
--- 
+-- 'WithSubModels' has extra unnecessary types:
+--
 --   '[Proxy "niceNamed2"]
 --   |]
 
@@ -256,7 +259,7 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --   [r|
 -- The 'WithSubModel' selector Bool of 'NiceNamedM
 --                                        () ()' is not of expected type:
--- 
+--
 --   ()
 --   |]
 
@@ -275,7 +278,6 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 --   |]
 
 -----------------------------------------
-
 
 -- routeSpec "submodel field name selectors should be illegal on models with anonymous fields"
 --   (niceRoute ''() ''())
