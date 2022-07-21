@@ -10,7 +10,7 @@ Ema uses static verification to catch most common errors related to anyclass der
 
 ## Current Manual Workaround
 
-Current release candidates of Ema should load a REPL for the `test-type-errors` test suite (ex. `nix develop -c cabal -- test test-type-errors`), and for each test case:
+Current release candidates of Ema should load a REPL for the `test-type-errors` test suite (ex. `nix develop -c cabal -- repl test-type-errors`), and for each test case:
 
 1. Uncomment the test case code.
     * Use something like block delete ideally.
