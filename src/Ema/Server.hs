@@ -442,41 +442,116 @@ wsClientHtml :: LByteString
 wsClientHtml =
   encodeUtf8
     [text|
-      <div class="absolute top-0 left-0 p-2" style="display: none;" id="ema-indicator">
+      <div 
+        style="
+          display: none;
+          position: absolute;
+          top: 0px;
+          left: 0px;
+          padding: 0.5rem;
+        " 
+        id="ema-indicator">
         <div
-          class="
-            flex overflow-hidden items-center p-2 text-xs gap-2
-            h-8 border-2 border-gray-200 bg-white rounded-full shadow-lg
-            transition-[width,height] duration-500 ease-in-out w-8 hover:w-full
+          style="
+            display: flex;
+            overflow: hidden;
+            font-size: 0.75rem;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            height: 0.75rem;
+            width: 0.75rem;
+            border-style: solid;
+            border-width: 2px;
+            border-color: rgb(229 231 235);
+            background-color: rgb(255 255 255);
+            border-radius: 9999px;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transition-property: width, height;
+            transition-duration: 500ms;
+          	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
           "
+          onMouseOver="this.style.width='100%'"
+          onMouseOut="this.style.width='0.75rem'"
           id="ema-status"
           title="Ema Status"
         >
           <div
             hidden
-            class="flex-none w-3 h-3 bg-green-600 rounded-full"
+            style="
+              flex: none;
+              width: 0.75rem;
+              height: 0.75rem;
+              background-color: rgb(22 163 74);
+              border-radius: 9999px;
+            "
             id="ema-connected"
           ></div>
           <div
             hidden
-            class="flex-none w-3 h-3 rounded-full animate-spin bg-gradient-to-r from-blue-300 to-blue-600"
+            style="
+              flex: none;
+              width: 0.75rem;
+              height: 0.75rem;
+              border-radius: 9999px;
+            	animation: spin 1s linear infinite;
+              background-image: linear-gradient(to right, var(--tw-gradient-stops));
+              --tw-gradient-from: #93c5fd;
+              --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+              --tw-gradient-to: #2563eb;
+            "
             id="ema-reloading"
-          ></div>
+          ><style>
+            @keyframes spin {
+              from {
+                transform: rotate(0deg);
+              }
+              to {
+                transform: rotate(360deg);
+              }
+            }
+          </style></div>
           <div
             hidden
-            class="flex-none w-3 h-3 bg-yellow-500 rounded-full"
+            style="
+              flex: none;
+              width: 0.75rem;
+              height: 0.75rem;
+              border-radius: 9999px;
+            	background-color: rgb(234 179 8);
+            "
             id="ema-connecting"
           >
             <div
-              class="flex-none w-3 h-3 bg-yellow-500 rounded-full animate-ping"
-            ></div>
+              style="
+                flex: none;
+                width: 0.75rem;
+                height: 0.75rem;
+                border-radius: 9999px;
+                background-color: rgb(234 179 8);
+                animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+              "
+            ><style>
+              @keyframes ping {
+                75%, 100% {
+                  transform: scale(2);
+                  opacity: 0;
+                }
+              }
+          </style></div>
           </div>
           <div
             hidden
-            class="flex-none w-3 h-3 bg-red-500 rounded-full"
+            style="
+              flex: none;
+              width: 0.75rem;
+              height: 0.75rem;
+              border-radius: 9999px;
+              background-color: rgb(239 68 68);
+            "
             id="ema-disconnected"
           ></div>
-          <p class="whitespace-nowrap" id="ema-message"></p>
+          <p style="white-space: nowrap;" id="ema-message"></p>
         </div>
       </div>
   |]
