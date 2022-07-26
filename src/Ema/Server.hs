@@ -449,6 +449,10 @@ wsClientHtml =
           top: 0px;
           left: 0px;
           padding: 0.5rem;
+          font-size: 12px;
+          line-height: 18px;
+          tab-size: 4;
+          text-size-adjust: 100%;
         " 
         id="ema-indicator">
         <div
