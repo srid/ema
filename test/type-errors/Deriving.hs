@@ -73,11 +73,11 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 
 -- * Test cases
 
+#define ENABLE_SPEC
+
 ----------------------------------------
 -- Subroute verification
 ----------------------------------------
-
-#define ENABLE_SPEC
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
