@@ -17,6 +17,8 @@ Current release candidates of Ema should load a REPL for the `test-type-errors` 
 3. Verify that the expected error message detailed in the error message quasiquote at the tail of each test case spec matches _at least one_ of the error blocks GHC is throwing.
     * 'Error block' in the context of this document refers to a segment in the overall compiler error message starting with a bulletin dot (`•`), and ending at the next line (exclusive) to contain a bulletin dot, ignoring any leading whitespace.
 
+Test cases labeled `Low priority` can be skipped over as the errors they catch are not critical to the overall user experience.
+
 ## Future Rollout Plan for Automated Testing
 
 Once `Unsatisfiable` lands in a release GHC:
