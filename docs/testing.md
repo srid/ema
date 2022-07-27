@@ -12,9 +12,7 @@ Ema uses static verification to catch most common errors related to anyclass der
 
 Current release candidates of Ema should load a REPL for the `test-type-errors` test suite (ex. `nix develop -c cabal -- repl test-type-errors`), and for each test case:
 
-1. Uncomment the test case code.
-    * Use something like block delete ideally.
-    * Just the first 3 characters of each line; whitespace in error message quasiquote is significant!
+1. Comment out the `#undef` at the top of each test case.
 2. Reload the source file (`:r`).
 3. Verify that the expected error message detailed in the error message quasiquote at the tail of each test case spec matches _at least one_ of the error blocks GHC is throwing.
     * 'Error block' in the context of this document refers to a segment in the overall compiler error message starting with a bulletin dot (`•`), and ending at the next line (exclusive) to contain a bulletin dot, ignoring any leading whitespace.
