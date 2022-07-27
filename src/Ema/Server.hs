@@ -463,8 +463,9 @@ wsClientHtml =
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem;
-            height: 0.75rem;
-            width: 0.75rem;
+            height: 2rem;
+            width: 2rem;
+            box-sizing: border-box;
             border-style: solid;
             border-width: 2px;
             border-color: rgb(229 231 235);
@@ -476,7 +477,7 @@ wsClientHtml =
           	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
           "
           onMouseOver="this.style.width='100%'"
-          onMouseOut="this.style.width='0.75rem'"
+          onMouseOut="this.style.width='2rem'"
           id="ema-status"
           title="Ema Status"
         >
