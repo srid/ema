@@ -77,258 +77,337 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 -- Subroute verification
 ----------------------------------------
 
--- routeSpec "subroutes should not have constructors with multiple fields"
---   (badRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      ]
---   |]
---   [r|
--- MultiRoute: too many arguments
---   |]
+#define ENABLE_SPEC
+
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "subroutes should not have constructors with multiple fields"
+  (badRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     ]
+  |]
+  [r|
+MultiRoute: too many arguments
+  |]
+#endif
+#define ENABLE_SPEC
 
 -----------------------------------------
 
--- routeSpec "'WithSubRoutes' list should not be shorter than number of route constructors"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ () ]
---      ]
---   |]
---   [r|
--- 'WithSubRoutes' is missing subroutes for:
---
---   '[ '[()]]
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "'WithSubRoutes' list should not be shorter than number of route constructors"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ () ]
+     ]
+  |]
+  [r|
+'WithSubRoutes' is missing subroutes for:
+
+  '[ '[()]]
+  |]
+#endif
+#define ENABLE_SPEC
 
 -----------------------------------------
 
--- routeSpec "'WithSubRoutes' list should not be longer than number of route constructors"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), (), () ]
---      ]
---   |]
---   [r|
--- 'WithSubRoutes' has extra unnecessary types:
---
---   '[()]
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "'WithSubRoutes' list should not be longer than number of route constructors"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), (), () ]
+     ]
+  |]
+  [r|
+'WithSubRoutes' has extra unnecessary types:
+
+  '[()]
+  |]
+#endif
+#define ENABLE_SPEC
 
 ------------------------------------------
 
--- routeSpec "constructors should either be empty or contain () when 'WithSubRoutes' specifies ()"
---   (niceRoute ''Int ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- A 'WithSubRoutes' entry is '()' instead of the expected:
--- '[Int]
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "constructors should either be empty or contain () when 'WithSubRoutes' specifies ()"
+  (niceRoute ''Int ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+A 'WithSubRoutes' entry is '()' instead of the expected:
+'[Int]
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "subroute types that are nonisomorphic to what is specified in 'WithSubRoutes' should be illegal"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), Bool ]
---      ]
---   |]
---   [r|
--- A 'WithSubRoutes' type:
---
---   Bool
---
--- is not isomorphic to the corresponding route constructor type:
---
---   '[()]
---
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "subroute types that are nonisomorphic to what is specified in 'WithSubRoutes' should be illegal"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), Bool ]
+     ]
+  |]
+  [r|
+A 'WithSubRoutes' type:
+
+  Bool
+
+is not isomorphic to the corresponding route constructor type:
+
+  '[()]
+
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "subroute types that are the same as what is specified in 'WithSubRoutes' should typecheck"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "subroute types that are the same as what is specified in 'WithSubRoutes' should typecheck"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | ( empty constructor <-> () ) special case"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), PlainR_NiceNamedM ]
---      ]
---   |]
---   [r|
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | ( empty constructor <-> () ) special case"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), PlainR_NiceNamedM ]
+     ]
+  |]
+  [r|
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /newtype/ GHC.Generic) case"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), NewtypeWrappedR_NiceNamedM () ]
---      ]
---   |]
---   [r|
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /newtype/ GHC.Generic) case"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), NewtypeWrappedR_NiceNamedM () ]
+     ]
+  |]
+  [r|
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /stock/ GHC.Generic) case"
---   (niceRoute ''() ''Slug)
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubRoutes '[ (), StockWrappedR_NiceNamedM Slug ]
---      ]
---   |]
---   [r|
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /stock/ GHC.Generic) case"
+  (niceRoute ''() ''Slug)
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubRoutes '[ (), StockWrappedR_NiceNamedM Slug ]
+     ]
+  |]
+  [r|
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 -- Submodel verification
 -------------------------------------------
 
--- routeSpec "submodel selectors should not be less than number of subroutes"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubModels '[ Proxy "niceNamed1" ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- 'WithSubModels' is missing submodel types:
---
---   '[()]
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel selectors should not be less than number of subroutes"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubModels '[ Proxy "niceNamed1" ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+'WithSubModels' is missing submodel types:
+
+  '[()]
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "submodel selectors should not outnumber number of subroutes"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubModels '[ Proxy "niceNamed1", Proxy "niceNamed2", Proxy "niceNamed2" ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- 'WithSubModels' has extra unnecessary types:
---
---   '[Proxy "niceNamed2"]
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel selectors should not outnumber number of subroutes"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubModels '[ Proxy "niceNamed1", Proxy "niceNamed2", Proxy "niceNamed2" ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+'WithSubModels' has extra unnecessary types:
+
+  '[Proxy "niceNamed2"]
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "submodel type selectors be able to reference the model itself if they are of the same type"
---   (niceRoute ''() ''PlainR_NiceNamedM)
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubModels '[ Proxy "niceNamed1", NiceNamedM () () ]
---      , WithSubRoutes '[ (), PlainR_NiceNamedM ]
---      ]
---   |]
---   [r|
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel type selectors be able to reference the model itself if they are of the same type"
+  (niceRoute ''() ''PlainR_NiceNamedM)
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubModels '[ Proxy "niceNamed1", NiceNamedM () () ]
+     , WithSubRoutes '[ (), PlainR_NiceNamedM ]
+     ]
+  |]
+  [r|
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "submodel type selectors must, at a minimum, refer to a model field of a matching type"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceNamedM () ())
---      , WithSubModels '[ Proxy "niceNamed1", Bool ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- The 'WithSubModel' selector Bool of 'NiceNamedM
---                                        () ()' is not of expected type:
---
---   ()
---   |]
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel type selectors must, at a minimum, refer to a model field of a matching type"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceNamedM () ())
+     , WithSubModels '[ Proxy "niceNamed1", Bool ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+The 'WithSubModel' selector Bool of 'NiceNamedM
+                                       () ()' is not of expected type:
+
+  ()
+  |]
+#endif
+#define ENABLE_SPEC
 
 -----------------------------------------
 
--- routeSpec "submodel field name selectors on models with multiple constructors should be illegal"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (BadM () ())
---      , WithSubModels '[ Proxy "niceNamed1", () ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- Type rep field name lookup: multiple constructors
---   |]
+-- | Low priority
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel field name selectors on models with multiple constructors should be illegal"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (BadM () ())
+     , WithSubModels '[ Proxy "niceNamed1", () ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+Type rep field name lookup: multiple constructors
+  |]
+#endif
+#define ENABLE_SPEC
 
 -----------------------------------------
 
--- routeSpec "submodel field name selectors should be illegal on models with anonymous fields"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceAnonM () ())
---      , WithSubModels '[ Proxy "niceNamed1", Proxy "niceNamed2" ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- Type rep field name lookup: constructor has anonymous fields.
---   |]
+-- | Low priority
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel field name selectors should be illegal on models with anonymous fields"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceAnonM () ())
+     , WithSubModels '[ Proxy "niceNamed1", Proxy "niceNamed2" ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+Type rep field name lookup: constructor has anonymous fields.
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "submodel position selectors on models with multiple constructors should be illegal"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (BadM () ())
---      , WithSubModels '[ Proxy 1, () ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- Type rep indexing: multiple constructors
---   |]
+-- | Low priority
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel position selectors on models with multiple constructors should be illegal"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (BadM () ())
+     , WithSubModels '[ Proxy 1, () ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+Type rep indexing: multiple constructors
+  |]
+#endif
+#define ENABLE_SPEC
 
 -----------------------------------------
 
--- routeSpec "submodel position selectors should not go above bounds"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceAnonM () ())
---      , WithSubModels '[ Proxy 1, Proxy 4 ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- Type rep indexing: out of bounds index 4
---   |]
+-- | Low priority
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel position selectors should not go above bounds"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceAnonM () ())
+     , WithSubModels '[ Proxy 1, Proxy 4 ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+Type rep indexing: out of bounds index 4
+  |]
+#endif
+#define ENABLE_SPEC
 
 -------------------------------------------
 
--- routeSpec "submodel position selectors should not go below bounds"
---   (niceRoute ''() ''())
---   [t|
---     '[ WithModel (NiceAnonM () ())
---      , WithSubModels '[ Proxy 1, Proxy 0 ]
---      , WithSubRoutes '[ (), () ]
---      ]
---   |]
---   [r|
--- Type rep indexing: generic selector indexing starts at 1
---   |]
+-- | Low priority
+#undef ENABLE_SPEC
+#ifdef ENABLE_SPEC
+routeSpec "submodel position selectors should not go below bounds"
+  (niceRoute ''() ''())
+  [t|
+    '[ WithModel (NiceAnonM () ())
+     , WithSubModels '[ Proxy 1, Proxy 0 ]
+     , WithSubRoutes '[ (), () ]
+     ]
+  |]
+  [r|
+Type rep indexing: generic selector indexing starts at 1
+  |]
+#endif
+#define ENABLE_SPEC
