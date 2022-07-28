@@ -7,6 +7,7 @@ This releases brings a significant rewrite of Ema. If you choose to upgrade your
 - GHC 9.0 support
 - Better handling of URL anchors (#83; #87)
 - `routeUrl` uses `UrlDirect` by default. Use `routeUrlWith` if you want to change that.
+- Ema status indicator now works independently (requires no Tailwind)
 - Multisite rewrite (Ema is mostly rewritten)
   - Add the notion of route `Prism_` (first-class values), along with a `IsRoute` class to define them.
     - Optional generic deriving of route prisms, so you do not have to hand-write them.
