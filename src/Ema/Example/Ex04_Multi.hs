@@ -72,7 +72,7 @@ instance EmaSite R where
     pure $ liftA3 M x1 x2 x3
   siteOutput rp m = \case
     R_Index ->
-      Ema.AssetGenerated Ema.Html $ renderIndex rp m
+      pure $ Ema.AssetGenerated Ema.Html $ renderIndex rp m
     R_Hello r ->
       siteOutput (rp % (_As @"R_Hello")) m2 r
     R_Basic r ->

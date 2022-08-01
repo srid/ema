@@ -23,7 +23,7 @@ deriveIsRoute ''Route [t|'[]|]
 instance EmaSite Route where
   siteInput _ _ = pure $ pure ()
   siteOutput rp () r =
-    Ema.AssetGenerated Ema.Html $
+    pure . Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title "Basic site" >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
           H.h1 ! A.class_ "text-3xl font-bold" $ "Basic site"

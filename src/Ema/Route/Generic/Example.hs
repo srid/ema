@@ -47,7 +47,7 @@ instance IsRoute NumRoute where
 
 instance EmaSite R where
   siteInput _ () = pure $ pure (42, 21, "inner")
-  siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
+  siteOutput _ m r = pure $ Asset.AssetGenerated Asset.Html $ show r <> show m
 
 -- --warnings -c "cabal repl ema -f with-examples" -T Ema.Route.Generic.main  --setup ":set args gen /tmp"
 main :: IO ()
@@ -70,7 +70,7 @@ instance EmaSite TR where
     pure $ fmap (,"TOP") m1
   siteOutput rp m = \case
     r@TR_Index ->
-      Asset.AssetGenerated Asset.Html $ show r <> show m
+      pure $ Asset.AssetGenerated Asset.Html $ show r <> show m
     TR_Inner r ->
       -- Might as well provide a `innerSiteOutput (_As @TR_Inner)`?
       siteOutput @R (rp % _As @"TR_Inner") (trInnerModel m) r
@@ -100,7 +100,7 @@ data BarRoute = BarRoute
 
 instance EmaSite R2 where
   siteInput _ () = pure $ pure (21, "inner")
-  siteOutput _ m r = Asset.AssetGenerated Asset.Html $ show r <> show m
+  siteOutput _ m r = pure $ Asset.AssetGenerated Asset.Html $ show r <> show m
 
 mainConst :: IO ()
 mainConst = Ema.runSite_ @R2 ()

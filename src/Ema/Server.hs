@@ -5,7 +5,7 @@
 module Ema.Server where
 
 import Control.Concurrent.Async (race)
-import Control.Exception (catch, try)
+import Control.Exception (try)
 import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
@@ -22,7 +22,6 @@ import Ema.Route.Prism (
  )
 import Ema.Route.Url (urlToFilePath)
 import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
-import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
 import Network.Wai qualified as Wai
@@ -36,6 +35,7 @@ import Optics.Core (review)
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
 import UnliftIO.Concurrent (threadDelay)
+import UnliftIO.Exception (catch)
 
 runServerWithWebSocketHotReload ::
   forall r m.
@@ -108,7 +108,7 @@ runServerWithWebSocketHotReload host mport model = do
                     Right Nothing ->
                       liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
                     Right (Just r) -> do
-                      case renderCatchingErrors logger s r of
+                      renderCatchingErrors s r >>= \case
                         AssetStatic staticPath ->
                           -- HACK: Websocket client should check for REDIRECT prefix.
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
@@ -168,7 +168,7 @@ runServerWithWebSocketHotReload host mport model = do
             let s = emaErrorHtmlResponse decodeRouteNothingMsg <> wsClientJS
             liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
           Right (Just r) -> do
-            case renderCatchingErrors logger val r of
+            renderCatchingErrors val r >>= \case
               AssetStatic staticPath -> do
                 let mimeType = Static.getMimeType staticPath
                 liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
@@ -178,19 +178,15 @@ runServerWithWebSocketHotReload host mport model = do
               AssetGenerated Other s -> do
                 let mimeType = Static.getMimeType $ review (fromPrism_ $ enc val) r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
-    renderCatchingErrors logger m r =
-      unsafeCatch (siteOutput (fromPrism_ $ enc m) m r) $ \(err :: SomeException) ->
-        unsafePerformIO $ do
-          -- Log the error first.
-          flip runLoggingT logger $ logErrorNS "App" $ show @Text err
-          pure $
-            AssetGenerated Html . mkHtmlErrorMsg $
-              show @Text err
+    renderCatchingErrors m r =
+      catch (siteOutput (fromPrism_ $ enc m) m r) $ \(err :: SomeException) -> do
+        -- Log the error first.
+        logErrorNS "App" $ show @Text err
+        pure $
+          AssetGenerated Html . mkHtmlErrorMsg $
+            show @Text err
     routeFromPathInfo m =
       decodeUrlRoute m . T.intercalate "/"
-    -- TODO: It would be good have this also get us the stack trace.
-    unsafeCatch :: forall x e. Exception e => x -> (e -> x) -> x
-    unsafeCatch x f = unsafePerformIO $ catch (seq x $ pure x) (pure . f)
     -- Decode an URL path into a route
     --
     -- This function is used only in live server. If the route is not

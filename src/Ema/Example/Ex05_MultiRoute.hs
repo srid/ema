@@ -34,7 +34,7 @@ newtype TopRoute = TopRoute ()
 instance EmaSite TopRoute where
   siteInput _ _ = pure $ pure ()
   siteOutput _enc _ _ =
-    Ema.AssetGenerated Ema.Html renderIndex
+    pure $ Ema.AssetGenerated Ema.Html renderIndex
 
 main :: IO ()
 main = do

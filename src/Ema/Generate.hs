@@ -84,7 +84,7 @@ generateSiteFromModel' dest model = do
   log LevelInfo $ "Writing " <> show (length routes) <> " routes"
   fmap concat . forM routes $ \r -> do
     let fp = dest </> review rp r
-    case siteOutput rp model r of
+    siteOutput rp model r >>= \case
       AssetStatic staticPath -> do
         liftIO (doesPathExist staticPath) >>= \case
           True ->
