@@ -15,8 +15,10 @@ import Generics.SOP.TH (deriveGeneric)
 import Language.Haskell.TH
 
 {- | @deriveIsRoute route model subroutes@ derives 'HasSubRoutes', 'HasSubModels', and 'IsRoute' for the given @route@.
+
 Subroutes are optionally supplied, but if they are then the length of the list must be the same as the number of
 constructors in @route@.
+
 TODO: Add TypeErrors to catch mismatched 'WithSubRoutes' list shapes at the generic deriving level?
 -}
 deriveIsRoute :: Name -> TypeQ -> Q [Dec]
