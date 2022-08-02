@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Deriving where
@@ -177,19 +178,16 @@ is not isomorphic to the corresponding route constructor type:
 
 -------------------------------------------
 
-#undef ENABLE_SPEC
-#ifdef ENABLE_SPEC
-routeSpec "subroute types that are the same as what is specified in 'WithSubRoutes' should typecheck"
+routeSpec
+  "subroute types that are the same as what is specified in 'WithSubRoutes' should typecheck"
   (niceRoute ''() ''())
   [t|
     '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[ (), () ]
+     , WithSubRoutes '[(), ()]
      ]
-  |]
+    |]
   [r|
   |]
-#endif
-#define ENABLE_SPEC
 
 -------------------------------------------
 
@@ -209,35 +207,29 @@ routeSpec "subroute types that are an unwrapped representation of what is specif
 
 -------------------------------------------
 
-#undef ENABLE_SPEC
-#ifdef ENABLE_SPEC
-routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /newtype/ GHC.Generic) case"
+routeSpec
+  "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /newtype/ GHC.Generic) case"
   (niceRoute ''() ''())
   [t|
     '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[ (), NewtypeWrappedR_NiceNamedM () ]
+     , WithSubRoutes '[(), NewtypeWrappedR_NiceNamedM ()]
      ]
-  |]
+    |]
   [r|
   |]
-#endif
-#define ENABLE_SPEC
 
 -------------------------------------------
 
-#undef ENABLE_SPEC
-#ifdef ENABLE_SPEC
-routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /stock/ GHC.Generic) case"
+routeSpec
+  "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /stock/ GHC.Generic) case"
   (niceRoute ''() ''Slug)
   [t|
     '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[ (), StockWrappedR_NiceNamedM Slug ]
+     , WithSubRoutes '[(), StockWrappedR_NiceNamedM Slug]
      ]
-  |]
+    |]
   [r|
   |]
-#endif
-#define ENABLE_SPEC
 
 -------------------------------------------
 -- Submodel verification
@@ -283,20 +275,17 @@ routeSpec "submodel selectors should not outnumber number of subroutes"
 
 -------------------------------------------
 
-#undef ENABLE_SPEC
-#ifdef ENABLE_SPEC
-routeSpec "submodel type selectors be able to reference the model itself if they are of the same type"
+routeSpec
+  "submodel type selectors be able to reference the model itself if they are of the same type"
   (niceRoute ''() ''PlainR_NiceNamedM)
   [t|
     '[ WithModel (NiceNamedM () ())
-     , WithSubModels '[ Proxy "niceNamed1", NiceNamedM () () ]
-     , WithSubRoutes '[ (), PlainR_NiceNamedM ]
+     , WithSubModels '[Proxy "niceNamed1", NiceNamedM () ()]
+     , WithSubRoutes '[(), PlainR_NiceNamedM]
      ]
-  |]
+    |]
   [r|
   |]
-#endif
-#define ENABLE_SPEC
 
 -------------------------------------------
 
