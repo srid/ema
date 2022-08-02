@@ -15,7 +15,7 @@ instance EmaSite Route where
   siteInput _ _ =
     pure $ pure ()
   siteOutput _ _ _ =
-    Ema.AssetGenerated Ema.Html "<b>Hello</b>, Ema"
+    pure $ Ema.AssetGenerated Ema.Html "<b>Hello</b>, Ema"
 
 main :: IO ()
 main = void $ Ema.runSite @Route ()

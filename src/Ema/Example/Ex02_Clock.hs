@@ -45,7 +45,7 @@ instance EmaSite Route where
         logDebugNS "Ex02" "Updating clock..."
         setModel t
   siteOutput rp m r =
-    Ema.AssetGenerated Ema.Html $ render rp m r
+    pure $ Ema.AssetGenerated Ema.Html $ render rp m r
 
 main :: IO ()
 main = do

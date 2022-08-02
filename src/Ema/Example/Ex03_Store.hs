@@ -136,7 +136,7 @@ instance EmaSite Route where
       log :: MonadLogger m => Text -> m ()
       log = logInfoNS "Ex03_Store"
   siteOutput rp (Model storeName ps cats) r =
-    Ema.AssetGenerated Ema.Html $
+    pure . Ema.AssetGenerated Ema.Html $
       tailwindLayout (H.title ("Store example: " <> H.toHtml storeName) >> H.base ! A.href "/") $
         H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
           H.h1 ! A.class_ "text-3xl font-bold" $ H.toHtml storeName

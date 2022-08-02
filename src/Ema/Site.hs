@@ -62,7 +62,13 @@ class IsRoute r => EmaSite r where
     m (Dynamic m (RouteModel r))
 
   -- | Return the output (typically an `Asset`) for the given route and model.
-  siteOutput :: Prism' FilePath r -> RouteModel r -> r -> SiteOutput r
+  siteOutput ::
+    forall m.
+    (MonadIO m, MonadLoggerIO m) =>
+    Prism' FilePath r ->
+    RouteModel r ->
+    r ->
+    m (SiteOutput r)
 
 -- | Like `EmaSite` but `SiteOutput` is a bytestring `Asset`.
 type EmaStaticSite r = (EmaSite r, SiteOutput r ~ Asset LByteString)

@@ -52,7 +52,7 @@ instance KnownSymbol baseDir => EmaSite (StaticRoute baseDir) where
     files <- staticFilesDynamic $ symbolVal (Proxy @baseDir)
     pure $ Model cliAct <$> files
   siteOutput _ _ (StaticRoute path) =
-    Ema.AssetStatic $ symbolVal (Proxy @baseDir) </> path
+    pure $ Ema.AssetStatic $ symbolVal (Proxy @baseDir) </> path
 
 staticFilesDynamic ::
   forall m.

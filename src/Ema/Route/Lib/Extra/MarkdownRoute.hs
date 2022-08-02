@@ -105,9 +105,9 @@ instance EmaSite MarkdownRoute where
   siteInput _ arg = do
     docsDyn <- markdownFilesDyn (argBaseDir arg)
     pure $ Model arg <$> docsDyn
-  siteOutput _ model r =
+  siteOutput _ model r = do
     let pandoc = Map.findWithDefault (throw $ MarkdownError_Missing r) r $ modelPandocs model
-     in (pandoc, MarkdownHtml . renderHtml (argWriterOpts $ modelArg model))
+    pure (pandoc, MarkdownHtml . renderHtml (argWriterOpts $ modelArg model))
 
 markdownFilesDyn :: (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Dynamic m (Map MarkdownRoute Pandoc))
 markdownFilesDyn baseDir = do
