@@ -204,7 +204,6 @@ test-suite test-type-errors
 
   other-modules:
     Deriving,
-    Deriving.TH
 
   type: exitcode-stdio-1.0
   main-is: Spec.hs

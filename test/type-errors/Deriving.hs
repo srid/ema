@@ -8,74 +8,12 @@ module Deriving where
 
 import Data.Proxy (Proxy)
 import Data.Text (Text)
-import Deriving.TH
 import Ema.Route.Class
 import Ema.Route.Generic
 import Ema.Route.Generic.TH
 import GHC.Generics qualified as GHC
 import Generics.SOP qualified as SOP
 import Text.RawString.QQ (r)
-
--- * Helper data declarations
-
--- | Placeholder for anything deriving stock GHC.Generic
-newtype Slug = Slug Text
-  deriving stock (GHC.Generic)
-
--- | Nice model with named selectors deriving GHC.Generic
-data NiceNamedM a b = M_Nice_Named
-  { niceNamed1 :: a
-  , niceNamed2 :: b
-  }
-  deriving stock (GHC.Generic)
-
--- | Nice model with anonymous fields deriving GHC.Generic
-data NiceAnonM a b
-  = NiceAnonM a b
-  deriving stock (GHC.Generic)
-
--- | Bad model; multi-constructor
-data BadM a b = BadM1 a b | BadM2 a b
-  deriving stock (GHC.Generic)
-
--- | Nice route with NiceNamedM () () as model, with empty constructor.
-data PlainR_NiceNamedM
-  = PlainR_NiceNamedM
-  deriving stock (GHC.Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via GenericRoute
-          PlainR_NiceNamedM
-          '[ WithModel (NiceNamedM () ())
-           ]
-
-{- | Nice route with NiceNamedM () () as model, wrapping something and deriving /stock/
- GHC.Generic.
--}
-newtype StockWrappedR_NiceNamedM a
-  = StockWrappedR_NiceNamedM a
-  deriving stock (Show, Eq, Ord, GHC.Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-
-instance IsRoute (StockWrappedR_NiceNamedM a) where
-  type RouteModel (StockWrappedR_NiceNamedM a) = NiceNamedM () ()
-  routePrism = undefined
-  routeUniverse = undefined
-
-{- | Nice route with NiceNamedM () () as model, wrapping something and deriving /newtype/
- GHC.Generic.
--}
-newtype NewtypeWrappedR_NiceNamedM a
-  = NewtypeWrappedR_NiceNamedM a
-  deriving newtype (GHC.Generic)
-
-instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
-  type RouteModel (NewtypeWrappedR_NiceNamedM a) = NiceNamedM () ()
-  routePrism = undefined
-  routeUniverse = undefined
-
--- * Test cases
 
 #define ENABLE_SPEC
 
