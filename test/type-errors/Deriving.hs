@@ -139,16 +139,16 @@ deriveIsRoute ''R [t|
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
-routeSpec "constructors should either be empty or contain () when 'WithSubRoutes' specifies ()"
-  (niceRoute ''Int ''())
-  [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[ (), () ]
-     ]
-  |]
-  [r|
+data R = R_1 Int | R_2
+deriveGeneric ''R
+-- constructors should either be empty or contain () when 'WithSubRoutes' specifies ()
+-- Expect:
+{-
 A 'WithSubRoutes' entry is '()' instead of the expected:
 '[Int]
+-}
+deriveIsRoute ''R [t|
+  '[ WithSubRoutes '[ (), () ] ]
   |]
 #endif
 #define ENABLE_SPEC
