@@ -101,17 +101,17 @@ deriveIsRoute ''BadRoute [t|
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
-routeSpec "'WithSubRoutes' list should not be shorter than number of route constructors"
-  (niceRoute ''() ''())
-  [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[ () ]
-     ]
-  |]
-  [r|
+data R = R_1 () | R_2 ()
+deriveGeneric ''R
+-- WithSubRoutes' list should not be shorter than number of route constructors
+-- Expect :
+{-
 'WithSubRoutes' is missing subroutes for:
 
   '[ '[()]]
+-}
+deriveIsRoute ''R [t|
+  '[ WithSubRoutes '[ () ] ]
   |]
 #endif
 #define ENABLE_SPEC
