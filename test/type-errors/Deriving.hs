@@ -269,18 +269,20 @@ deriveIsRoute ''R
 #define ENABLE_SPEC
 
 -------------------------------------------
+data RSubMSelf = RSubMSelf1 | RSubMSelf2 RSubMSelf
+  deriving stock (GHC.Generic)
+deriveGeneric ''RSubMSelf
+data MSelf = MSelf {mself1 :: (), mself2 :: ()}
+  deriving stock (GHC.Generic)
 
-routeSpec
-  "submodel type selectors be able to reference the model itself if they are of the same type"
-  (niceRoute ''() ''PlainR_NiceNamedM)
+-- submodel type selectors be able to reference the model itself if they are of the same type
+deriveIsRoute
+  ''RSubMSelf
   [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubModels '[Proxy "niceNamed1", NiceNamedM () ()]
-     , WithSubRoutes '[(), PlainR_NiceNamedM]
+    '[ WithModel MSelf
+     , WithSubModels '[Proxy "mself1", MSelf]
      ]
     |]
-  [r|
-  |]
 
 -------------------------------------------
 
