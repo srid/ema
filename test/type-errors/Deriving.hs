@@ -226,18 +226,21 @@ deriveIsRoute
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
-routeSpec "submodel selectors should not be less than number of subroutes"
-  (niceRoute ''() ''())
-  [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubModels '[ Proxy "niceNamed1" ]
-     , WithSubRoutes '[ (), () ]
-     ]
-  |]
-  [r|
+data R = R1 | R2 
+deriveGeneric ''R 
+data M = M { m1 :: (), m2 :: () }
+  deriving stock GHC.Generic
+-- Submodel selectors should not be less than number of subroutes
+-- Expect:
+{-
 'WithSubModels' is missing submodel types:
-
   '[()]
+-}
+deriveIsRoute ''R 
+  [t|
+    '[ WithModel M
+     , WithSubModels '[ Proxy "m1" ]
+     ]
   |]
 #endif
 #define ENABLE_SPEC
