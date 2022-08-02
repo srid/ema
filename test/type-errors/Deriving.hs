@@ -157,14 +157,11 @@ deriveIsRoute ''R [t|
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
-routeSpec "subroute types that are nonisomorphic to what is specified in 'WithSubRoutes' should be illegal"
-  (niceRoute ''() ''())
-  [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[ (), Bool ]
-     ]
-  |]
-  [r|
+data R = R_1 | R_2 
+deriveGeneric ''R
+-- subroute types that are nonisomorphic to what is specified in 'WithSubRoutes' should be illegal
+-- Expect:
+{-
 A 'WithSubRoutes' type:
 
   Bool
@@ -172,7 +169,9 @@ A 'WithSubRoutes' type:
 is not isomorphic to the corresponding route constructor type:
 
   '[()]
-
+-}
+deriveIsRoute ''R [t|
+  ' [ WithSubRoutes '[ (), Bool] ]
   |]
 #endif
 #define ENABLE_SPEC
