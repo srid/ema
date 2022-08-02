@@ -28,6 +28,7 @@
                 cabal-fmt
                 ormolu;
             };
+            modifier = drv: with pkgs.haskell.lib; dontCheck drv;  # test/type-errors requires 9.2
           };
           ghc92 = {
             root = ./.;
