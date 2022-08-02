@@ -13,7 +13,7 @@ https://user-images.githubusercontent.com/3998/116333460-789c1400-a7a1-11eb-8d28
 
 *NOTE: We are using GHC 9.2 which is not yet the default in `nixpkgs`, so you may want to use the [garnix cache](https://garnix.io/docs/caching) to avoid long compilation.*
 
-Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the Ex04_Multi example; modify the `./.ghcid` file to choose a different example. 
+Run `bin/run` (or <kbd>Ctrl+Shift+B</kbd> in VSCode). This runs the Ex04_Multi example.
 
 To run the docs, run `nix run github:EmaApps/emanote -- -L ./docs`.
 

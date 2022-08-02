@@ -1,1 +1,0 @@
---warnings -c "cabal repl ema -f with-examples" -T Ema.Example.Ex04_Multi.main  --setup ":set args run --port=8080"
