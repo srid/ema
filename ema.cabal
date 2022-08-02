@@ -203,7 +203,7 @@ test-suite test-type-errors
     url-slug
 
   other-modules:
-    Deriving,
+    Deriving
 
   type: exitcode-stdio-1.0
   main-is: Spec.hs
