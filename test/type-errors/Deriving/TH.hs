@@ -5,7 +5,6 @@
 module Deriving.TH (
   routeSpec,
   niceRoute,
-  badRoute,
 ) where
 
 import Data.Char (isAlphaNum, toUpper)
@@ -32,20 +31,6 @@ import Language.Haskell.TH
 -}
 niceRoute :: Name -> Name -> Name -> [Con]
 niceRoute r1 r2 = trivialCtors [[r1], [r2]]
-
-{- | A malformed set of route constructors
-
- When used as a constructor generator for 'routeSpec', the final splice will be of the following form:
- > data RouteSpec_{normalizedDesc}
- >   = RouteSpec_{normalizedDesc}_1 {r1} {r2}
- >   | RouteSpec_{normalizedDesc}_2 {r2}
- >   deriving stock (GHC.Generic)
- >   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
- >   deriving (HasSubRoutes, HasSubModels, IsRoute)
- >     via GenericRoute RouteSpec_{normalizedDesc} {opts}
--}
-badRoute :: Name -> Name -> Name -> [Con]
-badRoute r1 r2 = trivialCtors [[r1, r2], [r1]]
 
 {- | Trivial constructors of form @C a b c...@; no unpackednesss/strictness/etc.
 

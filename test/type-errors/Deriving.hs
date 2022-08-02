@@ -11,6 +11,7 @@ import Data.Text (Text)
 import Deriving.TH
 import Ema.Route.Class
 import Ema.Route.Generic
+import Ema.Route.Generic.TH
 import GHC.Generics qualified as GHC
 import Generics.SOP qualified as SOP
 import Text.RawString.QQ (r)
@@ -84,14 +85,14 @@ instance IsRoute (NewtypeWrappedR_NiceNamedM a) where
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
-routeSpec "subroutes should not have constructors with multiple fields"
-  (badRoute ''() ''())
-  [t|
+data BadRoute = BR_1 Int String | BR_2 String
+
+deriveGeneric ''BadRoute
+-- Subroutes should not have constructors with multiple fields
+-- Expect: MultiRoute: too many arguments
+deriveIsRoute ''BadRoute [t|
     '[ WithModel (NiceNamedM () ())
      ]
-  |]
-  [r|
-MultiRoute: too many arguments
   |]
 #endif
 #define ENABLE_SPEC
