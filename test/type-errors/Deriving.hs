@@ -191,6 +191,7 @@ routeSpec
 
 -------------------------------------------
 
+-- FIXME: This test is broken.
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
 routeSpec "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | ( empty constructor <-> () ) special case"
