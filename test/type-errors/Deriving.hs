@@ -288,19 +288,22 @@ deriveIsRoute
 
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
-routeSpec "submodel type selectors must, at a minimum, refer to a model field of a matching type"
-  (niceRoute ''() ''())
-  [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubModels '[ Proxy "niceNamed1", Bool ]
-     , WithSubRoutes '[ (), () ]
-     ]
-  |]
-  [r|
-The 'WithSubModel' selector Bool of 'NiceNamedM
-                                       () ()' is not of expected type:
+data R = R1 | R2
+deriveGeneric ''R
+data M = M { m1 :: (), m2 :: () }
+  deriving stock GHC.Generic
+-- submodel type selectors must, at a minimum, refer to a model field of a matching type
+-- Expect:
+{-
+The 'WithSubModel' selector Bool of 'M' is not of expected type:
 
   ()
+-}
+deriveIsRoute ''R
+  [t|
+    '[ WithModel M
+     , WithSubModels '[ Proxy "m1", Bool ]
+     ]
   |]
 #endif
 #define ENABLE_SPEC
