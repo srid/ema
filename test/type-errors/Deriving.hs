@@ -206,29 +206,19 @@ routeSpec "subroute types that are an unwrapped representation of what is specif
 
 -------------------------------------------
 
-routeSpec
-  "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /newtype/ GHC.Generic) case"
-  (niceRoute ''() ''())
+-- Subroute types that are an unwrapped representation of what is specified in
+-- 'WithSubRoutes' should typecheck | (wrapper deriving /newtype/ GHC.Generic)
+-- case"
+data RSubNewtype = RSubNewtype_1 | RSubNewtype_2
+deriveGeneric ''RSubNewtype
+newtype WrapNewtype a = WrapNewtype a
+  deriving newtype (GHC.Generic, IsRoute)
+deriveIsRoute
+  ''RSubNewtype
   [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[(), NewtypeWrappedR_NiceNamedM ()]
+    '[ WithSubRoutes '[(), WrapNewtype ()]
      ]
     |]
-  [r|
-  |]
-
--------------------------------------------
-
-routeSpec
-  "subroute types that are an unwrapped representation of what is specified in 'WithSubRoutes' should typecheck | (wrapper deriving /stock/ GHC.Generic) case"
-  (niceRoute ''() ''Slug)
-  [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[(), StockWrappedR_NiceNamedM Slug]
-     ]
-    |]
-  [r|
-  |]
 
 -------------------------------------------
 -- Submodel verification
