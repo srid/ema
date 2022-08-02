@@ -178,16 +178,14 @@ deriveIsRoute ''R [t|
 
 -------------------------------------------
 
-routeSpec
-  "subroute types that are the same as what is specified in 'WithSubRoutes' should typecheck"
-  (niceRoute ''() ''())
+-- subroute types that are the same as what is specified in 'WithSubRoutes' should typecheck"
+data RSubIso = RSubIso_1 | RSubIso_2
+deriveGeneric ''RSubIso
+deriveIsRoute
+  ''RSubIso
   [t|
-    '[ WithModel (NiceNamedM () ())
-     , WithSubRoutes '[(), ()]
-     ]
+    '[WithSubRoutes '[(), ()]]
     |]
-  [r|
-  |]
 
 -------------------------------------------
 
