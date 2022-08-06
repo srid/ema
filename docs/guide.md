@@ -4,7 +4,7 @@ order: 3
 
 # Guide
 
-Writing an Ema comprises an act in three parts:
+Writing an Ema app is an act in three parts:
 
 1. Define your site **routes** as Haskell ADTs:
    - [[route]] and [[generic]]
