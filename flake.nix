@@ -32,7 +32,7 @@
           };
           ghc92 = {
             root = ./.;
-            haskellPackages = pkgs.haskell.packages.ghc923; # Needed for `UnconsSymbol`
+            haskellPackages = pkgs.haskell.packages.ghc924; # Needed for `UnconsSymbol`
             buildTools = hp:
               let
                 # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
