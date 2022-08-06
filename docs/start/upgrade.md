@@ -10,13 +10,11 @@ Until 1.0 is released, newer releases of Ema may see breaking or significant cha
 
 `0.8` is a *substantial* change, with Ema getting nearly rewritten entirely. See [PR \#81](https://github.com/srid/ema/pull/81) called 'Multisite rewrite'. 
 
-TODO: How to upgrade to 0.8?
+First, read [[tutorial]] to get a taste of the new API. Then, in your old Ema site:
 
-- Read [[tutorial]]
-- route prism (first-class route encoders)
-    - Pass it around, for use in `Ema.routeUrl`, etc.
-- `EmaSite` defines both "input" (model dynamic) and "output" (html rendering)
-    - Dynamic (instead of LVar)
+- Extract `encodeRoute` and `decodeRoute` (of `Ema` instance) into `IsRoute` instances (see [[route]])
+- Change `Ema` to `EmaSite`, and define `siteInput` (what used to be in argument to `runEma`) and `siteOutput` (the render argument to `runEma`). You will want to use [[dynamic]] instead of `LVar`.
+- `Ema.routeUrl`: change to accept the [[prism]] that is now passed to `siteOutput`
 
 
 ### Apps that already use Ema 0.8
