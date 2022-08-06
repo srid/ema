@@ -21,5 +21,5 @@ These are apps that use Ema to generate websites pertaining to their specific do
 
 - [Emanote](https://emanote.srid.ca/): see [examples](https://emanote.srid.ca/examples)
 - [Banyan](https://banyan.srid.ca): view [source](https://github.com/srid/banyan)
-- Hledger timedot invoice generator: https://github.com/srid/timedot-invoice
+- Hledger timedot invoice generator: https://github.com/EmaApps/timedot-invoice
 - Visualizing and publishing org-roam databases: https://github.com/lucasvreis/abacateiro

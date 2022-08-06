@@ -8,3 +8,4 @@ The methods of [[site]] support the `MonadLoggerIO` constraint, as defined by [m
 ```haskell
 logInfoNS "myapp" "This is an info message"
 logDebugNS "myapp" "This is a debug message info"
+```

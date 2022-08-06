@@ -17,8 +17,8 @@ The ultimate purpose of ema is to facilitate creating with ease your own [neuron
 
 :::{.my-8}
 * [[start]]
-* [[topics]]
 * [[guide]]
+* [[topics]]
 * [Ema News](https://srid.ca/ema)
 :::
 
