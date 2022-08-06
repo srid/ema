@@ -48,19 +48,16 @@ instance IsRoute Date where
 
 Notice how this time we are able to properly define `routeUniverse` (it is used during static site generation, to determine which routes to generate on disk), because the model value is available. `routePrism` also gets the model as an argument, but in this case we have no need for it (in theory, we could check that a date exists before decoding successfully).
 
-Finally, (3) is where we get to produce (`siteInput`) and consume (`siteOutput`) the model. This is explained in the subsequent section..
-
+Finally, (3) is where we get to produce (`siteInput`) and consume (`siteOutput`) the model when rendering the site. The subsequent section explains this in detail.
 ## Use `Model`
 
-Note that we are not *using* our model yet.
-
-So why not do it now, by rendering a basic HTML of it? Change the `siteOutput` to following (we use blaze-html library):
+We are yet to *use* our model yet.  Let us do it now, by rendering a basic HTML for our routes. Change the `siteOutput` to following (we use blaze-html library):
 
 ```haskell
 instance EmaSite Route where
   siteInput _ _ = pure $ pure $ Model mempty
   siteOutput rp model r =
-    Ema.AssetGenerated Ema.Html . RU.renderHtml $ do
+    pure . Ema.AssetGenerated Ema.Html . RU.renderHtml $ do
       H.docType
       H.html ! A.lang "en" $ do
         H.head $ do
@@ -127,4 +124,7 @@ instance Csv.FromField Mood where
 
 The result of this that our site's index page will display the moods in the CSV file, along with the link to the individual day routes (`Route_Date`). 
 
-This is great so far, but we don't have [[hot-reload]]. Changing `data/moods.csv` ought to update our site. We will do this in the next section -- by defining a [[dynamic]] of our `Model`. Finish this tutorial series by reading [[03-dynamic]].
+This is great so far, but we don't have [[hot-reload]]. Changing `data/moods.csv` ought to update our site. This is what the final step our tutorial series will explain.
+
+{.last}
+[Next]{.next}, [[03-dynamic|we will enable]] hot-reload on this mode.

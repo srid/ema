@@ -68,5 +68,4 @@ In the case of mood tracker, we will use the [fsnotify](https://hackage.haskell.
         pure ch
 ```
 
-Now if you run the app, and modify the `data/mood.csv` file (eg: change "Neutral" to "Bad"), your app's web view will update in real-time. This concludes the tutorial series, and hopefully you have gained an introductory understanding of what is entailed behind the "*just about any app that creates a browser view of arbitrarily changing data*" claim in the [[index|index]] page. 
-
+Now if you run the app, and modify the `data/mood.csv` file (eg: change "Neutral" to "Bad"), your app's web view will update in real-time. This concludes the tutorial series, and hopefully you have gained an introductory understanding of what is entailed behind the "*just about any app that creates a browser view of arbitrarily changing data*" claim in the [[index|index]] page. You can view the source code for the mood tracker tutorial at  https://github.com/srid/MoodTracker-Tutorial.
