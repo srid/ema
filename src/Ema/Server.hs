@@ -230,12 +230,16 @@ data BadRouteEncoding r = BadRouteEncoding
 badRouteEncodingMsg :: Show r => BadRouteEncoding r -> Text
 badRouteEncodingMsg BadRouteEncoding {..} =
   toText $
-    "Ema: URL '" <> show _bre_urlFilePath
-      <> "' decodes to '"
+    "A route Prism' is unlawful.\n\nThe URL '" <> toText _bre_urlFilePath
+      <> "' decodes to route '"
       <> show _bre_decodedRoute
-      <> "' but it is not isomporphic on any candidates: \n"
-      <> T.intercalate "\n" (_bre_checkLog <&> \(candidate, log) -> show candidate <> ": " <> log)
-      <> " \nYou should fix your routePrism."
+      <> "', but it is not isomporphic on any of the allowed candidates: \n\n"
+      <> T.intercalate
+        "\n\n"
+        ( _bre_checkLog <&> \(candidate, log) ->
+            "## Candiate '" <> toText candidate <> "':\n" <> log
+        )
+      <> " \n\nYou should make the relevant routePrism lawful to fix this issue."
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString

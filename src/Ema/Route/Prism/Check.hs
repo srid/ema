@@ -50,12 +50,12 @@ checkRoutePrism p a r s =
         runWriter $ routePrismIsLawfulFor p a r s
    in if valid
         then Right ()
-        else Left $ "Encoding for route '" <> show r <> "' is not isomorphic:\n - " <> T.intercalate "\n - " checkLog
+        else Left $ "Unlawful route prism for route value '" <> show r <> "'\n- " <> T.intercalate "\n- " checkLog
 
-{- | Check if the @CtxPrism@ is lawful.
+{- | Check if the route @Prism_@ is lawful.
 
-  A @CtxPrism@ is lawful if its conversions both the ways form an isomorphism
-  for a given value.
+  A route @Prism_@ is lawful if its conversions both the ways form an
+  isomorphism for a given value.
 
   Returns a Writer reporting logs.
 -}
@@ -79,15 +79,15 @@ prismIsLawfulFor ::
   Writer [Text] Bool
 prismIsLawfulFor p a s = do
   -- TODO: The logging here could be improved.
-  log $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
+  -- log $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
   let s' :: s = review p a
-  log $ "CtxPrism actual encoding: " <> toText s'
+  -- log $ "Prism actual encoding: " <> toText s'
   let ma' :: Maybe a = preview p s'
-  log $ "Decoding of that encoding: " <> show ma'
+  -- log $ "Decoding of that encoding: " <> show ma'
   unless (s == s') $
-    log $ "ERR(encoded): " <> toText s <> " /= " <> toText s'
+    log $ toText s <> " /= " <> toText s' <> " (encoding of '" <> show a <> "')"
   unless (Just a == ma') $
-    log $ "ERR(decoded): " <> show (Just a) <> " /= " <> show ma'
+    log $ show (Just a) <> " /= " <> show ma' <> " (decoding of " <> toText s <> ")"
   pure $ (s == s') && (Just a == ma')
   where
     log = tell . one
