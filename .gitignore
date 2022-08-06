@@ -25,3 +25,5 @@ cabal.project.local~
 result
 result-*
 output
+
+.vscode/tasks.json
