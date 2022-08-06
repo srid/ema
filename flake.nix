@@ -26,9 +26,9 @@
                 nixpkgs-fmt;
               inherit (hp)
                 cabal-fmt
-                ormolu;
+                fourmolu;
             };
-            modifier = drv: with pkgs.haskell.lib; dontCheck drv;  # test/type-errors requires 9.2
+            modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
           };
           ghc92 = {
             root = ./.;
@@ -45,7 +45,7 @@
                 inherit (pkgs)
                   treefmt
                   nixpkgs-fmt;
-                ormolu = workaround140774 hp.ormolu;
+                fourmolu = workaround140774 hp.fourmolu;
                 ghcid = workaround140774 hp.ghcid;
               };
             source-overrides = {
