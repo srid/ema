@@ -2,16 +2,16 @@
 
 ## 0.8.0.0 (Unreleased)
 
-This releases brings a significant rewrite of Ema. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/howto/upgrade for guidance.
+This releases brings a significant rewrite of Ema. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/start/upgrade for guidance.
 
-- GHC 9.0 support
+- GHC 9.x support
 - Better handling of URL anchors (#83; #87)
 - `routeUrl` uses `UrlDirect` by default. Use `routeUrlWith` if you want to change that.
 - Ema status indicator now works independently (requires no Tailwind)
-- Multisite rewrite (Ema is mostly rewritten)
-  - Add the notion of route `Prism_` (first-class values), along with a `IsRoute` class to define them.
+- Multisite rewrite (Ema has been mostly rewritten for better composability) ([\#82](https://github.com/EmaApps/ema/pull/81))
+  - Represent route encoding using `Prism'` from optics-core; add `IsRoute` class to define them.
     - Optional generic deriving of route prisms, so you do not have to hand-write them.
-    - Automatic isomorphism checks ensures that encoding and decoding are isomorphic.
+    - Automatic isomorphism checks ensures that encoding and decoding are isomorphic (route prisms are lawful)
   - Composable Ema apps 
     - There are two ways of composing Ema apps. Using heterogenous lists (see `Ema.Route.Lib.Multi`), or by defining a top-level route type (see `Ex04_Multi.hs`).
   - Replace `LVar` with `Dynamic`.

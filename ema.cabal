@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema
-version:            0.7.2.0
+version:            0.8.0.0
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -164,6 +164,7 @@ library
     Ema.Route.Url
     Ema.Server
     Ema.Site
+  other-modules:
     GHC.TypeLits.Extra
 
   if (flag(with-extra))
@@ -171,7 +172,7 @@ library
       Ema.Route.Lib.Extra.StaticRoute
       Ema.Route.Lib.Extra.MarkdownRoute
   if impl(ghc >=9.2)
-    exposed-modules: GHC.TypeLits.Extra.Symbol
+    other-modules: GHC.TypeLits.Extra.Symbol
 
   if (flag(with-examples) && impl(ghc >=9.2))
     other-modules:

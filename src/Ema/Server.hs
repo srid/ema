@@ -237,7 +237,7 @@ badRouteEncodingMsg BadRouteEncoding {..} =
       <> T.intercalate
         "\n\n"
         ( _bre_checkLog <&> \(candidate, log) ->
-            "## Candiate '" <> toText candidate <> "':\n" <> log
+            "## Candidate '" <> toText candidate <> "':\n" <> log
         )
       <> " \n\nYou should make the relevant routePrism lawful to fix this issue."
 
