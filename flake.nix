@@ -45,7 +45,8 @@
                 inherit (pkgs)
                   treefmt
                   nixpkgs-fmt;
-                fourmolu = workaround140774 hp.fourmolu;
+                inherit (hp)
+                  fourmolu;
                 ghcid = workaround140774 hp.ghcid;
               };
             source-overrides = {
