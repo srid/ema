@@ -204,13 +204,9 @@ emaErrorHtmlResponse :: Text -> LByteString
 emaErrorHtmlResponse err =
   mkHtmlErrorMsg err <> toLazy wsClientHtml
 
--- TODO: Make this pretty
 mkHtmlErrorMsg :: Text -> LByteString
 mkHtmlErrorMsg s =
-  encodeUtf8 $
-    "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body class=\"overflow-y: scroll;\"><h1>Ema App threw an exception</h1><pre style=\"font-family: monospace; border: 1px solid; padding: 1em 1em 1em 1em; overflow-wrap: anywhere;\">"
-      <> s
-      <> "</pre><p>Once you fix the source of the error, this page will automatically refresh.</body>"
+  encodeUtf8 . T.replace "MESSAGE" s . decodeUtf8 $ $(embedFile "www/ema-error.html")
 
 {- | Return the equivalent of WAI's @pathInfo@, from the raw path string
  (`document.location.pathname`) the browser sends us.
