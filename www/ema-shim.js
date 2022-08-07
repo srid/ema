@@ -36,7 +36,7 @@ function setIndicators(connected, reloading, connecting, disconnected) {
     const is = { connected, reloading, connecting, disconnected }
 
     for (const i in is) {
-        document.getElementById(`ema-$${i}`).style.display =
+        document.getElementById(`ema-${i}`).style.display =
             is[i] ? "block" : "none"
         if (is[i])
             document.getElementById('ema-message').innerText = messages[i]
@@ -65,31 +65,31 @@ function init(reconnecting) {
     let routeVisible = document.location.pathname;
 
     const verb = reconnecting ? "Reopening" : "Opening";
-    console.log(`ema: $${verb} conn $${wsUrl} ...`);
+    console.log(`ema: ${verb} conn ${wsUrl} ...`);
     window.connecting();
     let ws = new WebSocket(wsUrl);
 
     function sendObservePath(path) {
         const relPath = path.startsWith(basePath) ? path.slice(basePath.length - 1) : path;
-        console.debug(`ema: requesting $${relPath}`);
+        console.debug(`ema: requesting ${relPath}`);
         ws.send(relPath);
     }
 
     // Call this, then the server will send update *once*. Call again for
     // continous monitoring.
     function watchCurrentRoute() {
-        console.log(`ema: ⏿ Observing changes to $${document.location.pathname}`);
+        console.log(`ema: ⏿ Observing changes to ${document.location.pathname}`);
         sendObservePath(document.location.pathname);
     };
 
     function switchRoute(path, hash = "") {
-        console.log(`ema: → Switching to $${path + hash}`);
+        console.log(`ema: → Switching to ${path + hash}`);
         window.history.pushState({}, "", path + hash);
         sendObservePath(path);
     }
 
     function scrollToAnchor(hash) {
-        console.log(`ema: Scroll to $${hash}`)
+        console.log(`ema: Scroll to ${hash}`)
         var el = document.querySelector(hash);
         if (el !== null) {
             el.scrollIntoView({ behavior: 'smooth' });
