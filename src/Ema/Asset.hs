@@ -1,4 +1,9 @@
-module Ema.Asset where
+{-# LANGUAGE UndecidableInstances #-}
+
+module Ema.Asset (
+  Asset (..),
+  Format (..),
+) where
 
 -- | The type of assets that can be bundled in a static site.
 data Asset a
@@ -9,7 +14,12 @@ data Asset a
     AssetStatic FilePath
   | -- | A file whose contents are generated at runtime by user code.
     AssetGenerated Format a
-  deriving stock (Eq, Show, Ord, Generic)
+  deriving stock (Eq, Show, Ord, Functor, Generic)
 
-data Format = Html | Other
+-- | The format of a generated asset.
+data Format
+  = -- | Html assets are served by the live server with hot-reload
+    Html
+  | -- | Other assets are served by the live server as static files.
+    Other
   deriving stock (Eq, Show, Ord, Generic)

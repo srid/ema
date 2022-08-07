@@ -10,16 +10,16 @@ page:
 :::
 
 {.text-xl .mb-8}
-[Ema](https://github.com/srid/ema) is a next-gen [**Haskell**](https://www.srid.ca/haskell) library toolkit for building [jamstack-style](https://jamstack.org/) static sites. Ema sites are *change-aware*; in addition to good ol' static site generation, it provides a live server supporting **fast hot-reload** in the browser on code *or* data change. 
+[Ema](https://github.com/srid/ema) is a next-gen [**Haskell**](https://www.srid.ca/haskell) library for building [jamstack-style](https://jamstack.org/) static sites. Ema sites are *change-aware*; in addition to good ol' static site generation, Ema provides a [[live-server|live server]] supporting **fast hot-reload** in the browser, on code *or* data change. 
 
 {.text-gray-600}
-The ultimate goal of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/), or just about any app that creates a browser view of arbitrarily changing data (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view of your data on desktop & mobile.
+The ultimate purpose of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/),[^emanote] or just about any app that creates a *browser view of arbitrarily changing data* (on disk, database, or whatever). Ema is designed to facilitate creation of apps whose data is normally *edited* via traditional mechanisms (eg: text editor) but *rendered* as a delightful web page - so as to provide an economical read-only view of your data on desktop & mobile. A classic static site is just one type of such [*kind*]{title="See what we did there?"} of apps. 
 
 :::{.my-8}
-* [Getting Started](start.md)
-* [Guide](guide.md)
-* [Concepts](concepts.md)
-* [Ema News](https://notes.srid.ca/ema)
+* [[start]]
+* [[guide]]
+* [[topics]]
+* [Ema News](https://srid.ca/ema)
 :::
 
 :::{.flex .justify-center .items-center .mb-8}
@@ -29,6 +29,4 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 </video>
 :::
 
-:::{.flex .justify-center .items-center}
-[![FAIR](https://img.shields.io/badge/FAIR-pledge-blue)](https://www.fairforall.org/about/)
-:::
+[^emanote]: This ultimate purpose is already realized in regards to neuron; see [Emanote](https://emanote.srid.ca/), which is built on top of Ema.

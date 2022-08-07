@@ -1,0 +1,12 @@
+{
+    "modelStoreName": "Meat Store",
+    "modelProducts": {
+        "egg": "Chicken Egg",
+        "sausage": "Red Meat Sausages",
+        "bacon": "Pork Bacon"
+    },
+    "modelCategories": {
+        "unprocessed": "Fresh Meat",
+        "processed": "Processed Meat"
+    }
+}

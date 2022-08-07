@@ -14,6 +14,7 @@ pandoc:
     # For description of items in guide listing
     item-intro: text-gray-500
     note: bg-gray-100 px-4 py-1 rounded italic
+    stepback: border-2 border-gray-400 shadow-lg rounded px-4 pt-2 m-2 italic bg-gray-200 text-gray-600
 
 # Put page-specific metadata here. Override them in Markdown frontmatter or
 # per-folder YAML as necessary.
@@ -22,6 +23,9 @@ page:
   headHtml: |
     <link rel="manifest" href="/static/manifest.json" />
     <meta name="theme-color" content="#DB2777" />
-    <!-- Syntax highlighting -->
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/combine/npm/prismjs@1.23.0/prism.min.js,npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <!-- highlight.js -->
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/hybrid.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/haskell.min.js" integrity="sha512-byZkqR8FeRucjNQnEDNvbtUWMmtJqmNGfwXMRwjGgSbtgo7cvqGkYLdjgSO3ig11xUjKhdP7AhFXPvTTUpaGYQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>hljs.highlightAll();</script>

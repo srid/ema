@@ -1,36 +1,26 @@
 ---
-order: 1
+order: 3
 ---
-# Defining your model
 
-A "*model*" in Ema represents the state to use to generate your site. It could be as simple as a variable, or it could be a list of parsed Markdown files (as in the case of a weblog). Ema's model is also conceptually similar to [Elm](https://guide.elm-lang.org/architecture/)'s model, in that - changing the model [automatically](concepts/hot-reload.md) changes the [view](guide/render.md).
+# Model type
 
-Here's an example model:
+A "model", in an Ema app, is a type that is required to render the site. The model is also used, optionally, to encode the [[route|route types]].
 
-```haskell
-newtype BlogPosts = BlogPosts (Map Slug Text}
-```
-
-Here `BlogPosts` is the model type. If we are generating a weblog site, then all the "data" we need is loaded into memory as a value of `BlogPosts`.
-
-## Modifying the model
-
-Ema's dev server supports [hot reload](concepts/hot-reload.md); it will observe changes to your model, in addition to code. To facilitate this you will manage your model as a [LVar](concepts/lvar.md). The `runEma` function ([described here](guide/class.md)) takes an IO action that gets `LVar model` as an argument. 
-
-For example,
+Taking the blog site example from [[route]], our model would look something like the following:
 
 ```haskell
-runEma render $ \_act model ->
-  forever $ do
-    LVar.set model =<< liftIO getCurrentTime
-    liftIO $ threadDelay $ 1 * 1000000
+data Model = Model 
+  { modelSiteTitle :: Text 
+  , modelBlogPosts :: Map Slug (Date, Pandoc)
+  }
 ```
 
-In this contrived example ([full code here](https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs)), we are using `UTCTime` as the model. We set the initial value using `LVar.set`, and then continually update the current time every second. Every time the model gets updated, the web browser will [hot reload](concepts/hot-reload.md) to display the up to date value. For the `BlogPosts` model, you would typically use [fsnotify](https://hackage.haskell.org/package/fsnotify) to monitor changes to the underlying Markdown files, or even better use [[filesystem|the `unionmount` library]].
+Models impact two places:
 
-## Advanced tips
+1. `RouteModel` of `IsRoute` ([[route]]) associates a route type with a model type. This enables [[prism]] (and `routeUniverse`) to accept that model value as an argument.
+2. In [[site]] typeclass, `siteInput` can now return this model value (and it can be time-varying if using a [[dynamic]]), as well as `siteOutput` can take the model value so as to render the site based on it.
 
-If your model takes on a database-like structure and query functionality, you might find `IxSet` to be an useful library. The [ixset-typed](https://hackage.haskell.org/package/ixset-typed) package (rather than the "ixset" package) is the recommended starting point, and a tutorial can be found [here](https://stackoverflow.com/a/9234807/55246).
+## Useful libraries
 
-{.last}
-[Next]{.next}, we will [talk about routes](guide/routes.md).
+- [ixset-typed](https://github.com/well-typed/ixset-typed) - for database-like querying into in-memory model values
+- [[unionmount]] - mounting local files into Haskell in-memory model with change updates.

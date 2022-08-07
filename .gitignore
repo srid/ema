@@ -1,3 +1,4 @@
+.direnv
 dist
 dist-*
 cabal-dev
@@ -24,3 +25,5 @@ cabal.project.local~
 result
 result-*
 output
+
+.vscode/tasks.json

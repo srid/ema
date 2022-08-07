@@ -1,72 +1,111 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Ema.Generate where
+module Ema.Generate (
+  generateSiteFromModel,
+  generateSiteFromModel',
+) where
 
-import Control.Exception (throw)
-import Control.Monad.Logger
+import Control.Exception (throwIO)
+import Control.Monad.Except (MonadError (throwError))
+import Control.Monad.Logger (
+  LogLevel (LevelError, LevelInfo),
+  MonadLogger,
+  MonadLoggerIO,
+  logWithoutLoc,
+ )
 import Ema.Asset (Asset (..))
-import Ema.Class (Ema (..))
+import Ema.CLI (crash)
+import Ema.Route.Class (IsRoute (RouteModel, routePrism, routeUniverse))
+import Ema.Route.Prism (
+  checkRoutePrismGivenRoute,
+  fromPrism_,
+ )
+import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
+import Optics.Core (review)
 import System.Directory (copyFile, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, doesPathExist)
 import System.FilePath (takeDirectory, (</>))
 import System.FilePattern.Directory (getDirectoryFiles)
-import UnliftIO (MonadUnliftIO)
 
 log :: MonadLogger m => LogLevel -> Text -> m ()
-log = logWithoutLoc "Generate"
+log = logWithoutLoc "ema.generate"
 
-generate ::
+{- | Generate the static site at `dest`
+
+  The *only* data we need is the `RouteModel`.
+-}
+generateSiteFromModel ::
   forall r m.
-  ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
-    Ema r,
-    Show r,
-    HasCallStack
-  ) =>
+  (MonadIO m, MonadLoggerIO m, MonadFail m, Eq r, Show r, IsRoute r, EmaStaticSite r) =>
+  -- | Target directory to write files to. Must exist.
   FilePath ->
-  ModelFor r ->
-  (ModelFor r -> r -> Asset LByteString) ->
+  -- | The model data used to generate assets.
+  RouteModel r ->
+  m [FilePath]
+generateSiteFromModel dest model =
+  withBlockBuffering $ do
+    runExceptT (generateSiteFromModel' @r dest model) >>= \case
+      Left err -> do
+        crash "ema" err
+      Right fs ->
+        pure fs
+  where
+    -- Temporarily use block buffering before calling an IO action that is
+    -- known ahead to log rapidly, so as to not hamper serial processing speed.
+    withBlockBuffering f =
+      hSetBuffering stdout (BlockBuffering Nothing)
+        *> f
+        <* (hSetBuffering stdout LineBuffering >> hFlush stdout)
+
+-- | Like `generateSiteFromModel` but without buffering or error handling.
+generateSiteFromModel' ::
+  forall r m.
+  (MonadIO m, MonadLoggerIO m, MonadError Text m, Eq r, Show r, EmaStaticSite r) =>
+  FilePath ->
+  RouteModel r ->
   -- | List of generated files.
   m [FilePath]
-generate dest model render = do
+generateSiteFromModel' dest model = do
+  let enc = routePrism @r
+      rp = fromPrism_ $ enc model
+  -- Sanity checks
   unlessM (liftIO $ doesDirectoryExist dest) $ do
-    error $ "Destination does not exist: " <> toText dest
-  let routes = allRoutes model
+    throwError $ "Destination directory does not exist: " <> toText dest
+  let routes = routeUniverse @r model
   when (null routes) $
-    error "allRoutes is empty; nothing to generate"
-  log LevelInfo $ "Writing " <> show (length routes) <> " routes"
-  let (staticPaths, generatedPaths) =
-        lefts &&& rights $
-          routes <&> \r ->
-            case render model r of
-              AssetStatic fp -> Left (r, fp)
-              AssetGenerated _fmt s -> Right (encodeRoute model r, s)
-  paths <- forM generatedPaths $ \(relPath, !s) -> do
-    let fp = dest </> relPath
-    log LevelInfo $ toText $ "W " <> fp
-    liftIO $ do
-      createDirectoryIfMissing True (takeDirectory fp)
-      writeFileLBS fp s
-      pure fp
-  forM_ staticPaths $ \(r, staticPath) -> do
-    liftIO (doesPathExist staticPath) >>= \case
-      True ->
-        -- TODO: In current branch, we don't expect this to be a directory.
-        -- Although the user may pass it, but review before merge.
-        copyDirRecursively (encodeRoute model r) staticPath dest
-      False ->
-        log LevelWarn $ toText $ "? " <> staticPath <> " (missing)"
+    throwError "Your app's `routeUniverse` is empty; nothing to generate!"
+  forM_ routes $ \route ->
+    checkRoutePrismGivenRoute enc model route
+      `whenLeft_` throwError
+  -- For Github Pages
   noBirdbrainedJekyll dest
-  pure paths
+  -- Enumerate and write all routes.
+  log LevelInfo $ "Writing " <> show (length routes) <> " routes"
+  fmap concat . forM routes $ \r -> do
+    let fp = dest </> review rp r
+    siteOutput rp model r >>= \case
+      AssetStatic staticPath -> do
+        liftIO (doesPathExist staticPath) >>= \case
+          True ->
+            -- NOTE: A static path can indeed be a directory. The user is not
+            -- obliged to recursively list the files.
+            copyRecursively staticPath fp
+          False ->
+            log LevelError $ toText $ "? " <> staticPath <> " (missing)"
+        pure []
+      AssetGenerated _fmt !s -> do
+        writeFileGenerated fp s
+        pure [fp]
 
--- | Disable birdbrained hacks from GitHub to disable surprises like,
--- https://github.com/jekyll/jekyll/issues/55
+{- | Disable birdbrained hacks from GitHub to disable surprises like,
+ https://github.com/jekyll/jekyll/issues/55
+-}
 noBirdbrainedJekyll :: (MonadIO m, MonadLoggerIO m) => FilePath -> m ()
 noBirdbrainedJekyll dest = do
   let nojekyll = dest </> ".nojekyll"
   liftIO (doesFileExist nojekyll) >>= \case
-    True -> pure ()
+    True -> pass
     False -> do
       log LevelInfo $ "Disabling Jekyll by writing " <> toText nojekyll
       writeFileLBS nojekyll ""
@@ -75,37 +114,46 @@ newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving stock (Show)
   deriving anyclass (Exception)
 
-copyDirRecursively ::
-  ( MonadIO m,
-    MonadUnliftIO m,
-    MonadLoggerIO m,
-    HasCallStack
+writeFileGenerated :: (MonadLogger m, MonadIO m) => FilePath -> LByteString -> m ()
+writeFileGenerated fp s = do
+  log LevelInfo $ toText $ "W " <> fp
+  liftIO $ do
+    createDirectoryIfMissing True (takeDirectory fp)
+    writeFileLBS fp s
+
+{- | Copy a file or directory recursively to the target directory
+
+  Like `cp -R src dest`.
+-}
+copyRecursively ::
+  forall m.
+  ( MonadIO m
+  , MonadLoggerIO m
   ) =>
-  -- | Source file path relative to CWD
+  -- | Absolute path to source file or directory to copy.
   FilePath ->
-  -- | Absolute path to source file to copy.
-  FilePath ->
-  -- | Directory *under* which the source file/dir will be copied
+  -- | Target file or directory path.
   FilePath ->
   m ()
-copyDirRecursively srcRel srcAbs destParent = do
-  liftIO (doesFileExist srcAbs) >>= \case
-    True -> do
-      let b = destParent </> srcRel
-      log LevelInfo $ toText $ "C " <> b
-      copyFileCreatingParents srcAbs b
-    False ->
-      liftIO (doesDirectoryExist srcAbs) >>= \case
-        False ->
-          throw $ StaticAssetMissing srcAbs
-        True -> do
-          fs <- liftIO $ getDirectoryFiles srcAbs ["**"]
-          forM_ fs $ \fp -> do
-            let a = srcAbs </> fp
-                b = destParent </> srcRel </> fp
-            log LevelInfo $ toText $ "C " <> b
-            copyFileCreatingParents a b
+copyRecursively src dest = do
+  fs <- enumerateFilesToCopy src dest
+  forM_ fs $ \(a, b) -> do
+    log LevelInfo $ toText $ "C " <> b
+    copyFileCreatingParents a b
   where
+    enumerateFilesToCopy :: FilePath -> FilePath -> m [(FilePath, FilePath)]
+    enumerateFilesToCopy a b = do
+      liftIO (doesFileExist a) >>= \case
+        True ->
+          pure [(a, b)]
+        False -> do
+          liftIO (doesDirectoryExist a) >>= \case
+            False ->
+              liftIO $ throwIO $ StaticAssetMissing a
+            True -> do
+              fs <- liftIO $ getDirectoryFiles src ["**"]
+              pure $ fs <&> \fp -> (a </> fp, b </> fp)
+
     copyFileCreatingParents a b =
       liftIO $ do
         createDirectoryIfMissing True (takeDirectory b)
