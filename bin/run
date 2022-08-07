@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 set -xe
 
-exec nix develop -c ghcid -c "cabal repl ema -f with-examples" -T Ema.Example.Ex04_Multi.main  --setup ":set args run --port=8080"
+exec nix develop -c ghcid \
+    --restart ./www \
+    -c "cabal repl ema -f with-examples" \
+    -T Ema.Example.Ex04_Multi.main  \
+    --setup ":set args run --port=8080"
