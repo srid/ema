@@ -5,8 +5,6 @@ module Ema.Asset (
   Format (..),
 ) where
 
-import Prelude hiding (All)
-
 -- | The type of assets that can be bundled in a static site.
 data Asset a
   = -- | A file that is copied as-is from the source directory.

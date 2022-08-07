@@ -78,10 +78,10 @@ staticFilesDynamic baseDir = do
 
 -- | Like `Ema.routeUrl`, but looks up the value and appends it to URL in live-server (for force-reload in browser)
 staticRouteUrl ::
-  forall s baseDir staticRoute.
-  (IsString s, staticRoute ~ StaticRoute baseDir) =>
-  Prism' FilePath staticRoute ->
-  RouteModel staticRoute ->
+  forall s baseDir.
+  (IsString s, HasCallStack) =>
+  Prism' FilePath (StaticRoute baseDir) ->
+  RouteModel (StaticRoute baseDir) ->
   FilePath ->
   s
 staticRouteUrl rp model fp =
