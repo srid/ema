@@ -8,9 +8,12 @@ function htmlToElem(html) {
 // Unlike setInnerHtml, this patches the Dom in place
 function setHtml(elm, html) {
     var htmlElem = htmlToElem(html);
+    window.dispatchEvent(new Event('EMABeforeMorphDOM'));
     morphdom(elm, html);
+    window.dispatchEvent(new Event('EMABeforeScriptReload'));
     // Re-add <script> tags, because just DOM diff applying is not enough.
     reloadScripts(elm);
+    window.dispatchEvent(new Event('EMAHotReload'));
 };
 
 // FIXME: This doesn't reliably work across all JS.
