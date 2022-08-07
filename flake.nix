@@ -45,6 +45,8 @@
                 inherit (pkgs)
                   treefmt
                   nixpkgs-fmt;
+                inherit (pkgs.haskellPackages)
+                  cabal-fmt;
                 inherit (hp)
                   fourmolu;
                 ghcid = workaround140774 hp.ghcid;
