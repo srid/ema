@@ -8,12 +8,12 @@ order: 10
 
 | Type                | URL                                       | Source                                              |
 | ------------------- | ----------------------------------------- | --------------------------------------------------- |
-| Personal Blog       | https://blog.maralorn.de/                 | [source](https://git.maralorn.de/blog)              |
 | Community Website   | https://fpindia-site-master.haskell.page/ | [source](https://github.com/fpindia/fpindia-site)   |
+| Personal Blog       | https://blog.maralorn.de/                 | [source](https://git.maralorn.de/blog)              |
 | Subreddit dashboard | https://themotte.srid.ca/                 | [source](https://github.com/srid/TheMotteDashboard) |
 | Personal notes      | https://lucasvreis.github.io/             | (Built off org-mode using abacateiro)               |
 
-(If you would like to showcase your Ema website, please post [here](https://github.com/srid/ema/discussions/new?category=show-and-tell)).
+(If you would like to showcase your Ema website, please post [here](https://github.com/EmaApps/ema/discussions/new?category=show-and-tell)).
 
 ## Apps that use Ema
 
