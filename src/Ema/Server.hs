@@ -1,12 +1,14 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Ema.Server where
 
 import Control.Concurrent.Async (race)
 import Control.Exception (try)
 import Control.Monad.Logger
+import Data.FileEmbed
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
 import Data.Text qualified as T
@@ -114,7 +116,7 @@ runServerWithWebSocketHotReload host mport model = do
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
                           liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
                         AssetGenerated Html html ->
-                          liftIO $ WS.sendTextData conn $ html <> wsClientHtml
+                          liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
                         AssetGenerated Other _s ->
                           -- HACK: Websocket client should check for REDIRECT prefix.
                           -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
@@ -173,7 +175,7 @@ runServerWithWebSocketHotReload host mport model = do
                 let mimeType = Static.getMimeType staticPath
                 liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
               AssetGenerated Html html -> do
-                let s = html <> wsClientHtml <> wsClientJS
+                let s = html <> toLazy wsClientHtml <> wsClientJS
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
                 let mimeType = Static.getMimeType $ review (fromPrism_ $ enc val) r
@@ -200,15 +202,11 @@ runServerWithWebSocketHotReload host mport model = do
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
 emaErrorHtmlResponse err =
-  mkHtmlErrorMsg err <> wsClientHtml
+  mkHtmlErrorMsg err <> toLazy wsClientHtml
 
--- TODO: Make this pretty
 mkHtmlErrorMsg :: Text -> LByteString
 mkHtmlErrorMsg s =
-  encodeUtf8 $
-    "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /></head><body class=\"overflow-y: scroll;\"><h1>Ema App threw an exception</h1><pre style=\"font-family: monospace; border: 1px solid; padding: 1em 1em 1em 1em; overflow-wrap: anywhere;\">"
-      <> s
-      <> "</pre><p>Once you fix the source of the error, this page will automatically refresh.</body>"
+  encodeUtf8 . T.replace "MESSAGE" s . decodeUtf8 $ $(embedFile "www/ema-error.html")
 
 {- | Return the equivalent of WAI's @pathInfo@, from the raw path string
  (`document.location.pathname`) the browser sends us.
@@ -241,6 +239,12 @@ badRouteEncodingMsg BadRouteEncoding {..} =
         )
       <> " \n\nYou should make the relevant routePrism lawful to fix this issue."
 
+wsClientHtml :: ByteString
+wsClientHtml = $(embedFile "www/ema-indicator.html")
+
+wsClientJSShim :: Text
+wsClientJSShim = decodeUtf8 $(embedFile "www/ema-shim.js")
+
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString
 wsClientJS =
@@ -249,316 +253,8 @@ wsClientJS =
         <script type="module" src="https://cdn.jsdelivr.net/npm/morphdom@2.6.1/dist/morphdom-umd.min.js"></script>
 
         <script type="module">
-
-        function htmlToElem(html) {
-          let temp = document.createElement('template');
-          html = html.trim(); // Never return a space text node as a result
-          temp.innerHTML = html;
-          return temp.content.firstChild;
-        };
-
-        // Unlike setInnerHtml, this patches the Dom in place
-        function setHtml(elm, html) {
-          var htmlElem = htmlToElem(html);
-          morphdom(elm, html);
-          // Re-add <script> tags, because just DOM diff applying is not enough.
-          reloadScripts(elm);
-        };
-
-        // FIXME: This doesn't reliably work across all JS.
-        // See also the HACK below in one of the invocations.
-        function reloadScripts(elm) {
-          Array.from(elm.querySelectorAll("script")).forEach(oldScript => {
-            const newScript = document.createElement("script");
-            Array.from(oldScript.attributes)
-              .forEach(attr => newScript.setAttribute(attr.name, attr.value));
-            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-            oldScript.parentNode.replaceChild(newScript, oldScript);
-          });
-        };
-
-        // Ema Status indicator
-        const messages = {
-          connected: "Connected",
-          reloading: "Reloading",
-          connecting: "Connecting to the server",
-          disconnected: "Disconnected - try reloading the window"
-        };
-        function setIndicators(connected, reloading, connecting, disconnected) {
-          const is = { connected, reloading, connecting, disconnected }
-
-          for (const i in is) {
-            document.getElementById(`ema-$${i}`).style.display =
-              is[i] ? "block" : "none"
-            if(is[i])
-              document.getElementById('ema-message').innerText = messages[i]
-          };
-          document.getElementById("ema-indicator").style.display = "block";
-        };
-        window.connected    = () => setIndicators(true,  false, false, false)
-        window.reloading    = () => setIndicators(false, true,  false, false)
-        window.connecting   = () => setIndicators(false, false, true,  false)
-        window.disconnected = () => setIndicators(false, false, false, true)
-        window.hideIndicator = () => {
-          document.getElementById("ema-indicator").style.display = "none";
-        };
-
-        // Base URL path - for when the ema site isn't served at "/"
-        const baseHref = document.getElementsByTagName("base")[0]?.href;
-        const basePath = baseHref ? new URL(baseHref).pathname : "/";
-
-        // Use TLS for websocket iff the current page is also served with TLS
-        const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
-        const wsUrl = wsProto + window.location.host + basePath;
-
-        // WebSocket logic: watching for server changes & route switching
-        function init(reconnecting) {
-          // The route current DOM is displaying
-          let routeVisible = document.location.pathname;
-
-          const verb = reconnecting ? "Reopening" : "Opening";
-          console.log(`ema: $${verb} conn $${wsUrl} ...`);
-          window.connecting();
-          let ws = new WebSocket(wsUrl);
-
-          function sendObservePath(path) {
-            const relPath = path.startsWith(basePath) ? path.slice(basePath.length - 1) : path;
-            console.debug(`ema: requesting $${relPath}`);
-            ws.send(relPath);
-          }
-
-          // Call this, then the server will send update *once*. Call again for
-          // continous monitoring.
-          function watchCurrentRoute() {
-            console.log(`ema: ⏿ Observing changes to $${document.location.pathname}`);
-            sendObservePath(document.location.pathname);
-          };
-
-          function switchRoute(path, hash = "") {
-             console.log(`ema: → Switching to $${path + hash}`);
-             window.history.pushState({}, "", path + hash);
-             sendObservePath(path);
-          }
-
-          function scrollToAnchor(hash) {
-            console.log(`ema: Scroll to $${hash}`)
-            var el = document.querySelector(hash);
-            if (el !== null) {
-              el.scrollIntoView({ behavior: 'smooth' });
-            }
-          };
-
-          function handleRouteClicks(e) {
-              const origin = e.target.closest("a");
-              if (origin) {
-                if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
-                  if (origin.getAttribute("href").startsWith("#")) {
-                    // Switching to local anchor
-                    window.history.pushState({}, "", window.location.pathname + origin.hash);
-                    scrollToAnchor(window.location.hash);
-                    e.preventDefault();
-                  }else{
-                    // Switching to another route
-                    switchRoute(origin.pathname, origin.hash);
-                    e.preventDefault();
-                  }
-                };
-              }
-            };
-          // Intercept route click events, and ask server for its HTML whilst
-          // managing history state.
-          window.addEventListener(`click`, handleRouteClicks);
-
-          ws.onopen = () => {
-            console.log(`ema: ... connected!`);
-            // window.connected();
-            window.hideIndicator();
-            if (!reconnecting) {
-              // HACK: We have to reload <script>'s here on initial page load
-              // here, so as to make Twind continue to function on the *next*
-              // route change. This is not a problem with *subsequent* (ie. 2nd
-              // or latter) route clicks, because those have already called
-              // reloadScripts at least once.
-              reloadScripts(document.documentElement);
-            };
-            watchCurrentRoute();
-          };
-
-          ws.onclose = () => {
-            console.log("ema: reconnecting ..");
-            window.removeEventListener(`click`, handleRouteClicks);
-            window.reloading();
-            // Reconnect after as small a time is possible, then retry again. 
-            // ghcid can take 1s or more to reboot. So ideally we need an
-            // exponential retry logic.
-            // 
-            // Note that a slow delay (200ms) may often cause websocket
-            // connection error (ghcid hasn't rebooted yet), which cannot be
-            // avoided as it is impossible to trap this error and handle it.
-            // You'll see a big ugly error in the console.
-            setTimeout(function () {init(true);}, 400);
-          };
-
-          
-
-          ws.onmessage = evt => {
-            if (evt.data.startsWith("REDIRECT ")) {
-              console.log("ema: redirect");
-              document.location.href = evt.data.slice("REDIRECT ".length);
-            } else {
-              console.log("ema: ✍ Patching DOM");
-              setHtml(document.documentElement, evt.data);
-              if (routeVisible != document.location.pathname) {
-                // This is a new route switch; scroll up.
-                window.scrollTo({ top: 0});
-                routeVisible = document.location.pathname;
-              }
-              if (window.location.hash) {
-                scrollToAnchor(window.location.hash);
-              }
-              watchCurrentRoute();
-            };
-          };
-          window.onbeforeunload = evt => { ws.close(); };
-          window.onpagehide = evt => { ws.close(); };
-
-          // When the user clicks the back button, resume watching the URL in
-          // the addressback, which has the effect of loading it immediately.
-          window.onpopstate = function(e) {
-            watchCurrentRoute();
-          };
-
-          // API for user invocations 
-          window.ema = {
-            switchRoute: switchRoute
-          };
-        };
+        ${wsClientJSShim}
         
         window.onpageshow = function () { init(false) };
         </script>
     |]
-
--- The inline CSS here is roughly analogous to the ones generated by Tailwind.
--- See the original version based on Tailwind`: https://gist.github.com/srid/2471813953a6df9b24909b9bb1d3cd2b
-wsClientHtml :: LByteString
-wsClientHtml =
-  encodeUtf8
-    [text|
-      <div 
-        style="
-          display: none;
-          position: absolute;
-          top: 0px;
-          left: 0px;
-          padding: 0.5rem;
-          font-size: 12px;
-          line-height: 18px;
-          tab-size: 4;
-          text-size-adjust: 100%;
-        " 
-        id="ema-indicator">
-        <div
-          style="
-            display: flex;
-            overflow: hidden;
-            font-size: 0.75rem;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            height: 2rem;
-            width: 2rem;
-            box-sizing: border-box;
-            border-style: solid;
-            border-width: 2px;
-            border-color: rgb(229 231 235);
-            background-color: rgb(255 255 255);
-            border-radius: 9999px;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            transition-property: width, height;
-            transition-duration: 500ms;
-          	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-          "
-          onMouseOver="this.style.width='100%'"
-          onMouseOut="this.style.width='2rem'"
-          id="ema-status"
-          title="Ema Status"
-        >
-          <div
-            hidden
-            style="
-              flex: none;
-              width: 0.75rem;
-              height: 0.75rem;
-              background-color: rgb(22 163 74);
-              border-radius: 9999px;
-            "
-            id="ema-connected"
-          ></div>
-          <div
-            hidden
-            style="
-              flex: none;
-              width: 0.75rem;
-              height: 0.75rem;
-              border-radius: 9999px;
-            	animation: spin 1s linear infinite;
-              background-image: linear-gradient(to right, var(--tw-gradient-stops));
-              --tw-gradient-from: #93c5fd;
-              --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-              --tw-gradient-to: #2563eb;
-            "
-            id="ema-reloading"
-          ><style>
-            @keyframes spin {
-              from {
-                transform: rotate(0deg);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          </style></div>
-          <div
-            hidden
-            style="
-              flex: none;
-              width: 0.75rem;
-              height: 0.75rem;
-              border-radius: 9999px;
-            	background-color: rgb(234 179 8);
-            "
-            id="ema-connecting"
-          >
-            <div
-              style="
-                flex: none;
-                width: 0.75rem;
-                height: 0.75rem;
-                border-radius: 9999px;
-                background-color: rgb(234 179 8);
-                animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-              "
-            ><style>
-              @keyframes ping {
-                75%, 100% {
-                  transform: scale(2);
-                  opacity: 0;
-                }
-              }
-          </style></div>
-          </div>
-          <div
-            hidden
-            style="
-              flex: none;
-              width: 0.75rem;
-              height: 0.75rem;
-              border-radius: 9999px;
-              background-color: rgb(239 68 68);
-            "
-            id="ema-disconnected"
-          ></div>
-          <p style="white-space: nowrap;" id="ema-message"></p>
-        </div>
-      </div>
-  |]

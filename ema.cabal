@@ -20,6 +20,12 @@ extra-source-files:
   LICENSE
   README.md
 
+data-dir:           www
+data-files:
+  ema-error.html
+  ema-indicator.html
+  ema-shim.js
+
 -- This flag is enabled by default just so `bin/run` can work on macOS M1.
 -- When disabling, ensure that macOS build doesn't break.
 flag with-examples
@@ -90,6 +96,7 @@ library
     , dependent-sum
     , dependent-sum-template
     , directory
+    , file-embed
     , filepath
     , filepattern
     , generic-optics
