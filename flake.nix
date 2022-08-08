@@ -5,9 +5,6 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
-    # 1.1 not in nixpkgs or cabal hashes yet 
-    relude.url = "github:kowainik/relude/v1.1.0.0";
-    relude.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
@@ -51,12 +48,10 @@
                   fourmolu;
                 ghcid = workaround140774 hp.ghcid;
               };
-            source-overrides = {
-              inherit (inputs) relude;
-            };
+            source-overrides = { };
             overrides = self: super: with pkgs.haskell.lib; {
               # All these below are for GHC 9.2 compat.
-              relude = dontCheck super.relude;
+              relude = dontCheck super.relude_1_1_0_0; # Not the default in nixpkgs yet.
               retry = dontCheck super.retry;
               http2 = dontCheck super.http2; # Fails on darwin
               type-errors-pretty = dontCheck (doJailbreak super.type-errors-pretty);
