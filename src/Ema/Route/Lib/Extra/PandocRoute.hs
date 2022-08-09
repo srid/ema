@@ -1,5 +1,6 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Route.Lib.Extra.PandocRoute (
@@ -27,15 +28,14 @@ import Control.Monad.Logger (
  )
 import Data.Default (Default (..))
 import Data.Map.Strict qualified as Map
-import Data.Text qualified as T
+import Data.SOP (I (I), NP (..))
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Prism (htmlSuffixPrism)
+import Ema.Route.Generic.TH
+import Ema.Route.Lib.Extra.SlugRoute
 import GHC.TypeLits (Symbol)
-import Network.URI.Slug (Slug)
-import Network.URI.Slug qualified as Slug
-import Optics.Core (prism', (%))
-import System.FilePath (splitExtension, splitPath, (</>))
+import Generics.SOP qualified as SOP
+import System.FilePath ((</>))
 import System.UnionMount qualified as UnionMount
 import Text.Pandoc (Pandoc, PandocMonad, ReaderOptions, runIO)
 import Text.Pandoc qualified as Pandoc
@@ -49,7 +49,7 @@ class IsExt (ext :: k) where
 class IsPandocExt (ext :: k) where
   readExtFile ::
     forall (exts :: [Symbol]) m.
-    (PandocMonad m, IsPandocRoute exts, MonadIO m) =>
+    (PandocMonad m, IsSlugRoute Pandoc exts, MonadIO m) =>
     Proxy ext ->
     FilePath ->
     FilePath ->
@@ -79,26 +79,27 @@ instance (IsPandocExt ext, IsPandocExt exts) => IsPandocExt (ext ': exts) where
       Just x -> pure $ Just x
 
 -- | Represents the relative path to a source .md file
-newtype PandocRoute (exts :: [Symbol]) = PandocRoute {unPandocRoute :: NonEmpty Slug}
+newtype PandocRoute (exts :: [Symbol]) = PandocRoute {unPandocRoute :: SlugRoute exts Pandoc}
   deriving stock (Eq, Ord, Show, Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving
+    (HasSubRoutes, IsRoute)
+    via ( GenericRoute
+            (PandocRoute exts)
+            '[ WithModel (Model exts)
+             , WithSubRoutes
+                '[ SlugRoute exts Pandoc
+                 ]
+             ]
+        )
 
-instance IsPandocRoute exts => IsString (PandocRoute exts) where
-  fromString fp = maybe (error $ "Not a Pandoc source file: " <> toText fp) snd $ mkPandocRoute fp
+instance HasSubModels (PandocRoute exts) where
+  subModels m = I (Map.mapKeys unPandocRoute $ modelPandocs m) :* Nil
 
-class IsPandocRoute (exts :: [Symbol]) where
-  mkPandocRoute :: FilePath -> Maybe (String, PandocRoute exts)
+deriving newtype instance IsSlugRoute Pandoc exts => IsString (PandocRoute exts)
 
-instance IsPandocRoute '[] where
-  mkPandocRoute _ = Nothing
-
-instance (IsExt ext, IsPandocRoute exts) => IsPandocRoute (ext ': exts) where
-  mkPandocRoute fp =
-    mkPandocRouteFrom (extString (Proxy @ext)) fp <|> (fmap coerce $ mkPandocRoute @exts fp)
-    where
-      mkPandocRouteFrom ext (splitExtension -> (ext', relFp)) = do
-        guard $ ext' == ext
-        let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath relFp
-        (ext',) <$> viaNonEmpty PandocRoute slugs
+mkPandocRoute :: IsSlugRoute Pandoc exts => FilePath -> Maybe (String, PandocRoute exts)
+mkPandocRoute = fmap (fmap PandocRoute) . mkSlugRoute
 
 data Model exts = Model
   { modelArg :: Arg
@@ -123,35 +124,8 @@ instance Default Arg where
         -- Sensible defaults for Markdown and others
         Pandoc.pandocExtensions <> Pandoc.extensionsFromList [Pandoc.Ext_attributes]
 
-instance IsRoute (PandocRoute exts) where
-  type RouteModel (PandocRoute exts) = Model exts
-  routePrism m =
-    let encode (PandocRoute slugs) =
-          toString $ T.intercalate "/" $ Slug.unSlug <$> toList slugs
-        decode fp = do
-          guard $ not $ null fp
-          slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" (toText fp)
-          let r = PandocRoute slugs
-          guard $ Map.member r $ modelPandocs m
-          pure r
-     in toPrism_ $ htmlSuffixPrism % prism' encode decode
-  routeUniverse =
-    Map.keys . modelPandocs
-
 newtype PandocHtml = PandocHtml {unPandocHtml :: Text}
   deriving stock (Eq, Generic)
-
-instance (IsPandocRoute exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
-  type SiteArg (PandocRoute exts) = Arg
-
-  -- Returns the `Pandoc` AST along with the function that renders it to HTML.
-  type SiteOutput (PandocRoute exts) = (Pandoc, Pandoc -> PandocHtml)
-
-  siteInput _ arg = do
-    docsDyn <- pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
-    pure $ Model arg <$> docsDyn
-  siteOutput _ model r = do
-    maybe (liftIO $ throwIO $ PandocError_Missing $ coerce r) pure $ lookupPandoc model r
 
 lookupPandoc :: forall {exts :: [Symbol]}. Model exts -> PandocRoute exts -> Maybe (Pandoc, Pandoc -> PandocHtml)
 lookupPandoc model r = do
@@ -160,7 +134,7 @@ lookupPandoc model r = do
 
 pandocFilesDyn ::
   forall exts m.
-  (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m, IsPandocRoute exts, IsPandocExt exts) =>
+  (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m, IsSlugRoute Pandoc exts, IsPandocExt exts) =>
   FilePath ->
   ReaderOptions ->
   m (Dynamic m (Map (PandocRoute exts) Pandoc))
@@ -206,3 +180,15 @@ renderHtml writerSettings pandoc =
 data PandocError = PandocError_Missing (PandocRoute '[]) | PandocError_RenderError Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
+
+instance (IsSlugRoute Pandoc exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
+  type SiteArg (PandocRoute exts) = Arg
+
+  -- Returns the `Pandoc` AST along with the function that renders it to HTML.
+  type SiteOutput (PandocRoute exts) = (Pandoc, Pandoc -> PandocHtml)
+
+  siteInput _ arg = do
+    docsDyn <- pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
+    pure $ Model arg <$> docsDyn
+  siteOutput _ model r = do
+    maybe (liftIO $ throwIO $ PandocError_Missing $ coerce r) pure $ lookupPandoc model r
