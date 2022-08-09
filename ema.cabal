@@ -126,14 +126,13 @@ library
     build-depends:
       , blaze-html
       , blaze-markup
-      , commonmark-simple
       , fsnotify
-      , pandoc
-      , pandoc-types
       , time
 
   if flag(with-extra)
     build-depends:
+      , pandoc
+      , pandoc-types
       , time
       , unionmount
 
