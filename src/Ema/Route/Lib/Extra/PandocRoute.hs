@@ -33,7 +33,7 @@ import Ema
 import Ema.CLI qualified
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.SlugRoute
-import GHC.TypeLits (Symbol)
+import GHC.TypeLits (Symbol, symbolVal)
 import Generics.SOP qualified as SOP
 import System.FilePath ((</>))
 import System.UnionMount qualified as UnionMount
@@ -41,10 +41,7 @@ import Text.Pandoc (Pandoc, PandocMonad, ReaderOptions, runIO)
 import Text.Pandoc qualified as Pandoc
 import UnliftIO (MonadUnliftIO)
 
--- TODO: Move Ext stuff to separate module
-
-class IsExt (ext :: k) where
-  extString :: Proxy ext -> String
+-- TODO: Move Pandoc Ext stuff to separate module
 
 class IsPandocExt (ext :: k) where
   readExtFile ::
@@ -56,18 +53,25 @@ class IsPandocExt (ext :: k) where
     ReaderOptions ->
     m (Maybe (PandocRoute exts, Pandoc))
 
-instance IsExt ".md" where
-  extString _ = ".md"
-
 instance IsPandocExt ".md" where
-  readExtFile _ baseDir fp opts = runMaybeT $ do
-    (ext, r :: PandocRoute exts) <- hoistMaybe (mkPandocRoute fp)
-    -- TODO: check this before parsing routes. or is laziness okay?
-    guard $ ext == extString (Proxy @".md")
-    s :: Text <- fmap decodeUtf8 $ readFileBS $ baseDir </> fp
-    (r,) <$> Pandoc.readCommonMark opts s
+  readExtFile = readExtFile' Pandoc.readCommonMark
 
--- either or
+readExtFile' ::
+  forall ext (exts :: [Symbol]) m.
+  (PandocMonad m, IsSlugRoute Pandoc exts, MonadIO m) =>
+  (ReaderOptions -> Text -> MaybeT m Pandoc) ->
+  Proxy ext ->
+  FilePath ->
+  FilePath ->
+  ReaderOptions ->
+  m (Maybe (PandocRoute exts, Pandoc))
+readExtFile' f _ baseDir fp opts = runMaybeT $ do
+  (ext, r :: PandocRoute exts) <- hoistMaybe (mkPandocRoute fp)
+  -- TODO: check this before parsing routes. or is laziness okay?
+  guard $ ext == symbolVal (Proxy @".md")
+  s :: Text <- fmap decodeUtf8 $ readFileBS $ baseDir </> fp
+  (r,) <$> f opts s
+
 instance IsPandocExt ('[] :: [Symbol]) where
   readExtFile _ _ _ _ = pure Nothing
 
@@ -77,6 +81,9 @@ instance (IsPandocExt ext, IsPandocExt exts) => IsPandocExt (ext ': exts) where
     case m of
       Nothing -> readExtFile (Proxy @exts) baseDir fp opts
       Just x -> pure $ Just x
+
+--
+--
 
 -- | Represents the relative path to a source .md file
 newtype PandocRoute (exts :: [Symbol]) = PandocRoute {unPandocRoute :: SlugRoute exts Pandoc}
