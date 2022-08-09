@@ -23,7 +23,7 @@ import Control.Exception (throw, throwIO)
 import Control.Monad.Logger (
   MonadLogger,
   MonadLoggerIO,
-  logDebugNS,
+  logInfoNS,
  )
 import Data.Default (Default (..))
 import Data.Map.Strict qualified as Map
@@ -191,18 +191,19 @@ pandocFilesDyn baseDir readerOpts = do
         pure $ maybe id (Map.delete . snd) $ mkPandocRoute fp
     readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe ((PandocRoute exts), Pandoc))
     readSource fp = runMaybeT $ do
-      logD $ "Reading " <> toText fp
+      log $ "Reading " <> toText fp
       -- TODO: try all exts in @exts
       eRes <- MaybeT $ fmap pure $ liftIO $ runIO $ readExtFile (Proxy @exts) (baseDir </> fp) readerOpts
       case eRes of
         Left err -> Ema.CLI.crash "PandocRoute" $ show err
-        Right (Just (r, doc)) ->
+        Right (Just (r, doc)) -> do
+          log $ "Parsed " <> toText fp
           pure (r, doc)
         Right Nothing ->
           MaybeT $ pure Nothing
 
-logD :: MonadLogger m => Text -> m ()
-logD = logDebugNS "PandocRoute"
+log :: MonadLogger m => Text -> m ()
+log = logInfoNS "PandocRoute"
 
 renderHtml :: Pandoc.WriterOptions -> Pandoc -> Text
 renderHtml writerSettings pandoc =
