@@ -43,24 +43,18 @@ import UnliftIO (MonadUnliftIO)
 
 -- TODO: Move Ext stuff to separate module
 
-class ToExts (syms :: [Symbol]) where
-  toExts :: Proxy syms -> [String]
-
-instance ToExts '[] where
-  toExts _ = []
-
-instance (ToExts syms, IsExt ext) => ToExts (ext ': syms) where
-  toExts _ = ext : toExts @syms (Proxy :: Proxy syms)
-    where
-      ext = extString (Proxy :: Proxy ext)
-
 class IsExt (ext :: k) where
   extString :: Proxy ext -> String
 
--- FIXME: this complects with PandocRoute
-
 class IsPandocExt (ext :: k) where
-  readExtFile :: forall exts m. (PandocMonad m, ToExts exts, MonadIO m) => Proxy ext -> FilePath -> FilePath -> ReaderOptions -> m (Maybe (PandocRoute exts, Pandoc))
+  readExtFile ::
+    forall (exts :: [Symbol]) m.
+    (PandocMonad m, IsPandocRoute exts, MonadIO m) =>
+    Proxy ext ->
+    FilePath ->
+    FilePath ->
+    ReaderOptions ->
+    m (Maybe (PandocRoute exts, Pandoc))
 
 instance IsExt ".md" where
   extString _ = ".md"
@@ -88,18 +82,23 @@ instance (IsPandocExt ext, IsPandocExt exts) => IsPandocExt (ext ': exts) where
 newtype PandocRoute (exts :: [Symbol]) = PandocRoute {unPandocRoute :: NonEmpty Slug}
   deriving stock (Eq, Ord, Show, Generic)
 
-instance ToExts exts => IsString (PandocRoute exts) where
+instance IsPandocRoute exts => IsString (PandocRoute exts) where
   fromString fp = maybe (error $ "Not a Pandoc source file: " <> toText fp) snd $ mkPandocRoute fp
 
-mkPandocRoute :: forall exts. ToExts exts => FilePath -> Maybe (String, PandocRoute exts)
-mkPandocRoute (splitExtension -> (fp, ext)) = do
-  r <-
-    foldl' (<|>) Nothing $
-      toExts @exts Proxy <&> \extCandidate -> do
-        guard $ extCandidate == ext
-        let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath fp
-        viaNonEmpty PandocRoute slugs
-  pure (ext, r)
+class IsPandocRoute (exts :: [Symbol]) where
+  mkPandocRoute :: FilePath -> Maybe (String, PandocRoute exts)
+
+instance IsPandocRoute '[] where
+  mkPandocRoute _ = Nothing
+
+instance (IsExt ext, IsPandocRoute exts) => IsPandocRoute (ext ': exts) where
+  mkPandocRoute fp =
+    mkPandocRouteFrom (extString (Proxy @ext)) fp <|> (fmap coerce $ mkPandocRoute @exts fp)
+    where
+      mkPandocRouteFrom ext (splitExtension -> (ext', relFp)) = do
+        guard $ ext' == ext
+        let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath relFp
+        (ext',) <$> viaNonEmpty PandocRoute slugs
 
 data Model exts = Model
   { modelArg :: Arg
@@ -142,7 +141,7 @@ instance IsRoute (PandocRoute exts) where
 newtype PandocHtml = PandocHtml {unPandocHtml :: Text}
   deriving stock (Eq, Generic)
 
-instance (ToExts exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
+instance (IsPandocRoute exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
   type SiteArg (PandocRoute exts) = Arg
 
   -- Returns the `Pandoc` AST along with the function that renders it to HTML.
@@ -161,7 +160,7 @@ lookupPandoc model r = do
 
 pandocFilesDyn ::
   forall exts m.
-  (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m, ToExts exts, IsPandocExt exts) =>
+  (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m, IsPandocRoute exts, IsPandocExt exts) =>
   FilePath ->
   ReaderOptions ->
   m (Dynamic m (Map (PandocRoute exts) Pandoc))
