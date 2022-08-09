@@ -121,14 +121,8 @@ instance Default Arg where
       defaultWriterOpts = def {Pandoc.writerExtensions = exts}
       exts :: Pandoc.Extensions
       exts =
-        mconcat
-          [ Pandoc.extensionsFromList
-              [ Pandoc.Ext_fenced_code_attributes
-              , Pandoc.Ext_auto_identifiers
-              , Pandoc.Ext_smart
-              ]
-          , Pandoc.githubMarkdownExtensions
-          ]
+        -- Sensible defaults for Markdown and others
+        Pandoc.pandocExtensions <> Pandoc.extensionsFromList [Pandoc.Ext_attributes]
 
 instance IsRoute (PandocRoute exts) where
   type RouteModel (PandocRoute exts) = Model exts
