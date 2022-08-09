@@ -96,7 +96,7 @@ data Arg = Arg
 instance Default Arg where
   def = Arg "." formats defaultReaderOpts defaultWriterOpts
     where
-      formats = Set.fromList ["*.md", "*.org"]
+      formats = Set.fromList [".md", ".org"]
       defaultReaderOpts = def {Pandoc.readerExtensions = exts}
       defaultWriterOpts = def {Pandoc.writerExtensions = exts}
       exts :: Pandoc.Extensions
@@ -123,7 +123,7 @@ pandocFilesDyn ::
   ReaderOptions ->
   m (Dynamic m (Map PandocRoute Pandoc))
 pandocFilesDyn baseDir formats readerOpts = do
-  let pats = [((), "**/*.md")]
+  let pats = [((), "**/*.md")] -- TODO: from formats
       ignorePats = [".*"]
       model0 = mempty
   Dynamic <$> UnionMount.mount baseDir pats ignorePats model0 (const handleUpdate)

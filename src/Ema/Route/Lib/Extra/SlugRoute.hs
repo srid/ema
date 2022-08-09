@@ -35,6 +35,6 @@ instance IsRoute (SlugRoute a) where
   routeUniverse = Map.keys
 
 mkSlugRoute :: forall a. FilePath -> Maybe (String, SlugRoute a)
-mkSlugRoute (splitExtension -> (ext', relFp)) = do
+mkSlugRoute (splitExtension -> (relFp, ext')) = do
   let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath relFp
   (ext',) <$> viaNonEmpty SlugRoute slugs
