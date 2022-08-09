@@ -152,19 +152,19 @@ instance (ToExts exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
   type SiteOutput (PandocRoute exts) = (Pandoc, Pandoc -> PandocHtml)
 
   siteInput _ arg = do
-    docsDyn <- markdownFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
+    docsDyn <- pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
     pure $ Model arg <$> docsDyn
   siteOutput _ model r = do
     pandoc <- maybe (liftIO $ throwIO $ PandocError_Missing $ coerce r) pure $ Map.lookup r (modelPandocs model)
     pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
 
-markdownFilesDyn ::
+pandocFilesDyn ::
   forall exts m.
   (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m, ToExts exts, IsPandocExt exts) =>
   FilePath ->
   ReaderOptions ->
   m (Dynamic m (Map (PandocRoute exts) Pandoc))
-markdownFilesDyn baseDir readerOpts = do
+pandocFilesDyn baseDir readerOpts = do
   let pats = [((), "**/*.md")]
       ignorePats = [".*"]
       model0 = mempty
