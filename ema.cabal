@@ -178,7 +178,7 @@ library
 
   if flag(with-extra)
     exposed-modules:
-      Ema.Route.Lib.Extra.MarkdownRoute
+      Ema.Route.Lib.Extra.PandocRoute
       Ema.Route.Lib.Extra.StaticRoute
 
   if impl(ghc >=9.2)
