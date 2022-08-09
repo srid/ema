@@ -1,6 +1,4 @@
-{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Ema.Route.Lib.Extra.PandocRoute (
@@ -12,7 +10,7 @@ module Ema.Route.Lib.Extra.PandocRoute (
   Model (..),
   Arg (..),
 
-  -- * Looking up
+  -- * Looking up Pandoc values in model
   lookupPandocRoute,
 
   -- * Rendering
@@ -60,10 +58,8 @@ instance HasSubModels PandocRoute where
   subModels m = I (Map.mapKeys unPandocRoute $ modelPandocs m) :* Nil
 
 instance IsString PandocRoute where
-  -- TODO: Improve this error message, and display `exts` in it.
-  fromString fp = maybe (error $ "Unsupported by `PandocRoute` exts: " <> toText fp) snd $ mkPandocRoute fp
+  fromString fp = maybe (error $ "Bad path: " <> toText fp) snd $ mkPandocRoute fp
 
--- TODO: Add other extensions
 mkPandocRoute :: FilePath -> Maybe (String, PandocRoute)
 mkPandocRoute fp = do
   (ext, r) <- mkSlugRoute fp
@@ -86,8 +82,10 @@ lookupPandocRoute model r = do
         Pandoc.runPure $ Pandoc.writeHtml5String writerSettings pandoc
 
 data Arg = Arg
-  { argBaseDir :: FilePath
-  , argFormats :: Set String
+  { -- Base directory
+    argBaseDir :: FilePath
+  , -- Pandoc reader formats supported, as file extension; eg: '.md'
+    argFormats :: Set String
   , argReaderOpts :: Pandoc.ReaderOptions
   , argWriterOpts :: Pandoc.WriterOptions
   }
@@ -123,7 +121,9 @@ pandocFilesDyn ::
   ReaderOptions ->
   m (Dynamic m (Map PandocRoute Pandoc))
 pandocFilesDyn baseDir formats readerOpts = do
-  let pats = [((), "**/*.md")] -- TODO: from formats
+  let pats =
+        toList formats <&> \ext ->
+          ((), "**/*" <> ext)
       ignorePats = [".*"]
       model0 = mempty
   Dynamic <$> UnionMount.mount baseDir pats ignorePats model0 (const handleUpdate)
@@ -149,7 +149,6 @@ pandocFilesDyn baseDir formats readerOpts = do
       liftIO (runIO $ readPandocSource ext s) >>= \case
         Left err -> Ema.CLI.crash "PandocRoute" $ show err
         Right doc -> do
-          log $ "Parsed " <> toText fp
           pure (r, doc)
     readPandocSource ext =
       case ext of
@@ -163,7 +162,8 @@ log = logInfoNS "PandocRoute"
 data PandocError
   = PandocError_Missing Text
   | PandocError_RenderError Text
-  | PandocError_UnsupportedExt String
+  | -- TODO: Refactor so we don't need this constructor.
+    PandocError_UnsupportedExt String
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
