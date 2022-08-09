@@ -11,6 +11,9 @@ module Ema.Route.Lib.Extra.PandocRoute (
   Model (..),
   Arg (..),
 
+  -- * Looking up
+  lookupPandoc,
+
   -- * Rendering
   PandocHtml (..),
   PandocError (..),
@@ -155,8 +158,12 @@ instance (ToExts exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
     docsDyn <- pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
     pure $ Model arg <$> docsDyn
   siteOutput _ model r = do
-    pandoc <- maybe (liftIO $ throwIO $ PandocError_Missing $ coerce r) pure $ Map.lookup r (modelPandocs model)
-    pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
+    maybe (liftIO $ throwIO $ PandocError_Missing $ coerce r) pure $ lookupPandoc model r
+
+lookupPandoc :: forall {exts :: [Symbol]}. Model exts -> PandocRoute exts -> Maybe (Pandoc, Pandoc -> PandocHtml)
+lookupPandoc model r = do
+  pandoc <- Map.lookup r (modelPandocs model)
+  pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
 
 pandocFilesDyn ::
   forall exts m.
