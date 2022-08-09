@@ -29,95 +29,53 @@ import Control.Monad.Logger (
 import Data.Default (Default (..))
 import Data.Map.Strict qualified as Map
 import Data.SOP (I (I), NP (..))
+import Data.Set qualified as Set
 import Ema
 import Ema.CLI qualified
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.SlugRoute
-import GHC.TypeLits (Symbol, symbolVal)
 import Generics.SOP qualified as SOP
 import System.FilePath ((</>))
 import System.UnionMount qualified as UnionMount
-import Text.Pandoc (Pandoc, PandocMonad, ReaderOptions, runIO)
+import Text.Pandoc (Pandoc, ReaderOptions, runIO)
 import Text.Pandoc qualified as Pandoc
 import UnliftIO (MonadUnliftIO)
 
--- TODO: Move Pandoc Ext stuff to separate module
-
-class IsPandocExt (ext :: k) where
-  readExtFile ::
-    forall (exts :: [Symbol]) m.
-    (PandocMonad m, IsSlugRoute Pandoc exts, MonadIO m) =>
-    Proxy ext ->
-    FilePath ->
-    FilePath ->
-    ReaderOptions ->
-    -- FIXME: complects with PandocRoute
-    m (Maybe (PandocRoute exts, Pandoc))
-
-instance IsPandocExt ".md" where
-  readExtFile = readExtFile' Pandoc.readCommonMark
-
-readExtFile' ::
-  forall ext (exts :: [Symbol]) m.
-  (PandocMonad m, IsSlugRoute Pandoc exts, MonadIO m) =>
-  (ReaderOptions -> Text -> MaybeT m Pandoc) ->
-  Proxy ext ->
-  FilePath ->
-  FilePath ->
-  ReaderOptions ->
-  m (Maybe (PandocRoute exts, Pandoc))
-readExtFile' f _ baseDir fp opts = runMaybeT $ do
-  (ext, r :: PandocRoute exts) <- hoistMaybe (mkPandocRoute fp)
-  -- TODO: check this before parsing routes. or is laziness okay?
-  guard $ ext == symbolVal (Proxy @".md")
-  s :: Text <- fmap decodeUtf8 $ readFileBS $ baseDir </> fp
-  (r,) <$> f opts s
-
-instance IsPandocExt ('[] :: [Symbol]) where
-  readExtFile _ _ _ _ = pure Nothing
-
-instance (IsPandocExt ext, IsPandocExt exts) => IsPandocExt (ext ': exts) where
-  readExtFile _ baseDir fp opts = do
-    m <- readExtFile (Proxy @ext) baseDir fp opts
-    case m of
-      Nothing -> readExtFile (Proxy @exts) baseDir fp opts
-      Just x -> pure $ Just x
-
---
---
-
 -- | Represents the relative path to a source .md file
-newtype PandocRoute (exts :: [Symbol]) = PandocRoute {unPandocRoute :: SlugRoute exts Pandoc}
+newtype PandocRoute = PandocRoute {unPandocRoute :: SlugRoute Pandoc}
   deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
     (HasSubRoutes, IsRoute)
     via ( GenericRoute
-            (PandocRoute exts)
-            '[ WithModel (Model exts)
+            PandocRoute
+            '[ WithModel Model
              , WithSubRoutes
-                '[ SlugRoute exts Pandoc
+                '[ SlugRoute Pandoc
                  ]
              ]
         )
 
-instance HasSubModels (PandocRoute exts) where
+instance HasSubModels PandocRoute where
   subModels m = I (Map.mapKeys unPandocRoute $ modelPandocs m) :* Nil
 
-instance IsSlugRoute Pandoc exts => IsString (PandocRoute exts) where
+instance IsString PandocRoute where
   -- TODO: Improve this error message, and display `exts` in it.
   fromString fp = maybe (error $ "Unsupported by `PandocRoute` exts: " <> toText fp) snd $ mkPandocRoute fp
 
-mkPandocRoute :: IsSlugRoute Pandoc exts => FilePath -> Maybe (String, PandocRoute exts)
-mkPandocRoute = fmap (fmap PandocRoute) . mkSlugRoute
+-- TODO: Add other extensions
+mkPandocRoute :: FilePath -> Maybe (String, PandocRoute)
+mkPandocRoute fp = do
+  (ext, r) <- mkSlugRoute fp
+  pure (ext, PandocRoute r)
 
-data Model exts = Model
+data Model = Model
   { modelArg :: Arg
-  , modelPandocs :: Map (PandocRoute exts) Pandoc
+  , modelPandocs :: Map PandocRoute Pandoc
   }
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
-lookupPandocRoute :: forall (exts :: [Symbol]). Model exts -> PandocRoute exts -> Maybe (Pandoc, Pandoc -> PandocHtml)
+lookupPandocRoute :: Model -> PandocRoute -> Maybe (Pandoc, Pandoc -> PandocHtml)
 lookupPandocRoute model r = do
   pandoc <- Map.lookup r (modelPandocs model)
   pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
@@ -129,14 +87,16 @@ lookupPandocRoute model r = do
 
 data Arg = Arg
   { argBaseDir :: FilePath
+  , argFormats :: Set String
   , argReaderOpts :: Pandoc.ReaderOptions
   , argWriterOpts :: Pandoc.WriterOptions
   }
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 instance Default Arg where
-  def = Arg "." defaultReaderOpts defaultWriterOpts
+  def = Arg "." formats defaultReaderOpts defaultWriterOpts
     where
+      formats = Set.fromList ["*.md", "*.org"]
       defaultReaderOpts = def {Pandoc.readerExtensions = exts}
       defaultWriterOpts = def {Pandoc.writerExtensions = exts}
       exts :: Pandoc.Extensions
@@ -144,24 +104,25 @@ instance Default Arg where
         -- Sensible defaults for Markdown and others
         Pandoc.pandocExtensions <> Pandoc.extensionsFromList [Pandoc.Ext_attributes]
 
-instance (IsSlugRoute Pandoc exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
-  type SiteArg (PandocRoute exts) = Arg
+instance EmaSite PandocRoute where
+  type SiteArg PandocRoute = Arg
 
   -- Returns the `Pandoc` AST along with the function that renders it to HTML.
-  type SiteOutput (PandocRoute exts) = (Pandoc, Pandoc -> PandocHtml)
+  type SiteOutput PandocRoute = (Pandoc, Pandoc -> PandocHtml)
 
   siteInput _ arg = do
-    fmap (Model arg) <$> pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
+    fmap (Model arg) <$> pandocFilesDyn (argBaseDir arg) (argFormats arg) (argReaderOpts arg)
   siteOutput _rp model r = do
     maybe (liftIO $ throwIO $ PandocError_Missing $ show r) pure $ lookupPandocRoute model r
 
 pandocFilesDyn ::
-  forall exts m.
-  (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m, IsSlugRoute Pandoc exts, IsPandocExt exts) =>
+  forall m.
+  (MonadIO m, MonadUnliftIO m, MonadLogger m, MonadLoggerIO m) =>
   FilePath ->
+  Set String ->
   ReaderOptions ->
-  m (Dynamic m (Map (PandocRoute exts) Pandoc))
-pandocFilesDyn baseDir readerOpts = do
+  m (Dynamic m (Map PandocRoute Pandoc))
+pandocFilesDyn baseDir formats readerOpts = do
   let pats = [((), "**/*.md")]
       ignorePats = [".*"]
       model0 = mempty
@@ -172,29 +133,37 @@ pandocFilesDyn baseDir readerOpts = do
       (MonadIO m, MonadLogger m, MonadLoggerIO m) =>
       FilePath ->
       UnionMount.FileAction () ->
-      m (Map (PandocRoute exts) Pandoc -> Map (PandocRoute exts) Pandoc)
+      m (Map PandocRoute Pandoc -> Map PandocRoute Pandoc)
     handleUpdate fp = \case
       UnionMount.Refresh _ _ -> do
         mData <- readSource fp
         pure $ maybe id (uncurry Map.insert) mData
       UnionMount.Delete ->
         pure $ maybe id (Map.delete . snd) $ mkPandocRoute fp
-    readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe ((PandocRoute exts), Pandoc))
+    readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe (PandocRoute, Pandoc))
     readSource fp = runMaybeT $ do
+      (ext, r :: PandocRoute) <- hoistMaybe (mkPandocRoute fp)
+      guard $ ext `Set.member` formats
       log $ "Reading " <> toText fp
-      eRes <- MaybeT $ fmap pure $ liftIO $ runIO $ readExtFile (Proxy @exts) baseDir fp readerOpts
-      case eRes of
+      s :: Text <- fmap decodeUtf8 $ readFileBS $ baseDir </> fp
+      liftIO (runIO $ readPandocSource ext s) >>= \case
         Left err -> Ema.CLI.crash "PandocRoute" $ show err
-        Right (Just (r, doc)) -> do
+        Right doc -> do
           log $ "Parsed " <> toText fp
           pure (r, doc)
-        Right Nothing ->
-          MaybeT $ pure Nothing
+    readPandocSource ext =
+      case ext of
+        ".md" -> Pandoc.readCommonMark readerOpts
+        ".org" -> Pandoc.readOrg readerOpts
+        _ -> throw $ PandocError_UnsupportedExt ext
 
 log :: MonadLogger m => Text -> m ()
 log = logInfoNS "PandocRoute"
 
-data PandocError = PandocError_Missing Text | PandocError_RenderError Text
+data PandocError
+  = PandocError_Missing Text
+  | PandocError_RenderError Text
+  | PandocError_UnsupportedExt String
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
