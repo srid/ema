@@ -13,7 +13,7 @@ module Ema.Route.Lib.Extra.PandocRoute (
   Arg (..),
 
   -- * Looking up
-  lookupPandoc,
+  lookupPandocRoute,
 
   -- * Rendering
   PandocHtml (..),
@@ -51,6 +51,7 @@ class IsPandocExt (ext :: k) where
     FilePath ->
     FilePath ->
     ReaderOptions ->
+    -- FIXME: complects with PandocRoute
     m (Maybe (PandocRoute exts, Pandoc))
 
 instance IsPandocExt ".md" where
@@ -103,7 +104,9 @@ newtype PandocRoute (exts :: [Symbol]) = PandocRoute {unPandocRoute :: SlugRoute
 instance HasSubModels (PandocRoute exts) where
   subModels m = I (Map.mapKeys unPandocRoute $ modelPandocs m) :* Nil
 
-deriving newtype instance IsSlugRoute Pandoc exts => IsString (PandocRoute exts)
+instance IsSlugRoute Pandoc exts => IsString (PandocRoute exts) where
+  -- TODO: Improve this error message, and display `exts` in it.
+  fromString fp = maybe (error $ "Unsupported by `PandocRoute` exts: " <> toText fp) snd $ mkPandocRoute fp
 
 mkPandocRoute :: IsSlugRoute Pandoc exts => FilePath -> Maybe (String, PandocRoute exts)
 mkPandocRoute = fmap (fmap PandocRoute) . mkSlugRoute
@@ -113,6 +116,16 @@ data Model exts = Model
   , modelPandocs :: Map (PandocRoute exts) Pandoc
   }
   deriving stock (Show, Generic)
+
+lookupPandocRoute :: forall (exts :: [Symbol]). Model exts -> PandocRoute exts -> Maybe (Pandoc, Pandoc -> PandocHtml)
+lookupPandocRoute model r = do
+  pandoc <- Map.lookup r (modelPandocs model)
+  pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
+  where
+    renderHtml :: HasCallStack => Pandoc.WriterOptions -> Pandoc -> Text
+    renderHtml writerSettings pandoc =
+      either (throw . PandocError_RenderError . show) id $
+        Pandoc.runPure $ Pandoc.writeHtml5String writerSettings pandoc
 
 data Arg = Arg
   { argBaseDir :: FilePath
@@ -131,13 +144,16 @@ instance Default Arg where
         -- Sensible defaults for Markdown and others
         Pandoc.pandocExtensions <> Pandoc.extensionsFromList [Pandoc.Ext_attributes]
 
-newtype PandocHtml = PandocHtml {unPandocHtml :: Text}
-  deriving stock (Eq, Generic)
+instance (IsSlugRoute Pandoc exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
+  type SiteArg (PandocRoute exts) = Arg
 
-lookupPandoc :: forall {exts :: [Symbol]}. Model exts -> PandocRoute exts -> Maybe (Pandoc, Pandoc -> PandocHtml)
-lookupPandoc model r = do
-  pandoc <- Map.lookup r (modelPandocs model)
-  pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
+  -- Returns the `Pandoc` AST along with the function that renders it to HTML.
+  type SiteOutput (PandocRoute exts) = (Pandoc, Pandoc -> PandocHtml)
+
+  siteInput _ arg = do
+    fmap (Model arg) <$> pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
+  siteOutput _rp model r = do
+    maybe (liftIO $ throwIO $ PandocError_Missing $ show r) pure $ lookupPandocRoute model r
 
 pandocFilesDyn ::
   forall exts m.
@@ -166,7 +182,6 @@ pandocFilesDyn baseDir readerOpts = do
     readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe ((PandocRoute exts), Pandoc))
     readSource fp = runMaybeT $ do
       log $ "Reading " <> toText fp
-      -- TODO: try all exts in @exts
       eRes <- MaybeT $ fmap pure $ liftIO $ runIO $ readExtFile (Proxy @exts) baseDir fp readerOpts
       case eRes of
         Left err -> Ema.CLI.crash "PandocRoute" $ show err
@@ -179,23 +194,9 @@ pandocFilesDyn baseDir readerOpts = do
 log :: MonadLogger m => Text -> m ()
 log = logInfoNS "PandocRoute"
 
-renderHtml :: Pandoc.WriterOptions -> Pandoc -> Text
-renderHtml writerSettings pandoc =
-  either (throw . PandocError_RenderError . show) id $
-    Pandoc.runPure $ Pandoc.writeHtml5String writerSettings pandoc
-
-data PandocError = PandocError_Missing (PandocRoute '[]) | PandocError_RenderError Text
+data PandocError = PandocError_Missing Text | PandocError_RenderError Text
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
-instance (IsSlugRoute Pandoc exts, IsPandocExt exts) => EmaSite (PandocRoute exts) where
-  type SiteArg (PandocRoute exts) = Arg
-
-  -- Returns the `Pandoc` AST along with the function that renders it to HTML.
-  type SiteOutput (PandocRoute exts) = (Pandoc, Pandoc -> PandocHtml)
-
-  siteInput _ arg = do
-    docsDyn <- pandocFilesDyn @exts (argBaseDir arg) (argReaderOpts arg)
-    pure $ Model arg <$> docsDyn
-  siteOutput _ model r = do
-    maybe (liftIO $ throwIO $ PandocError_Missing $ coerce r) pure $ lookupPandoc model r
+newtype PandocHtml = PandocHtml {unPandocHtml :: Text}
+  deriving stock (Eq, Generic)

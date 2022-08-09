@@ -51,7 +51,3 @@ instance (IsSlugRoute a exts, KnownSymbol ext) => IsSlugRoute a (ext ': exts) wh
         guard $ ext' == ext
         let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath relFp
         (ext,) <$> viaNonEmpty SlugRoute slugs
-
-instance IsSlugRoute a exts => IsString (SlugRoute exts a) where
-  -- TODO: Improve this error message, and display `exts` in it.
-  fromString fp = maybe (error $ "Unsupported by `SlugRoute` exts: " <> toText fp) snd $ mkSlugRoute fp
