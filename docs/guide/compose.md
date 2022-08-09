@@ -18,8 +18,8 @@ Ema provides a few "sub apps" that are useful in developing static sites.
 
 An example of its use can be seen here: https://github.com/EmaApps/ema-template
 
-### `MarkdownRoute`
+### `PandocRoute`
 
-`Ema.Route.Lib.Extra.MarkdownRoute` provides a `MarkdownRoute` site that can monitor a directory of Markdown files and returns (in `siteOutput` of [[site]]) the parsed Pandoc AST along with a function that renders it to HTML.
+`Ema.Route.Lib.Extra.PandocRoute` provides a `PandocRoute` site that can monitor a directory of LML files (Markdown, org-mode, etc.) and return (in `siteOutput` of [[site]]) the parsed Pandoc AST along with a function that renders it to HTML.
 
 An example of its use can be seen here: https://github.com/fpindia/fpindia-site/pull/21
