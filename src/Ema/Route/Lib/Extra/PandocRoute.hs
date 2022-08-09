@@ -25,6 +25,7 @@ import Control.Monad.Logger (
   logInfoNS,
  )
 import Data.Default (Default (..))
+import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.SOP (I (I), NP (..))
 import Data.Set qualified as Set
@@ -37,9 +38,10 @@ import System.FilePath ((</>))
 import System.UnionMount qualified as UnionMount
 import Text.Pandoc (Pandoc, ReaderOptions, runIO)
 import Text.Pandoc qualified as Pandoc
+import Text.Pandoc.Sources (ToSources)
 import UnliftIO (MonadUnliftIO)
 
--- | Represents the relative path to a source .md file
+-- | Represents the relative path to a file that pandoc can parse.
 newtype PandocRoute = PandocRoute {unPandocRoute :: SlugRoute Pandoc}
   deriving stock (Eq, Ord, Show, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
@@ -73,8 +75,9 @@ data Model = Model
 
 lookupPandocRoute :: Model -> PandocRoute -> Maybe (Pandoc, Pandoc -> PandocHtml)
 lookupPandocRoute model r = do
-  pandoc <- Map.lookup r (modelPandocs model)
-  pure (pandoc, PandocHtml . renderHtml (argWriterOpts $ modelArg model))
+  pandoc <- Map.lookup r $ modelPandocs model
+  let render = PandocHtml . renderHtml (argWriterOpts $ modelArg model)
+  pure (pandoc, render)
   where
     renderHtml :: HasCallStack => Pandoc.WriterOptions -> Pandoc -> Text
     renderHtml writerSettings pandoc =
@@ -94,7 +97,7 @@ data Arg = Arg
 instance Default Arg where
   def = Arg "." formats defaultReaderOpts defaultWriterOpts
     where
-      formats = Set.fromList [".md", ".org"]
+      formats = Set.fromList knownPandocFormats
       defaultReaderOpts = def {Pandoc.readerExtensions = exts}
       defaultWriterOpts = def {Pandoc.writerExtensions = exts}
       exts :: Pandoc.Extensions
@@ -146,15 +149,10 @@ pandocFilesDyn baseDir formats readerOpts = do
       guard $ ext `Set.member` formats
       log $ "Reading " <> toText fp
       s :: Text <- fmap decodeUtf8 $ readFileBS $ baseDir </> fp
-      liftIO (runIO $ readPandocSource ext s) >>= \case
+      liftIO (runIO $ readPandocSource readerOpts ext s) >>= \case
         Left err -> Ema.CLI.crash "PandocRoute" $ show err
         Right doc -> do
           pure (r, doc)
-    readPandocSource ext =
-      case ext of
-        ".md" -> Pandoc.readCommonMark readerOpts
-        ".org" -> Pandoc.readOrg readerOpts
-        _ -> throw $ PandocError_UnsupportedExt ext
 
 log :: MonadLogger m => Text -> m ()
 log = logInfoNS "PandocRoute"
@@ -162,10 +160,38 @@ log = logInfoNS "PandocRoute"
 data PandocError
   = PandocError_Missing Text
   | PandocError_RenderError Text
-  | -- TODO: Refactor so we don't need this constructor.
-    PandocError_UnsupportedExt String
   deriving stock (Eq, Show)
   deriving anyclass (Exception)
 
 newtype PandocHtml = PandocHtml {unPandocHtml :: Text}
   deriving stock (Eq, Generic)
+
+-- Pandoc reader abstraction
+--
+-- TODO: Can we refactor this using,
+-- https://github.com/jgm/pandoc/blob/16f0316fbaa4d667ba40772969ab8e28fea6a493/src/Text/Pandoc/App/FormatHeuristics.hs#L36
+
+knownPandocFormats :: [String]
+knownPandocFormats = [".md", ".org"]
+
+formatFromExt :: String -> Text
+formatFromExt = \case
+  ".md" -> "markdown"
+  ".org" -> "org"
+  ext -> throw $ UnsupportedPandocFormat ext
+
+readPandocSource ::
+  forall m a.
+  (Pandoc.PandocMonad m, ToSources a) =>
+  ReaderOptions ->
+  [Char] ->
+  a ->
+  m Pandoc
+readPandocSource readerOpts ext s =
+  case List.lookup (formatFromExt ext) Pandoc.readers of
+    Just (Pandoc.TextReader f) -> f readerOpts s
+    _ -> throw $ UnsupportedPandocFormat ext
+
+data UnsupportedPandocFormat = UnsupportedPandocFormat String
+  deriving stock (Eq, Show)
+  deriving anyclass (Exception)
