@@ -60,28 +60,28 @@ class IsExt (ext :: k) where
 -- FIXME: this complects with PandocRoute
 
 class IsPandocExt (ext :: k) where
-  readExtFile :: forall exts m. (PandocMonad m, ToExts exts, MonadIO m) => Proxy ext -> FilePath -> ReaderOptions -> m (Maybe (PandocRoute exts, Pandoc))
+  readExtFile :: forall exts m. (PandocMonad m, ToExts exts, MonadIO m) => Proxy ext -> FilePath -> FilePath -> ReaderOptions -> m (Maybe (PandocRoute exts, Pandoc))
 
 instance IsExt ".md" where
   extString _ = ".md"
 
 instance IsPandocExt ".md" where
-  readExtFile _ fp opts = runMaybeT $ do
+  readExtFile _ baseDir fp opts = runMaybeT $ do
     (ext, r :: PandocRoute exts) <- hoistMaybe (mkPandocRoute fp)
     -- TODO: check this before parsing routes. or is laziness okay?
     guard $ ext == extString (Proxy @".md")
-    s :: Text <- fmap decodeUtf8 $ readFileBS $ fp
+    s :: Text <- fmap decodeUtf8 $ readFileBS $ baseDir </> fp
     (r,) <$> Pandoc.readCommonMark opts s
 
 -- either or
 instance IsPandocExt ('[] :: [Symbol]) where
-  readExtFile _ _ _ = pure Nothing
+  readExtFile _ _ _ _ = pure Nothing
 
 instance (IsPandocExt ext, IsPandocExt exts) => IsPandocExt (ext ': exts) where
-  readExtFile _ fp opts = do
-    m <- readExtFile (Proxy @ext) fp opts
+  readExtFile _ baseDir fp opts = do
+    m <- readExtFile (Proxy @ext) baseDir fp opts
     case m of
-      Nothing -> readExtFile (Proxy @exts) fp opts
+      Nothing -> readExtFile (Proxy @exts) baseDir fp opts
       Just x -> pure $ Just x
 
 -- | Represents the relative path to a source .md file
@@ -193,7 +193,7 @@ pandocFilesDyn baseDir readerOpts = do
     readSource fp = runMaybeT $ do
       log $ "Reading " <> toText fp
       -- TODO: try all exts in @exts
-      eRes <- MaybeT $ fmap pure $ liftIO $ runIO $ readExtFile (Proxy @exts) (baseDir </> fp) readerOpts
+      eRes <- MaybeT $ fmap pure $ liftIO $ runIO $ readExtFile (Proxy @exts) baseDir fp readerOpts
       case eRes of
         Left err -> Ema.CLI.crash "PandocRoute" $ show err
         Right (Just (r, doc)) -> do
