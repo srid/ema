@@ -4,7 +4,7 @@ order: 3
 
 # Model type
 
-A "model", in an Ema app, is a type that is required to render the site. The model is also used, optionally, to encode the [[route|route types]].
+A "model", in an Ema app, represents all the data used to render the site. The model is also used (in [[class]]), optionally, to encode the [[route|route types]].
 
 Taking the blog site example from [[example]], our model would look something like the following:
 
@@ -14,6 +14,8 @@ data Model = Model
   , modelBlogPosts :: Map Slug (Date, Pandoc)
   }
 ```
+
+The idea here is that in order to render our weblog, we only need a value of type `Model`, and we can render it without reading anything from the environment (doing IO).
 
 Models impact two places:
 
