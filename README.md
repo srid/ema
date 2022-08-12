@@ -19,3 +19,10 @@ To run the docs, run `nix run github:EmaApps/emanote -- -L ./docs`.
 ## Getting Started
 
 https://ema.srid.ca/start
+
+## Discussion
+
+To discuss the Ema project, [join Matrix][matrix] or post in [GitHub Discussions][ghdiscuss].
+
+[matrix]: https://matrix.to/#/#ema:matrix.org
+[ghdiscuss]: https://github.com/EmaApps/ema/discussions
