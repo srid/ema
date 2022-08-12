@@ -4,9 +4,13 @@ order: 2
 
 # Generic deriving
 
-`IsRoute` can be derived generically using `DerivingVia`. 
+[[class]] can be derived generically using `DerivingVia`. 
 
-Let's see how it looks using the blog website routes from [[route]]. Typically, the terminal sub-routes will require a hand-written instance. For eg., the `Slug` type will need a `IsRoute` instance as follows:
+Let's see how it looks using the blog website routes (shown below). 
+
+![[example]]
+
+Typically, the terminal sub-routes will require a hand-written instance. For eg., the `Slug` type will need a `IsRoute` instance as follows:
 
 ```haskell
 instance IsRoute Slug where
@@ -15,7 +19,7 @@ instance IsRoute Slug where
   routeUniverse () = []
 ```
 
-And the higher level routes can be derived automatically using generics via `DerivingVia`, for instance:
+The higher level routes (`BlogRoute` and `Route`) can be derived automatically using generics via `DerivingVia`, for instance:
 
 ```haskell
 data BlogRoute
@@ -57,15 +61,47 @@ deriveIsRoute ''Route [t|'[WithModel ()]|]
 
 The TH way has better compiler error messages due to the use of standalone deriving.
 
-## `HasSubRoutes`: `FileRoute` and `FolderRoute`
+## How generic deriving works
 
-The `WithSubRoutes` option to `GenericRoute` can be powerful if you want to specify a custom encoding in the generic deriving (but without needing to hand-write encoders and decoders). `FileRoute` can be used to provide a specific filepath for a route constructor without arguments, and `FolderRoute` can do the same for a route constructor with an unary argumenmt. In GHC 9.2+, `WithSubRoutes` is generically determined in this manner. A constructor like `Route_Blog BlogRoute` automatically expands to `FolderRoute "blog" Slug`. 
+Ema uses [`generics-sop`](https://hackage.haskell.org/package/generics-sop). The implementation is delegated to `Ema.Route.Lib.Multi.MultiRoute`, which is a generic route type based on `NS` and `NP` from `sop-core`. Thus, much of generics machinary involves converting user's route type to `MultiRoute`; to do this, we must derive instances for `HasSubRoutes` and `HasSubModels`.
 
-You can use any arbrirary type as long as their generic representations are isomorphic (per the `GIsomorphic` class). In effect, `WithSubRoutes` enables "deriving [HasSubRoutes] via" the specified isomorphic route constructor representations.
+### `HasSubRoutes`: `FileRoute` and `FolderRoute`
 
-## `HasSubModel`
+`HasSubRoutes` gives us an isomorphism between the route type's sum constructors and `FileRoute` or `FolderRoute` types. For example, the `BlogRoute` type above is converted to:
 
-The `HasSubModel` option to `GenericRoute` is relevant when your subroutes specify a [[model]] *different* to the top-level route (see Ex03_Store.hs in Ema source tree for an example). It tells the generic deriving system how to "break" the top-level model into submodels corresponding to the subroutes. Ema's generic deriving mechanism relies on [`HasAny`](https://hackage.haskell.org/package/generic-optics-2.2.1.0/docs/Data-Generics-Product-Any.html) from `generic-optics` for large part to determine this automatically, and the `WithSubModels` option can be used to explicitly specify the lenses if there are ambiguties. You can of course also derive `HasSubModels` manually.
+```haskell
+type BlogRoute' = 
+  MultiRoute 
+    '[ FileRoute "index.html"
+     , FolderRoute "blog" Slug
+     ]
+```
+
+Notice how the "shape" of the two types match. Constructors with zero arguments (`BlogRoute_Index`) are isomorphic to `FileRoute`, whereas constructors with one argument (`BlogRoute_Post Slug`) are isomorphic to `FolderRoute a` (where `a` is that argument type). Route constructors cannot not have more than one argument.
+
+#### `WithSubRoutes`
+
+The `WithSubRoutes` option to `GenericRoute` can be powerful if you want to use something other than `FileRoute`/`FolderRoute` in the generic deriving (but without needing to hand-write encoders and decoders). 
+
+- `FileRoute` can be used to provide a specific filepath for a route constructor without arguments
+- `FolderRoute` can do the same for a route constructor with an unary argumenmt. 
+
+In GHC 9.2+, `WithSubRoutes` is generically determined in this manner. A constructor like `Route_Blog BlogRoute` automatically expands to `FolderRoute "blog" Slug`. 
+
+You can use any arbitrary type as long as their generic representations are isomorphic (per the `GIsomorphic` class). In effect, `WithSubRoutes` enables "deriving [HasSubRoutes] via" the specified isomorphic route constructor representations.
+
+### `HasSubModels`
+
+`HasSubModels` does for `RouteModel` what `HasSubRoutes` does for route constructors. In many simple cases your sub-routes share the same model type as the larger route, but in some cases you want to have a different model type for each sub-route. 
+
+To generically achieve this, we want to be able to extract the sub-model from the larger model. `HasSubModel` provides this functionality via [`HasAny`](https://hackage.haskell.org/package/generic-optics-2.2.1.0/docs/Data-Generics-Product-Any.html). 
+
+
+#### `WithSubModels`
+
+Like, `WithSubRoutes` you can explicitly specify the sub-model to extract (via `HasAny` for instance) if there are ambiguities.
+
+See Ex03_Store.hs in Ema source tree for an example.
 
 ## Custom generic options
 
