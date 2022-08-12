@@ -3,15 +3,13 @@ order: 1
 ---
 # Hot Reload
 
-- [ ] Update this
-
 **Hot Reloading** is a feature of Ema's [[live-server]] wherein any changes to your Haskell source or data files (such as Markdown files or HTML templates) _propagate instantly_ to the web browser without requiring any manual intervention like a full browser refresh. In practice, this is a such a delightful feature to work with. Imagine changing CSS style of an element, and see it reflect on your site in a split second.
 
 ## How Ema implements hot reload
 
 ### Websocket
 
-The Ema dev server uses websockets to keep a bi-directional connection open between the web browser and the backend server. When you click on a link or when something changes in the backend, they are communicated via this connection. In a statically generated site, however, no such activity happens - and a link click behaves like a normal link, in that the browser makes a full HTTP request to the linked page.
+The Ema dev server uses websockets to keep a bi-directional connection open between the web browser and the [[live-server]]. When you click on a link or when something changes in the backend, they are communicated via this connection. In a statically generated site, however, no such activity happens - and a link click behaves like a normal link, in that the browser makes a full HTTP request to the linked page.
 
 ### DOM patching
 
