@@ -233,9 +233,7 @@ data M = M { m1 :: (), m2 :: () }
 -- submodel type selectors must, at a minimum, refer to a model field of a matching type
 -- Expect:
 {-
-The 'WithSubModel' selector Bool of 'M' is not of expected type:
-
-  ()
+Couldn't match type ‘Bool’ with ‘()’
 -}
 deriveIsRoute ''R
   [t|
