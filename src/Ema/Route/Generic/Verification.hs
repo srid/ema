@@ -6,9 +6,7 @@ module Ema.Route.Generic.Verification (
 ) where
 
 import Data.Type.Bool (If)
-import Ema.Route.Generic.Iso (IsUnwrappedRoute')
 import Ema.Route.Generic.Verification.Any (HasAnyT)
-import GHC.Generics qualified as GHC
 import Type.Errors.Pretty (TypeError, type (%), type (<>))
 
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
@@ -45,7 +43,7 @@ exists a valid @HasSubRoutes@ instance for @route@ given its @rep@ and the @subr
 
 Invariant: code ~ Code route
 -}
-type family VerifyRoutes (code :: [[Type]]) (subRoutes :: [Type]) :: Constraint where
+type family VerifyRoutes (rcode :: [Type]) (subRoutes :: [Type]) :: Constraint where
   VerifyRoutes '[] '[] = ()
 -- Inconsistent lengths
   VerifyRoutes '[] t =
@@ -57,29 +55,11 @@ type family VerifyRoutes (code :: [[Type]]) (subRoutes :: [Type]) :: Constraint 
           % ""
           % ("\t" <> t)
       )
--- Subroute rep is unit
-  VerifyRoutes ('[] ': rs) (() : rs') = VerifyRoutes rs rs'
-  VerifyRoutes ('[()] ': rs) (() : rs') = VerifyRoutes rs rs'
+-- Subroute rep is unit (REVIEW: this case not strictly necessary anymore; should it be removed?)
+  VerifyRoutes (() ': rs) (() : rs') = VerifyRoutes rs rs'
   VerifyRoutes (r' ': rs) (() : rs') =
     TypeError
       ( "A 'WithSubRoutes' entry is '()' instead of the expected: "
           % r'
       )
--- Constructor type ~ Subroute spec
-  VerifyRoutes ('[r'] ': rs) (r' : rs') = VerifyRoutes rs rs'
--- Constructor type ~ Unwrapped (Subroute spec) as a last-resort assumption
-  VerifyRoutes (r1 ': rs) (r2 ': rs') =
-    If
-      (r1 `IsUnwrappedRoute'` (GHC.Rep r2 ()))
-      (VerifyRoutes rs rs')
-      ( TypeError
-          ( "A 'WithSubRoutes' type:"
-              % ""
-              % ("\t" <> r2)
-              % ""
-              % "is not isomorphic to the corresponding route constructor type:"
-              % ""
-              % ("\t" <> r1)
-              % ""
-          )
-      )
+  VerifyRoutes (r1 ': rs) (r2 ': rs') = (Coercible r1 r2, VerifyRoutes rs rs')

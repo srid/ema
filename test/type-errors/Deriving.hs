@@ -46,7 +46,7 @@ deriveGeneric ''R
 {-
 'WithSubRoutes' is missing subroutes for:
 
-  '[ '[()]]
+  '[()]
 -}
 deriveIsRoute ''R [t|
   '[ WithSubRoutes '[ () ] ]
@@ -83,7 +83,7 @@ deriveGeneric ''R
 -- Expect:
 {-
 A 'WithSubRoutes' entry is '()' instead of the expected:
-'[Int]
+Int
 -}
 deriveIsRoute ''R [t|
   '[ WithSubRoutes '[ (), () ] ]
@@ -100,13 +100,8 @@ deriveGeneric ''R
 -- subroute types that are nonisomorphic to what is specified in 'WithSubRoutes' should be illegal
 -- Expect:
 {-
-A 'WithSubRoutes' type:
-
-  Bool
-
-is not isomorphic to the corresponding route constructor type:
-
-  '[()]
+Couldn't match representation of type ‘()’ with that of ‘Bool’
+  arising from a use of ‘routePrism’
 -}
 deriveIsRoute ''R [t|
   ' [ WithSubRoutes '[ (), Bool] ]

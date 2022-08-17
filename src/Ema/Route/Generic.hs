@@ -32,7 +32,7 @@ import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import Ema.Route.Prism.Type (mapRoutePrism)
 import GHC.Generics qualified as GHC
-import Generics.SOP (All, Code, I (..), NP)
+import Generics.SOP (All, I (..), NP)
 import Optics.Core (ReversibleOptic (re), coercedTo, equality, review, (%))
 import Prelude hiding (All, Generic)
 
@@ -128,7 +128,7 @@ instance
       (MultiModel (SubRoutes (GenericRoute r opts)))
       (OptSubModels r opts)
       ~ (() :: Constraint)
-  , VerifyRoutes (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  , VerifyRoutes (RCode r) (SubRoutes (GenericRoute r opts))
   , GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
   , HasSubRoutes (GenericRoute r opts)
   , GenericRouteOpts r opts
@@ -142,7 +142,7 @@ instance
       m
 
 instance
-  ( VerifyRoutes (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  ( VerifyRoutes (RCode r) (SubRoutes (GenericRoute r opts))
   , HasSubRoutes r
   , HasSubModels r
   , ValidSubRoutes r (SubRoutes r)
