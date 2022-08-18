@@ -5,8 +5,7 @@ module Ema.Route.Generic.Verification (
   type VerifyRoutes,
 ) where
 
-import Data.Type.Bool (If)
-import Ema.Route.Generic.Verification.Any (HasAnyT)
+import Data.Generics.Product.Any (HasAny)
 import Type.Errors.Pretty (TypeError, type (%), type (<>))
 
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
@@ -27,16 +26,9 @@ type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Cons
     -- structure statically to verify that the correct submodel exists.
     VerifyModels model fs ss
   VerifyModels model (subModel ': subModels) (sel ': sels) =
-    If
-      (HasAnyT sel model subModel)
-      (VerifyModels model subModels sels)
-      ( TypeError
-          ( "The 'WithSubModel' selector " <> sel <> " of '" <> model <> "' is not of expected type:"
-              % ""
-              % "\t" <> subModel
-              % ""
-          )
-      )
+    ( HasAny sel model model subModel subModel
+    , VerifyModels model subModels sels
+    )
 
 {- | @VerifyRoutes route rep subroutes@ verifies the given @route@ to ensure that there
 exists a valid @HasSubRoutes@ instance for @route@ given its @rep@ and the @subroutes@ it is generic-deriving from.
