@@ -88,7 +88,7 @@ The `WithSubRoutes` option to `GenericRoute` can be powerful if you want to use 
 
 In GHC 9.2+, `WithSubRoutes` is generically determined in this manner. A constructor like `Route_Blog BlogRoute` automatically expands to `FolderRoute "blog" Slug`. 
 
-You can use any arbitrary type as long as their generic representations are isomorphic (per the `GIsomorphic` class). In effect, `WithSubRoutes` enables "deriving [HasSubRoutes] via" the specified isomorphic route constructor representations.
+You can use any arbitrary type as long as they are coercible. In effect, `WithSubRoutes` enables "deriving [HasSubRoutes] via" the specified isomorphic route constructor representations.
 
 ### `HasSubModels`
 

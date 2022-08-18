@@ -25,10 +25,9 @@ import Ema.Route.Lib.Folder (FolderRoute)
 #else 
 import GHC.TypeLits
 #endif
-import Ema.Route.Generic.Iso (GIsomorphic (giso))
 import Generics.SOP (All, I (..), NS, SameShapeAs, Top, unI)
 import Generics.SOP.Type.Metadata qualified as SOPM
-import Optics.Core (Iso', iso, view)
+import Optics.Core (Iso', iso)
 import Prelude hiding (All)
 
 {- | HasSubRoutes is a class of routes with an underlying MultiRoute (and MultiModel) representation.
@@ -58,7 +57,7 @@ gtoSubRoutes ::
   ) =>
   NS I (RCode r) ->
   MultiRoute subRoutes
-gtoSubRoutes = trans_NS (Proxy @GIsomorphic) (I . view giso . unI)
+gtoSubRoutes = trans_NS (Proxy @Coercible) (I . coerce . unI)
 
 gfromSubRoutes ::
   forall r subRoutes.
@@ -67,7 +66,7 @@ gfromSubRoutes ::
   ) =>
   MultiRoute subRoutes ->
   NS I (RCode r)
-gfromSubRoutes = trans_NS (Proxy @GIsomorphic) (I . view giso . unI)
+gfromSubRoutes = trans_NS (Proxy @Coercible) (I . coerce . unI)
 
 -- | @subRoutes@ are valid sub-routes of @r@
 type ValidSubRoutes r subRoutes =
@@ -75,8 +74,8 @@ type ValidSubRoutes r subRoutes =
   , SameShapeAs subRoutes (RCode r)
   , All Top (RCode r)
   , All Top subRoutes
-  , AllZipF GIsomorphic (RCode r) subRoutes
-  , AllZipF GIsomorphic subRoutes (RCode r)
+  , AllZipF Coercible (RCode r) subRoutes
+  , AllZipF Coercible subRoutes (RCode r)
   )
 
 #if MIN_VERSION_GLASGOW_HASKELL(9,2,0,0)
