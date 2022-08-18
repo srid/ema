@@ -32,7 +32,7 @@ import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import Ema.Route.Prism.Type (mapRoutePrism)
 import GHC.Generics qualified as GHC
-import Generics.SOP (All, Code, I (..), NP)
+import Generics.SOP (All, I (..), NP)
 import Optics.Core (ReversibleOptic (re), coercedTo, equality, review, (%))
 import Prelude hiding (All, Generic)
 
@@ -48,7 +48,7 @@ data WithModel (r :: Type)
 
 {- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
 
-    The isomorphism is specified by @GIsomorphic@ and is thus via generic representation.
+    The isomorphism is specified by @Coercible@.
 
     The default implementation uses @FileRoute@ for terminal routes, and
     @FolderRoute@ (with constructor prefix stripped) for wrapping sub-routes types.
@@ -127,7 +127,7 @@ instance
       (RouteModel (GenericRoute r opts))
       (MultiModel (SubRoutes (GenericRoute r opts)))
       (OptSubModels r opts)
-  , VerifyRoutes (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  , VerifyRoutes (RCode r) (SubRoutes (GenericRoute r opts))
   , GSubModels (RouteModel (GenericRoute r opts)) (MultiModel (OptSubRoutes r opts)) (OptSubModels r opts)
   , HasSubRoutes (GenericRoute r opts)
   , GenericRouteOpts r opts
@@ -141,7 +141,7 @@ instance
       m
 
 instance
-  ( VerifyRoutes (Code r) (SubRoutes (GenericRoute r opts)) ~ (() :: Constraint)
+  ( VerifyRoutes (RCode r) (SubRoutes (GenericRoute r opts))
   , HasSubRoutes r
   , HasSubModels r
   , ValidSubRoutes r (SubRoutes r)

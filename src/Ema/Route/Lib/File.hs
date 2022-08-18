@@ -7,7 +7,7 @@ import Ema.Route.Prism (
   toPrism_,
  )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Optics.Core (iso, only, (%))
+import Optics.Core (coercedTo, only, (%))
 
 {- | A type-level singleton route, whose encoding is given by the symbol parameter.
 
@@ -15,7 +15,7 @@ import Optics.Core (iso, only, (%))
 
  TODO: Can this type be simplified? See https://stackoverflow.com/q/72755053/55246
 -}
-data FileRoute (filename :: Symbol) = FileRoute
+newtype FileRoute (filename :: Symbol) = FileRoute ()
   deriving stock (Eq, Ord, Show, Generic)
 
 instance KnownSymbol fn => IsRoute (FileRoute fn) where
@@ -23,6 +23,6 @@ instance KnownSymbol fn => IsRoute (FileRoute fn) where
   routePrism () =
     toPrism_ $
       only (symbolVal (Proxy @fn))
-        % iso (\() -> FileRoute) (\FileRoute -> ())
+        % coercedTo
   routeUniverse () =
-    [FileRoute]
+    [FileRoute ()]

@@ -24,12 +24,13 @@ import Text.RawString.QQ (r)
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
 data BadRoute = BR_1 Int String | BR_2 String
+data M = M { m1 :: (), m2 :: () } deriving stock GHC.Generic
 
 deriveGeneric ''BadRoute
 -- Subroutes should not have constructors with multiple fields
 -- Expect: MultiRoute: too many arguments
 deriveIsRoute ''BadRoute [t|
-    '[ WithModel (NiceNamedM () ())
+    '[ WithModel M
      ]
   |]
 #endif
@@ -46,7 +47,7 @@ deriveGeneric ''R
 {-
 'WithSubRoutes' is missing subroutes for:
 
-  '[ '[()]]
+  '[()]
 -}
 deriveIsRoute ''R [t|
   '[ WithSubRoutes '[ () ] ]
@@ -83,7 +84,7 @@ deriveGeneric ''R
 -- Expect:
 {-
 A 'WithSubRoutes' entry is '()' instead of the expected:
-'[Int]
+Int
 -}
 deriveIsRoute ''R [t|
   '[ WithSubRoutes '[ (), () ] ]
@@ -100,13 +101,8 @@ deriveGeneric ''R
 -- subroute types that are nonisomorphic to what is specified in 'WithSubRoutes' should be illegal
 -- Expect:
 {-
-A 'WithSubRoutes' type:
-
-  Bool
-
-is not isomorphic to the corresponding route constructor type:
-
-  '[()]
+Couldn't match representation of type ‘()’ with that of ‘Bool’
+  arising from a use of ‘routePrism’
 -}
 deriveIsRoute ''R [t|
   ' [ WithSubRoutes '[ (), Bool] ]
@@ -245,20 +241,3 @@ deriveIsRoute ''R
 #define ENABLE_SPEC
 
 -----------------------------------------
-
--- | Low priority
-#undef ENABLE_SPEC
-#ifdef ENABLE_SPEC
-routeSpec "submodel field name selectors on models with multiple constructors should be illegal"
-  (niceRoute ''() ''())
-  [t|
-    '[ WithModel (BadM () ())
-     , WithSubModels '[ Proxy "niceNamed1", () ]
-     , WithSubRoutes '[ (), () ]
-     ]
-  |]
-  [r|
-Type rep field name lookup: multiple constructors
-  |]
-#endif
-#define ENABLE_SPEC

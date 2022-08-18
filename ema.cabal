@@ -156,7 +156,6 @@ library
     Ema.Generate
     Ema.Route.Class
     Ema.Route.Generic
-    Ema.Route.Generic.Iso
     Ema.Route.Generic.RGeneric
     Ema.Route.Generic.SubModel
     Ema.Route.Generic.SubRoute
