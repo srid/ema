@@ -48,7 +48,7 @@ data WithModel (r :: Type)
 
 {- | Specify isomorphic types to delegate sub-route behaviour. Usually this is identical to the route product type.
 
-    The isomorphism is specified by @GIsomorphic@ and is thus via generic representation.
+    The isomorphism is specified by @Coercible@.
 
     The default implementation uses @FileRoute@ for terminal routes, and
     @FolderRoute@ (with constructor prefix stripped) for wrapping sub-routes types.
