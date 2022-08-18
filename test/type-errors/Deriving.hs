@@ -24,12 +24,13 @@ import Text.RawString.QQ (r)
 #undef ENABLE_SPEC
 #ifdef ENABLE_SPEC
 data BadRoute = BR_1 Int String | BR_2 String
+data M = M { m1 :: (), m2 :: () } deriving stock GHC.Generic
 
 deriveGeneric ''BadRoute
 -- Subroutes should not have constructors with multiple fields
 -- Expect: MultiRoute: too many arguments
 deriveIsRoute ''BadRoute [t|
-    '[ WithModel (NiceNamedM () ())
+    '[ WithModel M
      ]
   |]
 #endif
@@ -242,20 +243,3 @@ deriveIsRoute ''R
 #define ENABLE_SPEC
 
 -----------------------------------------
-
--- | Low priority
-#undef ENABLE_SPEC
-#ifdef ENABLE_SPEC
-routeSpec "submodel field name selectors on models with multiple constructors should be illegal"
-  (niceRoute ''() ''())
-  [t|
-    '[ WithModel (BadM () ())
-     , WithSubModels '[ Proxy "niceNamed1", () ]
-     , WithSubRoutes '[ (), () ]
-     ]
-  |]
-  [r|
-Type rep field name lookup: multiple constructors
-  |]
-#endif
-#define ENABLE_SPEC
