@@ -7,7 +7,7 @@ import Ema.Route.Prism (
   toPrism_,
  )
 import GHC.TypeLits (KnownSymbol, Symbol, symbolVal)
-import Optics.Core (only, (%), coercedTo)
+import Optics.Core (coercedTo, only, (%))
 
 {- | A type-level singleton route, whose encoding is given by the symbol parameter.
 
