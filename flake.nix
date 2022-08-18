@@ -25,7 +25,6 @@
                 cabal-fmt
                 fourmolu;
             };
-            modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
           };
           ghc92 = {
             root = ./.;
@@ -54,7 +53,6 @@
               relude = dontCheck super.relude_1_1_0_0; # Not the default in nixpkgs yet.
               retry = dontCheck super.retry;
               http2 = dontCheck super.http2; # Fails on darwin
-              type-errors-pretty = dontCheck (doJailbreak super.type-errors-pretty);
               streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
             };
           };

@@ -113,7 +113,6 @@ library
     , sop-core
     , template-haskell
     , text
-    , type-errors-pretty
     , unliftio
     , url-slug
     , wai

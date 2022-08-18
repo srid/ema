@@ -6,7 +6,7 @@ module Ema.Route.Generic.Verification (
 ) where
 
 import Data.Generics.Product.Any (HasAny)
-import Type.Errors.Pretty (TypeError, type (%), type (<>))
+import GHC.TypeLits
 
 {- | @VerifyModels model routeModels lookups@ verifies the given @model@ to ensure that there
 exists a valid @HasSubModels@ instance for the given combination of (model, routeModels, lookups).
@@ -15,10 +15,10 @@ type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Cons
   VerifyModels m '[] '[] = ()
   VerifyModels m '[] t =
     TypeError
-      ("'WithSubModels' has extra unnecessary types: " % "" % "\t" <> t)
+      ( 'Text "'WithSubModels' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
   VerifyModels m f '[] =
     TypeError
-      ("'WithSubModels' is missing submodel types: " % "" % "\t" <> f)
+      ( 'Text "'WithSubModels' is missing submodel types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType f)
   VerifyModels model (model ': fs) (model ': ss) =
     -- This checks the simple case that (the model ~ the submodel),
     -- because it doesn't necessarily have to have a generic instance in this case.
@@ -40,18 +40,18 @@ type family VerifyRoutes (rcode :: [Type]) (subRoutes :: [Type]) :: Constraint w
 -- Inconsistent lengths
   VerifyRoutes '[] t =
     TypeError
-      ("'WithSubRoutes' has extra unnecessary types: " % "" % "\t" <> t)
+      ( 'Text "'WithSubRoutes' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
   VerifyRoutes t '[] =
     TypeError
-      ( "'WithSubRoutes' is missing subroutes for:"
-          % ""
-          % ("\t" <> t)
+      ( 'Text "'WithSubRoutes' is missing subroutes for:"
+          ':$$: 'Text ""
+          ':$$: ( 'Text "\t" ':<>: 'ShowType t)
       )
 -- Subroute rep is unit (REVIEW: this case not strictly necessary anymore; should it be removed?)
   VerifyRoutes (() ': rs) (() : rs') = VerifyRoutes rs rs'
   VerifyRoutes (r' ': rs) (() : rs') =
     TypeError
-      ( "A 'WithSubRoutes' entry is '()' instead of the expected: "
-          % r'
+      ( 'Text "A 'WithSubRoutes' entry is '()' instead of the expected: "
+          ':$$: 'ShowType r'
       )
   VerifyRoutes (r1 ': rs) (r2 ': rs') = (Coercible r1 r2, VerifyRoutes rs rs')
