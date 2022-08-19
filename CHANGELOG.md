@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## 0.8.0.0 (Unreleased)
+## 0.8.0.0 (2022-08-19)
 
 This releases brings a significant rewrite of Ema. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/start/upgrade for guidance.
 
