@@ -4,9 +4,15 @@ order: 7
 
 # Composing Ema apps
 
-Smaller Ema apps can be composed together to create a larger app. 
+Smaller Ema apps can be composed together to create a larger Ema app. 
 
-See `Ex04_Multi.hs` in the Ema source tree for an example of this based on a top-level route ADT. The `Ex05_MultiRoute.hs` example is similar but uses a heterogenous list (`NS` from sop-core) instead of defining a new route ADT. The former has the main advantage of being able to use inner apps' models in defining the behaviour of other routes.
+The composition happens via sub-route composition. i.e., the [[route]] of your larger Ema app can contain the sub-route type in its sum constructors. If the sub-routes have [[class]] and [[site]] instances, then the corresponding instances for the larger route can be defined *in terms of* them.
+
+For example, consider the note-publishing app [Emanote](https://emanote.srid.ca/), which is written in Ema. If you are creating your own personal website in Ema, and wish to include the Emanote generated site in a sub-path, say `/notes/`, you can do that by composing the Emanote app within your own Ema app.
+
+## Examples
+
+See `Ex04_Multi.hs` in the Ema source tree for an example of this based on a top-level route ADT. The `Ex05_MultiRoute.hs` example is similar but uses a heterogenous list (`NS` from sop-core), that is used in [[generic]], instead of defining a new route ADT. The former has the main advantage of being able to use inner apps' models in defining the behaviour of other routes.
 
 ## Builtin sub-apps
 
