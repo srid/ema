@@ -8,7 +8,7 @@ order: 10
 
 | Type              | URL                                                  | Source                                            |
 | ----------------- | ---------------------------------------------------- | ------------------------------------------------- |
-| Community Website | https://fpindia-site-master.haskell.page/            | [source](https://github.com/fpindia/fpindia-site) |
+| Community Website | https://functionalprogramming.in/                    | [source](https://github.com/fpindia/fpindia-site) |
 | Personal Blog     | https://blog.maralorn.de/                            | [source](https://git.maralorn.de/blog)            |
 | Personal notes    | https://lucasvreis.github.io/                        | (Built off org-mode using abacateiro)             |
 | Emanote websites  | [Emanote examples](https://emanote.srid.ca/examples) |                                                   |
@@ -17,7 +17,7 @@ order: 10
 
 ## Apps that use Ema
 
-These are apps that use Ema to generate websites pertaining to their specific domain:
+These are apps that use Ema to generate or serve websites pertaining to their specific domain:
 
 
 | Domain                  | App                                                            | Example / Demo                                       |
