@@ -42,6 +42,6 @@ The `siteInput` method takes a `SiteArg` value (and other relevant parameters) a
 
 ## `siteOutput`
 
-The `siteOutput` method takes the [[model]] value snapshot at that point in time, as well as the route value to render and returns a [[asset]] output (typically HTML bytestring) for it. `siteOutput` has IO capabilities; however, it typically is defined as a pure function (`siteOutput ... = pure <expr>`) inasmuch as all the data required to render the site is contained in the [[model]].
+The `siteOutput` method takes the [[model]] value snapshot at that point in time, as well as the route value to render and returns a [[asset]] output (typically HTML bytestring) for it. `siteOutput` has IO capabilities; usually it is defined as a pure function (`siteOutput ... = pure <expr>`) inasmuch as all the data required to render the site is contained in the [[model]], but sometimes you may need IO ([example](https://github.com/EmaApps/timedot-invoice/commit/787f4701634df9b50f25aa4e0da793ee0961983a)).
 
 Note that this method may return a non-`Asset` type as well (as specified by `SiteOutput` type). This can be useful in sub-sites that are [[compose|composed]] manually at the top-level.
