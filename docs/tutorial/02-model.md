@@ -1,6 +1,3 @@
----
-order: 2
----
 
 # Add a Model
 
