@@ -21,7 +21,7 @@ newtype Dynamic m a
 
 It is a pair of values: the initial value and a function that knows how to update that value over time using the user-provided update function (`a -> m ()`). Dynamic's are an `Applicative`, so they compose using `liftA*` family of functions. 
 
-In our `siteInput, so far, we return `pure myModel`---it has an initial value but does *not* update over time. In order to return an actually updating `Dynamic` of that model, we would change it to: `Dynamic (myModel, updater)` and now the task becomes to define the "updater" function itself. Spelled out:
+In our `siteInput`, so far, we return `pure myModel`---it has an initial value but does *not* update over time. In order to return an actually updating `Dynamic` of that model, we would change it to: `Dynamic (myModel, updater)` and now the task becomes to define the "updater" function itself. Spelled out:
 
 ```haskell
 siteInput _ _ = do 
