@@ -1,5 +1,10 @@
 # Revision history for ema
 
+## Unreleased
+
+- Bug fixes
+  - Fix live server redirecting static assets to wrong links [\#138](https://github.com/EmaApps/ema/issues/138)
+
 ## 0.8.0.0 (2022-08-19)
 
 This releases brings a significant rewrite of Ema. If you choose to upgrade your apps from 0.6, see https://ema.srid.ca/start/upgrade for guidance.

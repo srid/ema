@@ -111,15 +111,13 @@ runServerWithWebSocketHotReload host mport model = do
                       liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
                     Right (Just r) -> do
                       renderCatchingErrors s r >>= \case
-                        AssetStatic staticPath ->
-                          -- HACK: Websocket client should check for REDIRECT prefix.
-                          -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText staticPath
                         AssetGenerated Html html ->
                           liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
+                        -- HACK: We expect the websocket client should check for REDIRECT prefix.
+                        -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
+                        AssetStatic _staticPath ->
+                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
                         AssetGenerated Other _s ->
-                          -- HACK: Websocket client should check for REDIRECT prefix.
-                          -- Not bothering with JSON to avoid having to JSON parse every HTML dump.
                           liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
                       log LevelDebug $ " ~~> " <> show r
                 loop = flip runLoggingT logger $ do
