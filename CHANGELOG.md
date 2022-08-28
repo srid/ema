@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## Unreleased
+## 0.8.2.0 (2022-08-28)
 
 - Bug fixes
   - Fix live server redirecting static assets to wrong links [\#138](https://github.com/EmaApps/ema/issues/138)
