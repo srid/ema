@@ -16,7 +16,10 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects = {
           ghc90 = {
-            packages.ema.root = ./.;
+            packages.ema = {
+              root = ./.;
+              modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
+            };
             buildTools = hp: {
               inherit (pkgs)
                 treefmt
@@ -25,7 +28,6 @@
                 cabal-fmt
                 fourmolu;
             };
-            modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
           };
           ghc92 = {
             packages.ema.root = ./.;
@@ -48,7 +50,6 @@
                   fourmolu;
                 ghcid = workaround140774 hp.ghcid;
               };
-            source-overrides = { };
             overrides = self: super: with pkgs.haskell.lib; {
               # All these below are for GHC 9.2 compat.
               relude = dontCheck super.relude_1_1_0_0; # Not the default in nixpkgs yet.
