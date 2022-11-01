@@ -3,7 +3,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:HariAmoor-professional/haskell-flake/issue-7";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
