@@ -4,7 +4,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs.follows = "nixpkgs";
-    haskell-flake.url = "github:srid/haskell-flake";
+    haskell-flake.url = "github:HariAmoor-professional/haskell-flake/issue-7";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
@@ -16,7 +16,7 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects = {
           ghc90 = {
-            root = ./.;
+            packages.ema.root = ./.;
             buildTools = hp: {
               inherit (pkgs)
                 treefmt
@@ -28,7 +28,7 @@
             modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
           };
           ghc92 = {
-            root = ./.;
+            packages.ema.root = ./.;
             haskellPackages = pkgs.haskell.packages.ghc924; # Needed for `UnconsSymbol`
             buildTools = hp:
               let
