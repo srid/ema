@@ -3,7 +3,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    haskell-flake.url = "github:HariAmoor-professional/haskell-flake/issue-7";
+    haskell-flake.url = "github:srid/haskell-flake";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
@@ -15,9 +15,9 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects = {
           ghc90 = {
-            packages.ema = {
-              root = ./.;
-              modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
+            packages.ema.root = ./.;
+            overrides = self: super: {
+              ema = pkgs.haskell.lib.dontCheck super.ema; # test/type-errors requires 9.2
             };
             buildTools = hp: {
               inherit (pkgs)
