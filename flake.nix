@@ -3,7 +3,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
@@ -16,7 +15,10 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects = {
           ghc90 = {
-            root = ./.;
+            packages.ema.root = ./.;
+            overrides = self: super: {
+              ema = pkgs.haskell.lib.dontCheck super.ema; # test/type-errors requires 9.2
+            };
             buildTools = hp: {
               inherit (pkgs)
                 treefmt
@@ -25,10 +27,9 @@
                 cabal-fmt
                 fourmolu;
             };
-            modifier = drv: with pkgs.haskell.lib; dontCheck drv; # test/type-errors requires 9.2
           };
           ghc92 = {
-            root = ./.;
+            packages.ema.root = ./.;
             haskellPackages = pkgs.haskell.packages.ghc924; # Needed for `UnconsSymbol`
             buildTools = hp:
               let
@@ -48,7 +49,6 @@
                   fourmolu;
                 ghcid = workaround140774 hp.ghcid;
               };
-            source-overrides = { };
             overrides = self: super: with pkgs.haskell.lib; {
               # All these below are for GHC 9.2 compat.
               relude = dontCheck super.relude_1_1_0_0; # Not the default in nixpkgs yet.
