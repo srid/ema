@@ -35,7 +35,7 @@ siteInput _ _ = do
 ```
 
 ## FSNotify
-In the case of our mood tracker, we will use the [fsnotify](https://hackage.haskell.org/package/fsnotify) package (see [unionmount] for another option) to fulfill that `<some func that returns the next update>` part. So, without further ado, here's the full implementation of the new `siteInput` that produces a fully-fledged `Dynamic m Model`:
+In the case of our mood tracker, we will use the [fsnotify](https://hackage.haskell.org/package/fsnotify) package (see [[unionmount]] for another option) to fulfill that `<some func that returns the next update>` part. So, without further ado, here's the full implementation of the new `siteInput` that produces a fully-fledged `Dynamic m Model`:
 
 ```haskell
   siteInput _ _ = do
