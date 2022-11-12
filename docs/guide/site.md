@@ -1,7 +1,7 @@
 ---
 order: 5
 page:
-  headHtml: |
+  bodyHtml: |
     <snippet var="js.mermaid" />
 ---
 
