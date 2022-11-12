@@ -22,6 +22,6 @@ First, read [[tutorial]] to get a taste of the new API. Then, in your old Ema si
 You may want to read the source code of these apps for more context.
 
 - https://github.com/fpindia/fpindia-site (prefer this one)
-- https://github.com/srid/emanote
-- https://github.com/srid/timedot-invoice
-- https://github.com/JonathanReeve/jonreeve.com-ema
+- https://github.com/EmaApps/emanote
+- https://github.com/EmaApps/timedot-invoice
+- https://github.com/JonathanReeve/jonreeve.com
