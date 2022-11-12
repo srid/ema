@@ -6,7 +6,7 @@ order: 1
 
 The best way to get started with Ema is via **Nix**,[^nix] using the template repository:
 
-1. [Install Nix](https://nixos.org/download.html)[^nix] and [enable Flakes](https://nixos.wiki/wiki/Flakes#Installing_flakes)
+1. [Install Nix](https://nixos.org/download.html)[^nix] and [enable Flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes)
 1. Clone [the template repository][ema-template] locally
 1. Run `bin/run` and access the site at <http://localhost:9001>
 

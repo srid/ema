@@ -12,14 +12,10 @@ page:
 {.text-xl .mb-8}
 [Ema](https://github.com/srid/ema) is a next-gen library for building [jamstack-style](https://jamstack.org/) static sites in [**Haskell**](https://www.srid.ca/haskell). Ema sites are *change-aware*; in addition to good ol' static site generation, Ema provides a [[live-server|live server]] supporting **fast hot-reload** in the browser, on code *or* data change. 
 
-{.text-gray-600} The ultimate purpose of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/)[^emanote], or just about any app that creates a _browser view of arbitrarily changing data_ (on disk, database, or whatever). In Ema apps, data is _edited_ via traditional mechanisms (e.g., text editor), and its view is _rendered_ as a delightful web page, thus economically providing a read-only view of your data on desktop & mobile. A classic static site is just one type of such [*kind*]{title="See what we did there?"} of apps. 
+{.text-gray-600} 
+The ultimate purpose of ema is to facilitate creating with ease your own [neuron](https://neuron.zettel.page/)[^emanote], or just about any app that creates a _browser view of arbitrarily changing data_ (on disk, database, or whatever). In Ema apps, data is _edited_ via traditional mechanisms (e.g., text editor), and its view is _rendered_ as a delightful web page, thus economically providing a read-only view of your data on desktop & mobile. A classic static site is just one type of such [*kind*]{title="See what we did there?"} of apps. 
 
-:::{.my-8}
-* [[start]]
-* [[guide]]
-* [[topics]]
-* [Ema News](https://srid.ca/ema)
-:::
+#### [[start|Get started]]{.flex .justify-center .items-center .my-8}
 
 :::{.flex .justify-center .items-center .mb-8}
 <video autoplay="" loop="" muted="">
