@@ -1,5 +1,9 @@
 # Revision history for ema
 
+## Unreleased
+
+- Split Ema into multiple packages:
+
 ## 0.8.2.0 (2022-08-28)
 
 - Bug fixes

@@ -15,9 +15,14 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects = {
           ghc90 = {
-            packages.ema.root = ./.;
+            packages = {
+              # All but ema-examples, which requires GHC 9.2 for TH deriving
+              ema.root = ./ema;
+              ema-generics.root = ./ema-generics;
+              ema-extra.root = ./ema-extra;
+            };
             overrides = self: super: {
-              ema = pkgs.haskell.lib.dontCheck super.ema; # test/type-errors requires 9.2
+              ema-generics = pkgs.haskell.lib.dontCheck super.ema-generics; # test/type-errors requires 9.2
             };
             buildTools = hp: {
               inherit (pkgs)
@@ -29,7 +34,6 @@
             };
           };
           ghc92 = {
-            packages.ema.root = ./.;
             haskellPackages = pkgs.haskell.packages.ghc924; # Needed for `UnconsSymbol`
             buildTools = hp:
               let

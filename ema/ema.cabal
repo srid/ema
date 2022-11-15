@@ -1,40 +1,25 @@
-cabal-version:      2.4
-name:               ema
-version:            0.8.2.0
-license:            AGPL-3.0-only
-copyright:          2021 Sridhar Ratnakumar
-maintainer:         srid@srid.ca
-author:             Sridhar Ratnakumar
-category:           Web
-synopsis:           Static site generator library with hot reload
-bug-reports:        https://github.com/srid/ema/issues
-homepage:           https://ema.srid.ca/
+cabal-version: 2.4
+name:          ema
+version:       0.9.0.0
+license:       AGPL-3.0-only
+copyright:     2021 Sridhar Ratnakumar
+maintainer:    srid@srid.ca
+author:        Sridhar Ratnakumar
+category:      Web
+synopsis:      Static site generator library with hot reload
+bug-reports:   https://github.com/srid/ema/issues
+homepage:      https://ema.srid.ca/
 description:
   Ema is a next-gen Haskell library for building jamstack-style static sites.
   Ema sites are change-aware; in addition to good ol’ static site generation,
   it provides a live server supporting fast hot-reload in the browser on code
   or data change.
 
-extra-source-files:
-  CHANGELOG.md
-  LICENSE
-  README.md
-
-data-dir:           www
+data-dir:      www
 data-files:
   ema-error.html
   ema-indicator.html
   ema-shim.js
-
--- This flag is enabled by default just so `bin/run` can work on macOS M1.
--- When disabling, ensure that macOS build doesn't break.
-flag with-examples
-  description: Include examples and their dependencies
-  default:     True
-
-flag with-extra
-  description: Include non-core functionality
-  default:     True
 
 common extensions
   default-extensions:
@@ -89,9 +74,8 @@ library
   build-depends:
     , aeson
     , async
-    , base                    >=4.13.0.0 && <=4.17.0.0
+    , base                    >=4.13.0.0 && <4.17.0.0.0
     , constraints-extras
-    , containers
     , data-default
     , dependent-sum
     , dependent-sum-template
@@ -99,8 +83,6 @@ library
     , file-embed
     , filepath
     , filepattern
-    , generic-optics
-    , generics-sop
     , http-types
     , lvar
     , monad-logger
@@ -111,7 +93,6 @@ library
     , optparse-applicative
     , relude                  >=1.0
     , sop-core
-    , template-haskell
     , text
     , unliftio
     , url-slug
@@ -120,20 +101,6 @@ library
     , wai-websockets
     , warp
     , websockets
-
-  if flag(with-examples)
-    build-depends:
-      , blaze-html
-      , blaze-markup
-      , fsnotify
-      , time
-
-  if flag(with-extra)
-    build-depends:
-      , pandoc
-      , pandoc-types
-      , time
-      , unionmount
 
   mixins:
     base hiding (Prelude),
@@ -154,12 +121,6 @@ library
     Ema.Dynamic
     Ema.Generate
     Ema.Route.Class
-    Ema.Route.Generic
-    Ema.Route.Generic.RGeneric
-    Ema.Route.Generic.SubModel
-    Ema.Route.Generic.SubRoute
-    Ema.Route.Generic.TH
-    Ema.Route.Generic.Verification
     Ema.Route.Lib.File
     Ema.Route.Lib.Folder
     Ema.Route.Lib.Multi
@@ -170,49 +131,7 @@ library
     Ema.Server
     Ema.Site
 
-  other-modules:    GHC.TypeLits.Extra
-
-  if flag(with-extra)
-    exposed-modules:
-      Ema.Route.Lib.Extra.PandocRoute
-      Ema.Route.Lib.Extra.SlugRoute
-      Ema.Route.Lib.Extra.StaticRoute
-
-  if impl(ghc >=9.2)
-    other-modules: GHC.TypeLits.Extra.Symbol
-
-  if (flag(with-examples) && impl(ghc >=9.2))
-    other-modules:
-      Ema.Example.Common
-      Ema.Example.Ex00_Hello
-      Ema.Example.Ex01_Basic
-      Ema.Example.Ex02_Clock
-      Ema.Example.Ex03_Store
-      Ema.Example.Ex04_Multi
-      Ema.Example.Ex05_MultiRoute
-      Ema.Route.Generic.Example
-
   hs-source-dirs:   src
-  default-language: Haskell2010
-
-  if impl(ghc >=8.10)
-    ghc-options: -Wunused-packages
-
-test-suite test-type-errors
-  import:           extensions
-  build-depends:
-    , base
-    , ema
-    , generics-sop
-    , raw-strings-qq
-    , template-haskell
-    , text
-    , url-slug
-
-  other-modules:    Deriving
-  type:             exitcode-stdio-1.0
-  main-is:          Spec.hs
-  hs-source-dirs:   test/type-errors
   default-language: Haskell2010
 
   if impl(ghc >=8.10)

@@ -16,7 +16,8 @@ tailwindLayout h b =
   layoutWith "en" "UTF-8" (tailwind2ShimCdn >> h) $
     -- The "overflow-y-scroll" makes the scrollbar visible always, so as to
     -- avoid janky shifts when switching to routes with suddenly scrollable content.
-    H.body ! A.class_ "overflow-y-scroll" $ b
+    H.body ! A.class_ "overflow-y-scroll" $
+      b
   where
     -- A general layout
     layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString

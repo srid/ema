@@ -226,7 +226,8 @@ data BadRouteEncoding r = BadRouteEncoding
 badRouteEncodingMsg :: Show r => BadRouteEncoding r -> Text
 badRouteEncodingMsg BadRouteEncoding {..} =
   toText $
-    "A route Prism' is unlawful.\n\nThe URL '" <> toText _bre_urlFilePath
+    "A route Prism' is unlawful.\n\nThe URL '"
+      <> toText _bre_urlFilePath
       <> "' decodes to route '"
       <> show _bre_decodedRoute
       <> "', but it is not isomporphic on any of the allowed candidates: \n\n"
