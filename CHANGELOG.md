@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Split Ema into multiple packages:
+- Expose `StringRoute` from examples to ema-extra
 
 ## 0.8.2.0 (2022-08-28)
 

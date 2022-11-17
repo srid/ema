@@ -78,6 +78,7 @@ library
     , dependent-sum-template
     , directory
     , ema
+    , ema-extra
     , ema-generics
     , file-embed
     , filepath
