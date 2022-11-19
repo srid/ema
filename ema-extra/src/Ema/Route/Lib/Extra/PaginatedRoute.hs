@@ -19,6 +19,7 @@ import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Prism (toPrism_)
 import Generics.SOP qualified as SOP
 import Optics.Core (prism')
+import Text.Show qualified as Show
 
 {- | Represents a single page in a multi-page view/route.
 
@@ -26,9 +27,12 @@ import Optics.Core (prism')
   `fromNum` to convert them back.
 -}
 newtype Page (t :: Type) = Page {unPage :: Word}
-  deriving newtype (Show, Eq, Ord, Num, Enum, Default)
+  deriving newtype (Eq, Ord, Num, Enum, Default)
   deriving stock (Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+
+instance Show (Page t) where
+  show p = "Page " <> show (pageNum p)
 
 -- | Get the user-facing page number.
 pageNum :: forall a. Page a -> Int
