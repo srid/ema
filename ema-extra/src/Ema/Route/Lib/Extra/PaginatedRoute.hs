@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
+-- | Provides a `Page` type that enables any route to be paginated.
 module Ema.Route.Lib.Extra.PaginatedRoute (
   -- * Page
   Page,
@@ -19,6 +20,11 @@ import Ema.Route.Prism (toPrism_)
 import Generics.SOP qualified as SOP
 import Optics.Core (prism')
 
+{- | Represents a single page in a multi-page view/route.
+
+  Use `pageNum` to retrieve the user-facing page number which are 1-index;
+  `fromNum` to convert them back.
+-}
 newtype Page (t :: Type) = Page {unPage :: Word}
   deriving newtype (Show, Eq, Ord, Num, Enum, Default)
   deriving stock (Generic)
