@@ -24,22 +24,25 @@ newtype Page (t :: Type) = Page {unPage :: Word}
   deriving stock (Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
 
+-- | Get the user-facing page number.
 pageNum :: forall a. Page a -> Int
 pageNum (Page n) =
   fromInteger . toInteger $ n + 1
 
+-- | Convert the user-facing page number.
 fromNum :: forall a. Int -> Maybe (Page a)
 fromNum n = do
   guard $ n > 0
   pure $ fromInteger . toInteger $ n - 1
 
--- | List the list of all pages given the total number of pages.
+-- | Enumerate list of all pages given the total number of pages.
 pageRange :: forall a. HasCallStack => Int -> NonEmpty (Page a)
 pageRange total =
   fromMaybe (error "pageRange: total must be positive and non-zero") $ do
     end <- fromNum @a total
     nonEmpty [def .. end]
 
+-- | Retrieve the given page from the list.
 lookupPage :: HasCallStack => Page a -> NonEmpty [a] -> [a]
 lookupPage r xs =
   fromMaybe (error outOfBoundsError) $ lookupPage' r xs
@@ -74,5 +77,5 @@ instance IsRoute (Page a) where
                 void $ lookupPage' r m -- Check if this page exists
                 pure r
         )
-  routeUniverse m =
-    [1 :: (Page a) .. (fromInteger . toInteger $ length m)]
+  routeUniverse =
+    toList . pageRange . length
