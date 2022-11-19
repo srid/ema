@@ -6,6 +6,8 @@ module Ema.Route.Lib.Extra.PaginatedRoute (
 
   -- * Functions
   pageNum,
+  fromNum,
+  pageRange,
   lookupPage,
   lookupPage',
 ) where
@@ -22,15 +24,21 @@ newtype Page (t :: Type) = Page {unPage :: Word}
   deriving stock (Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
 
-pageNum :: Page a -> Int
-pageNum = \case
-  0 -> 1
-  Page n -> (fromInteger . toInteger) n + 1
+pageNum :: forall a. Page a -> Int
+pageNum (Page n) =
+  fromInteger . toInteger $ n + 1
 
-parsePageNum :: String -> Maybe (Page a)
-parsePageNum s = do
-  n <- readMaybe s
-  pure $ Page $ n - 1
+fromNum :: forall a. Int -> Maybe (Page a)
+fromNum n = do
+  guard $ n > 0
+  pure $ fromInteger . toInteger $ n - 1
+
+-- | List the list of all pages given the total number of pages.
+pageRange :: forall a. HasCallStack => Int -> NonEmpty (Page a)
+pageRange total =
+  fromMaybe (error "pageRange: total must be positive and non-zero") $ do
+    end <- fromNum @a total
+    nonEmpty [def .. end]
 
 lookupPage :: HasCallStack => Page a -> NonEmpty [a] -> [a]
 lookupPage r xs =
@@ -62,7 +70,7 @@ instance IsRoute (Page a) where
               then pure def
               else do
                 page <- fmap toString $ T.stripSuffix ".html" =<< T.stripPrefix "page/" (toText fp)
-                r <- parsePageNum page
+                r <- fromNum <=< readMaybe $ page
                 void $ lookupPage' r m -- Check if this page exists
                 pure r
         )
