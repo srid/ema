@@ -37,7 +37,7 @@ Invariant: code ~ Code route
 -}
 type family VerifyRoutes (rcode :: [Type]) (subRoutes :: [Type]) :: Constraint where
   VerifyRoutes '[] '[] = ()
--- Inconsistent lengths
+  -- Inconsistent lengths
   VerifyRoutes '[] t =
     TypeError
       ( 'Text "'WithSubRoutes' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
@@ -47,7 +47,7 @@ type family VerifyRoutes (rcode :: [Type]) (subRoutes :: [Type]) :: Constraint w
           ':$$: 'Text ""
           ':$$: ( 'Text "\t" ':<>: 'ShowType t)
       )
--- Subroute rep is unit (REVIEW: this case not strictly necessary anymore; should it be removed?)
+  -- Subroute rep is unit (REVIEW: this case not strictly necessary anymore; should it be removed?)
   VerifyRoutes (() ': rs) (() : rs') = VerifyRoutes rs rs'
   VerifyRoutes (r' ': rs) (() : rs') =
     TypeError

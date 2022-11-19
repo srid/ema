@@ -85,9 +85,11 @@ prismIsLawfulFor p a s = do
   let ma' :: Maybe a = preview p s'
   -- log $ "Decoding of that encoding: " <> show ma'
   unless (s == s') $
-    log $ toText s <> " /= " <> toText s' <> " (encoding of '" <> show a <> "')"
+    log $
+      toText s <> " /= " <> toText s' <> " (encoding of '" <> show a <> "')"
   unless (Just a == ma') $
-    log $ show (Just a) <> " /= " <> show ma' <> " (decoding of " <> toText s <> ")"
+    log $
+      show (Just a) <> " /= " <> show ma' <> " (decoding of " <> toText s <> ")"
   pure $ (s == s') && (Just a == ma')
   where
     log = tell . one

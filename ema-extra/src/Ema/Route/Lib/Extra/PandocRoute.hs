@@ -82,7 +82,8 @@ lookupPandocRoute model r = do
     renderHtml :: HasCallStack => Pandoc.WriterOptions -> Pandoc -> Text
     renderHtml writerSettings pandoc =
       either (throw . PandocError_RenderError . show) id $
-        Pandoc.runPure $ Pandoc.writeHtml5String writerSettings pandoc
+        Pandoc.runPure $
+          Pandoc.writeHtml5String writerSettings pandoc
 
 data Arg = Arg
   { -- Base directory

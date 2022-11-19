@@ -1,5 +1,12 @@
 # Revision history for ema
 
+## Unreleased
+
+- Split Ema into multiple packages:
+- `ema-extra`: New API
+  - Expose `StringRoute` from examples to ema-extra
+  - Add `MapRoute` and `PaginatedRoute`
+
 ## 0.8.2.0 (2022-08-28)
 
 - Bug fixes
