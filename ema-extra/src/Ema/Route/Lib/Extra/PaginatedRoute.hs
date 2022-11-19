@@ -5,6 +5,7 @@ module Ema.Route.Lib.Extra.PaginatedRoute (
   Page,
 
   -- * Functions
+  pageNum,
   lookupPage,
   lookupPage',
 ) where
@@ -21,6 +22,16 @@ newtype Page (t :: Type) = Page {unPage :: Word}
   deriving stock (Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
 
+pageNum :: Page a -> Text
+pageNum = \case
+  0 -> "1"
+  n -> show $ n + 1
+
+parsePageNum :: String -> Maybe (Page a)
+parsePageNum s = do
+  n <- readMaybe s
+  pure $ Page $ n - 1
+
 lookupPage :: HasCallStack => Page a -> NonEmpty [a] -> [a]
 lookupPage r xs =
   fromMaybe (error outOfBoundsError) $ lookupPage' r xs
@@ -33,7 +44,7 @@ lookupPage r xs =
 
 lookupPage' :: Page a -> NonEmpty [a] -> Maybe [a]
 lookupPage' p xs =
-  toList xs !!? (fromInteger . toInteger $ unPage p - 1)
+  toList xs !!? (fromInteger . toInteger $ unPage p)
 
 instance IsRoute (Page a) where
   type RouteModel (Page a) = NonEmpty [a]
@@ -43,14 +54,14 @@ instance IsRoute (Page a) where
       prism'
         ( \case
             Page 0 -> "index.html"
-            Page num -> "page/" <> show num <> ".html"
+            p -> "page/" <> toString (pageNum p) <> ".html"
         )
         ( \fp -> do
             if fp == "index.html"
               then pure def
               else do
                 page <- fmap toString $ T.stripSuffix ".html" =<< T.stripPrefix "page/" (toText fp)
-                r <- Page <$> readMaybe page
+                r <- parsePageNum page
                 void $ lookupPage' r m -- Check if this page exists
                 pure r
         )
