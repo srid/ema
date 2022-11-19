@@ -22,10 +22,10 @@ newtype Page (t :: Type) = Page {unPage :: Word}
   deriving stock (Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
 
-pageNum :: Page a -> Text
+pageNum :: Page a -> Int
 pageNum = \case
-  0 -> "1"
-  n -> show $ n + 1
+  0 -> 1
+  Page n -> (fromInteger . toInteger) n + 1
 
 parsePageNum :: String -> Maybe (Page a)
 parsePageNum s = do
@@ -52,9 +52,10 @@ instance IsRoute (Page a) where
     -- TODO: Refactor this using lens composition.
     toPrism_ $
       prism'
-        ( \case
-            Page 0 -> "index.html"
-            p -> "page/" <> toString (pageNum p) <> ".html"
+        ( \page ->
+            if page == def
+              then "index.html"
+              else "page/" <> show (pageNum page) <> ".html"
         )
         ( \fp -> do
             if fp == "index.html"
