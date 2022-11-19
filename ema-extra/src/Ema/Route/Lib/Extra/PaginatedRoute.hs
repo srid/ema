@@ -40,12 +40,12 @@ fromPage = \case
   Page 1 -> PaginatedRoute_Main
   p -> PaginatedRoute_OnPage p
 
-lookupPage :: PaginatedRoute a -> [[a]] -> Maybe [a]
+lookupPage :: PaginatedRoute a -> NonEmpty [a] -> Maybe [a]
 lookupPage r xs =
-  xs !!? (unPage (getPage r) - 1)
+  toList xs !!? (unPage (getPage r) - 1)
 
 instance IsRoute (PaginatedRoute a) where
-  type RouteModel (PaginatedRoute a) = [[a]]
+  type RouteModel (PaginatedRoute a) = NonEmpty [a]
   routePrism m =
     -- TODO: Refactor this using lens composition.
     toPrism_ $
