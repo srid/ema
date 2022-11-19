@@ -11,6 +11,7 @@ module Ema.Route.Lib.Extra.PaginatedRoute (
   getPage,
   fromPage,
   lookupPage,
+  lookupPage',
 ) where
 
 import Data.Default (Default (..))
@@ -20,7 +21,7 @@ import Ema.Route.Prism (toPrism_)
 import Generics.SOP qualified as SOP
 import Optics.Core (prism')
 
-newtype Page = Page {unPage :: Int}
+newtype Page = Page {unPage :: Word}
   deriving newtype (Show, Eq, Ord, Num, Enum)
 
 data PaginatedRoute (t :: Type) = PaginatedRoute_Main | PaginatedRoute_OnPage Page
@@ -40,9 +41,19 @@ fromPage = \case
   Page 1 -> PaginatedRoute_Main
   p -> PaginatedRoute_OnPage p
 
-lookupPage :: PaginatedRoute a -> NonEmpty [a] -> Maybe [a]
+lookupPage :: HasCallStack => PaginatedRoute a -> NonEmpty [a] -> [a]
 lookupPage r xs =
-  toList xs !!? (unPage (getPage r) - 1)
+  fromMaybe (error outOfBoundsError) $ lookupPage' r xs
+  where
+    outOfBoundsError =
+      "lookupPage: Page "
+        <> show (getPage r)
+        <> " is out of bounds of total available pages: "
+        <> show (length xs)
+
+lookupPage' :: PaginatedRoute a -> NonEmpty [a] -> Maybe [a]
+lookupPage' r xs =
+  toList xs !!? (fromInteger . toInteger $ unPage (getPage r) - 1)
 
 instance IsRoute (PaginatedRoute a) where
   type RouteModel (PaginatedRoute a) = NonEmpty [a]
@@ -61,7 +72,7 @@ instance IsRoute (PaginatedRoute a) where
                 page <- fmap toString $ T.stripSuffix ".html" =<< T.stripPrefix "page/" (toText fp)
                 p <- Page <$> readMaybe page
                 let r = fromPage p
-                void $ lookupPage r m -- Check if this page exists
+                void $ lookupPage' r m -- Check if this page exists
                 pure r
         )
   routeUniverse m =
