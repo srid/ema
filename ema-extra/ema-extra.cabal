@@ -97,6 +97,8 @@ library
     -fprint-potential-instances
 
   exposed-modules:
+    Ema.Route.Lib.Extra.MapRoute
+    Ema.Route.Lib.Extra.PaginatedRoute
     Ema.Route.Lib.Extra.PandocRoute
     Ema.Route.Lib.Extra.SlugRoute
     Ema.Route.Lib.Extra.StaticRoute
