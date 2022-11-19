@@ -1,19 +1,24 @@
-cabal-version: 2.4
-name:          ema-generics
-version:       0.9.0.0
-license:       AGPL-3.0-only
-copyright:     2022 Sridhar Ratnakumar
-maintainer:    srid@srid.ca
-author:        Sridhar Ratnakumar
-category:      Web
-synopsis:      Static site generator library with hot reload
-bug-reports:   https://github.com/srid/ema/issues
-homepage:      https://ema.srid.ca/
+cabal-version:      2.4
+name:               ema-generics
+version:            0.9.0.0
+license:            AGPL-3.0-only
+copyright:          2022 Sridhar Ratnakumar
+maintainer:         srid@srid.ca
+author:             Sridhar Ratnakumar
+category:           Web
+synopsis:           Static site generator library with hot reload
+bug-reports:        https://github.com/srid/ema/issues
+homepage:           https://ema.srid.ca/
 description:
   Ema is a next-gen Haskell library for building jamstack-style static sites.
   Ema sites are change-aware; in addition to good ol’ static site generation,
   it provides a live server supporting fast hot-reload in the browser on code
   or data change.
+
+extra-source-files:
+  CHANGELOG.md
+  LICENSE
+  README.md
 
 common extensions
   default-extensions:

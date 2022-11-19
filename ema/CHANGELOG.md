@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Split Ema into multiple packages:
-- ema-extra: New API
+- `ema-extra`: New API
   - Expose `StringRoute` from examples to ema-extra
   - Add `MapRoute` and `PaginatedRoute`
 
