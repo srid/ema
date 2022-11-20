@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## Unreleased
+## 0.10.0.0 (2022-11-20)
 
 - Split Ema into multiple packages:
 - `ema-extra`: New API
