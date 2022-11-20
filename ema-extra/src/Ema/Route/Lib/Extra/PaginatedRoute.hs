@@ -5,15 +5,19 @@ module Ema.Route.Lib.Extra.PaginatedRoute (
   -- * Page
   Page,
 
-  -- * Functions
+  -- * `Page` Functions
   pageNum,
   fromNum,
   pageRange,
   lookupPage,
   lookupPage',
+
+  -- * Utility functions
+  paginate,
 ) where
 
 import Data.Default (Default (..))
+import Data.Sequence qualified as Seq
 import Data.Text qualified as T
 import Ema.Route.Class (IsRoute (..))
 import Ema.Route.Prism (toPrism_)
@@ -89,3 +93,13 @@ instance IsRoute (Page a) where
         )
   routeUniverse =
     toList . pageRange . length
+
+-- | Break a list into pages given the page size.
+paginate :: Int -> [a] -> NonEmpty [a]
+paginate pageSize =
+  fromMaybe (one mempty)
+    . nonEmpty
+    . fmap toList
+    . toList
+    . Seq.chunksOf pageSize
+    . Seq.fromList
