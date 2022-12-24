@@ -64,5 +64,8 @@
         };
         devShells.default = config.devShells.ghc92;
       };
+
+      # CI configuration
+      flake.herculesCI.ciSystems = [ "x86_64-linux" "aarch64-darwin" ];
     };
 }
