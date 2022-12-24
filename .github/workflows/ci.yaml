@@ -1,10 +1,9 @@
 name: "CI"
 on:
-  # Disable this action until 9.2 gets into nixpkgs cache
-  # pull_request:
   push:
-    branches-ignore:
-      - "**"
+    branches:
+      - master
+  pull_request:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,6 +16,8 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            trusted-public-keys = cache.srid.ca:8sQkbPrOIoXktIwI0OucQBXod2e9fDjjoEZWn8OXbdo=
+            substituters = https://cache.srid.ca
       - name: Cache Nix dependencies
         run: |
           nix develop -j 4 -c echo
