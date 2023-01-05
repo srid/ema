@@ -9,64 +9,38 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
   };
-  outputs = { self, nixpkgs, flake-parts, haskell-flake, ... }:
-    flake-parts.lib.mkFlake { inherit self; } {
+  outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         haskell-flake.flakeModule
       ];
       perSystem = { config, pkgs, ... }: {
         # This attr is provided by https://github.com/srid/haskell-flake
-        haskellProjects = {
-          ghc90 = {
-            packages = {
-              # All but ema-examples, which requires GHC 9.2 for TH deriving
-              ema.root = ./ema;
-              ema-generics.root = ./ema-generics;
-              ema-extra.root = ./ema-extra;
-            };
-            overrides = self: super: {
-              ema-generics = pkgs.haskell.lib.dontCheck super.ema-generics; # test/type-errors requires 9.2
-            };
-            buildTools = hp: {
+        haskellProjects.default = {
+          buildTools = hp:
+            let
+              # Workaround for https://github.com/NixOS/nixpkgs/issues/140774
+              fixCyclicReference = drv:
+                pkgs.haskell.lib.overrideCabal drv (_: {
+                  enableSeparateBinOutput = false;
+                });
+            in
+            {
               inherit (pkgs)
                 treefmt
                 nixpkgs-fmt;
+              inherit (pkgs.haskellPackages)
+                cabal-fmt;
               inherit (hp)
-                cabal-fmt
                 fourmolu;
+              ghcid = fixCyclicReference hp.ghcid;
+              haskell-language-server = hp.haskell-language-server.overrideScope (lself: lsuper: {
+                ormolu = fixCyclicReference hp.ormolu;
+              });
             };
-          };
-          ghc92 = {
-            haskellPackages = pkgs.haskell.packages.ghc924; # Needed for `UnconsSymbol`
-            buildTools = hp:
-              let
-                # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
-                workaround140774 = hpkg: with pkgs.haskell.lib;
-                  overrideCabal hpkg (drv: {
-                    enableSeparateBinOutput = false;
-                  });
-              in
-              {
-                inherit (pkgs)
-                  treefmt
-                  nixpkgs-fmt;
-                inherit (pkgs.haskellPackages)
-                  cabal-fmt;
-                inherit (hp)
-                  fourmolu;
-                ghcid = workaround140774 hp.ghcid;
-              };
-            overrides = self: super: with pkgs.haskell.lib; {
-              # All these below are for GHC 9.2 compat.
-              relude = dontCheck super.relude_1_1_0_0; # Not the default in nixpkgs yet.
-              retry = dontCheck super.retry;
-              http2 = dontCheck super.http2; # Fails on darwin
-              streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
-            };
-          };
+          overrides = self: super: with pkgs.haskell.lib; { };
         };
-        devShells.default = config.devShells.ghc92;
       };
 
       # CI configuration
