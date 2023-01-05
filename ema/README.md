@@ -10,11 +10,9 @@ https://user-images.githubusercontent.com/3998/116333460-789c1400-a7a1-11eb-8d28
 
 ## Hacking
 
-*NOTE: `flake.nix` uses GHC 9.2 which is not yet the default in `nixpkgs`, so you may want to use [my Nix cache](https://srid.ca/cache.srid.ca) to avoid long compilation times.*
-
 Run `bin/run`. This runs the Ex04_Multi example.
 
-To run the docs, run `nix run github:EmaApps/emanote -- -L ./docs`.
+To run the docs, run `nix run github:srid/emanote -- -L ./docs`.
 
 ## Getting Started
 

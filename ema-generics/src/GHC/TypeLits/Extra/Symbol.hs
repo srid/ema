@@ -17,17 +17,17 @@ type family StripPrefix (prefix :: Symbol) (symbol :: Symbol) :: Symbol where
 -- | Strip `prefix` from `symbol`. Return Nothing if the prefix doesn't match.
 type family StripPrefix' (prefix :: Maybe (Char, Symbol)) (symbol :: Maybe (Char, Symbol)) :: Maybe Symbol where
   StripPrefix' 'Nothing 'Nothing = 'Just ""
-  StripPrefix' 'Nothing ( 'Just '(x, xs)) = 'Just (ConsSymbol x xs)
+  StripPrefix' 'Nothing ('Just '(x, xs)) = 'Just (ConsSymbol x xs)
   StripPrefix' _p 'Nothing = 'Nothing
-  StripPrefix' ( 'Just '(p, ps)) ( 'Just '(p, ss)) = StripPrefix' (UnconsSymbol ps) (UnconsSymbol ss)
-  StripPrefix' ( 'Just '(p, ps)) ( 'Just '(_, ss)) = 'Nothing
+  StripPrefix' ('Just '(p, ps)) ('Just '(p, ss)) = StripPrefix' (UnconsSymbol ps) (UnconsSymbol ss)
+  StripPrefix' ('Just '(p, ps)) ('Just '(_, ss)) = 'Nothing
 
 type family ToLower (sym :: Symbol) :: Symbol where
   ToLower sym = ToLower' (UnconsSymbol sym)
 
 type family ToLower' (pair :: Maybe (Char, Symbol)) :: Symbol where
   ToLower' 'Nothing = ""
-  ToLower' ( 'Just '(c, cs)) = ConsSymbol (ToLowerC c) (ToLower' (UnconsSymbol cs))
+  ToLower' ('Just '(c, cs)) = ConsSymbol (ToLowerC c) (ToLower' (UnconsSymbol cs))
 
 type family ToLowerC (c :: Char) :: Char where
   ToLowerC 'A' = 'a'
@@ -60,4 +60,4 @@ type family ToLowerC (c :: Char) :: Char where
 
 type family FromMaybe (def :: a) (maybe :: Maybe a) :: a where
   FromMaybe def 'Nothing = def
-  FromMaybe def ( 'Just a) = a
+  FromMaybe def ('Just a) = a

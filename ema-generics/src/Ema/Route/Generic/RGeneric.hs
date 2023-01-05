@@ -51,23 +51,23 @@ instance (RGeneric' xss, RouteNP xs) => RGeneric' (xs ': xss) where
     S rest -> S $ rto' @xss rest
 
 type family RDatatypeName' (info :: SOPM.DatatypeInfo) :: SOPM.DatatypeName where
-  RDatatypeName' ( 'SOPM.ADT _ name _ _) =
+  RDatatypeName' ('SOPM.ADT _ name _ _) =
     name
-  RDatatypeName' ( 'SOPM.Newtype _ name _) =
+  RDatatypeName' ('SOPM.Newtype _ name _) =
     name
 
 type family RConstructorNames' (info :: SOPM.DatatypeInfo) :: [SOPM.ConstructorName] where
-  RConstructorNames' ( 'SOPM.ADT _ _ constrs _) =
+  RConstructorNames' ('SOPM.ADT _ _ constrs _) =
     GetConstructorNames constrs
-  RConstructorNames' ( 'SOPM.Newtype _ _ constr) =
+  RConstructorNames' ('SOPM.Newtype _ _ constr) =
     '[GetConstructorName constr]
 
 type family GetConstructorName (info :: SOPM.ConstructorInfo) :: SOPM.ConstructorName where
-  GetConstructorName ( 'SOPM.Constructor name) =
+  GetConstructorName ('SOPM.Constructor name) =
     name
-  GetConstructorName ( 'SOPM.Infix name _ _) =
+  GetConstructorName ('SOPM.Infix name _ _) =
     name
-  GetConstructorName ( 'SOPM.Record name _) =
+  GetConstructorName ('SOPM.Record name _) =
     name
 
 type family GetConstructorNames (infos :: [SOPM.ConstructorInfo]) :: [SOPM.ConstructorName] where
@@ -93,7 +93,7 @@ instance RouteNP (x ': '[]) where
   fromRouteNP (I x :* Nil) = x
   toRouteNP x = I x :* Nil
 
-instance (TypeErr ( 'Text "MultiRoute: too many arguments")) => RouteNP (x ': x' ': xs) where
-  type RouteNPType (x ': x' ': xs) = TypeError ( 'Text "MultiRoute: too many arguments")
+instance (TypeErr ('Text "MultiRoute: too many arguments")) => RouteNP (x ': x' ': xs) where
+  type RouteNPType (x ': x' ': xs) = TypeError ('Text "MultiRoute: too many arguments")
   fromRouteNP _ = impossible
   toRouteNP _ = impossible
