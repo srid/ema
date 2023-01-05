@@ -15,10 +15,10 @@ type family VerifyModels model (subModels :: [Type]) (lookups :: [Type]) :: Cons
   VerifyModels m '[] '[] = ()
   VerifyModels m '[] t =
     TypeError
-      ( 'Text "'WithSubModels' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
+      ('Text "'WithSubModels' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
   VerifyModels m f '[] =
     TypeError
-      ( 'Text "'WithSubModels' is missing submodel types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType f)
+      ('Text "'WithSubModels' is missing submodel types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType f)
   VerifyModels model (model ': fs) (model ': ss) =
     -- This checks the simple case that (the model ~ the submodel),
     -- because it doesn't necessarily have to have a generic instance in this case.
@@ -40,12 +40,12 @@ type family VerifyRoutes (rcode :: [Type]) (subRoutes :: [Type]) :: Constraint w
   -- Inconsistent lengths
   VerifyRoutes '[] t =
     TypeError
-      ( 'Text "'WithSubRoutes' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
+      ('Text "'WithSubRoutes' has extra unnecessary types: " ':$$: 'Text "" ':$$: 'Text "\t" ':<>: 'ShowType t)
   VerifyRoutes t '[] =
     TypeError
       ( 'Text "'WithSubRoutes' is missing subroutes for:"
           ':$$: 'Text ""
-          ':$$: ( 'Text "\t" ':<>: 'ShowType t)
+          ':$$: ('Text "\t" ':<>: 'ShowType t)
       )
   -- Subroute rep is unit (REVIEW: this case not strictly necessary anymore; should it be removed?)
   VerifyRoutes (() ': rs) (() : rs') = VerifyRoutes rs rs'

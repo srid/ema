@@ -109,7 +109,7 @@ type family OptSubModels r (opts :: [Type]) :: [Type] where
 
 type family FromMaybe (def :: a) (maybe :: Maybe a) :: a where
   FromMaybe def 'Nothing = def
-  FromMaybe def ( 'Just a) = a
+  FromMaybe def ('Just a) = a
 
 type GenericRouteOpts r opts = All (GenericRouteOpt r) opts
 
