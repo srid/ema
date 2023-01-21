@@ -16,14 +16,15 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-            trusted-public-keys = cache.srid.ca:8sQkbPrOIoXktIwI0OucQBXod2e9fDjjoEZWn8OXbdo=
-            substituters = https://cache.srid.ca
       - name: Cache Nix dependencies
         run: |
           nix develop -j 4 -c echo
-      - name: Format check
-        run: |
-          nix develop -j auto -c treefmt --fail-on-change
       - name: Build 🔧
         run: |
           nix build -j4 --no-link
+      - name: Flake checks 🧪
+        run: |
+          # Because 'nix flake check' is not system-aware
+          # See https://srid.ca/haskell-template/checks
+          nix run nixpkgs#sd 'systems = nixpkgs.lib.systems.flakeExposed' 'systems = [ "x86_64-linux" ]' flake.nix
+          nix flake check -L
