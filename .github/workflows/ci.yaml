@@ -24,7 +24,4 @@ jobs:
           nix build -j4 --no-link .#ema-examples
       - name: Flake checks 🧪
         run: |
-          # Because 'nix flake check' is not system-aware
-          # See https://srid.ca/haskell-template/checks
-          nix run nixpkgs#sd 'systems = nixpkgs.lib.systems.flakeExposed' 'systems = [ "x86_64-linux" ]' flake.nix
-          nix flake check -L
+          nix build -j4 --no-link .#check
