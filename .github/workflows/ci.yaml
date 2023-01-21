@@ -1,0 +1,30 @@
+name: "CI"
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      MAINLINE: refs/heads/master
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v17
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - name: Build 🔧
+        run: |
+          nix build -j4 --no-link .#ema
+          nix build -j4 --no-link .#ema-extra
+          nix build -j4 --no-link .#ema-generics
+          nix build -j4 --no-link .#ema-examples
+      - name: Flake checks 🧪
+        run: |
+          # Because 'nix flake check' is not system-aware
+          # See https://srid.ca/haskell-template/checks
+          nix run nixpkgs#sd 'systems = nixpkgs.lib.systems.flakeExposed' 'systems = [ "x86_64-linux" ]' flake.nix
+          nix flake check -L
