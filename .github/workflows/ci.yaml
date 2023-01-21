@@ -18,7 +18,10 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       - name: Build 🔧
         run: |
-          nix build -j4 --no-link
+          nix build -j4 --no-link .#ema
+          nix build -j4 --no-link .#ema-extra
+          nix build -j4 --no-link .#ema-generics
+          nix build -j4 --no-link .#ema-examples
       - name: Flake checks 🧪
         run: |
           # Because 'nix flake check' is not system-aware
