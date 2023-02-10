@@ -4,6 +4,7 @@ module Ema.App (
   runSite,
   runSite_,
   runSiteWithCli,
+  runSiteWithServerOpts,
 ) where
 
 import Control.Concurrent (threadDelay)
@@ -65,7 +66,21 @@ runSiteWithCli ::
       RouteModel r
     , DSum CLI.Action Identity
     )
-runSiteWithCli cli siteArg = do
+runSiteWithCli = runSiteWithServerOpts @r Server.defaultEmaServerOptions
+
+-- | Like @runSiteWithCli@ but takes Ema server options.
+runSiteWithServerOpts ::
+  forall r.
+  (Show r, Eq r, EmaStaticSite r) =>
+  Server.EmaServerOptions r ->
+  CLI.Cli ->
+  SiteArg r ->
+  IO
+    ( -- The initial model value.
+      RouteModel r
+    , DSum CLI.Action Identity
+    )
+runSiteWithServerOpts opts cli siteArg = do
   flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
     logInfoNS "ema" $ "Launching Ema under: " <> toText cwd
@@ -88,6 +103,6 @@ runSiteWithCli cli siteArg = do
                 liftIO $ threadDelay maxBound
             )
             ( flip runLoggingT logger $ do
-                Server.runServerWithWebSocketHotReload @r host mport model
+                Server.runServerWithWebSocketHotReload @r opts host mport model
             )
         pure (model0, act :=> Identity ())

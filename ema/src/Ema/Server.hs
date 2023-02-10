@@ -38,6 +38,35 @@ import UnliftIO.Async (race)
 import UnliftIO.Concurrent (threadDelay)
 import UnliftIO.Exception (catch, try)
 
+{- | A handler takes a websocket connection and the current model and then watches
+   for websocket messages. It must return a new route to watch (after that, the
+   returned route's HTML will be sent back to the client).
+
+  Note that this is usually a long-running thread that waits for the client's
+  messages. But you can also use it to implement custom server actions, by handling
+  the incoming websocket messages or other IO events in any way you like.
+
+  Also note that whenever the model is updated, the handler action will be
+  stopped and then restarted with the new model as argument.
+-}
+type EmaWsHandler r = WS.Connection -> RouteModel r -> LoggingT IO Text
+
+data EmaServerOptions r = EmaServerOptions
+  { emaServerShim :: LByteString
+  , emaServerWsHandler :: EmaWsHandler r
+  }
+
+defaultEmaWsHandler :: forall r. EmaWsHandler r
+defaultEmaWsHandler conn _model = do
+  msg :: Text <- liftIO $ WS.receiveData conn
+  log LevelDebug $ "<~~ " <> show msg
+  pure msg
+  where
+    log lvl (t :: Text) = logWithoutLoc "ema.ws" lvl t
+
+defaultEmaServerOptions :: forall r. EmaServerOptions r
+defaultEmaServerOptions = EmaServerOptions wsClientJS (defaultEmaWsHandler @r)
+
 runServerWithWebSocketHotReload ::
   forall r m.
   ( Show r
@@ -48,11 +77,12 @@ runServerWithWebSocketHotReload ::
   , IsRoute r
   , EmaStaticSite r
   ) =>
+  EmaServerOptions r ->
   Host ->
   Maybe Port ->
   LVar (RouteModel r) ->
   m ()
-runServerWithWebSocketHotReload host mport model = do
+runServerWithWebSocketHotReload opts host mport model = do
   logger <- askLoggerIO
   let runM = flip runLoggingT logger
       settings =
@@ -90,10 +120,7 @@ runServerWithWebSocketHotReload host mport model = do
           let log lvl (s :: Text) =
                 logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
           log LevelInfo "Connected"
-          let askClientForRoute = do
-                msg :: Text <- liftIO $ WS.receiveData conn
-                log LevelDebug $ "<~~ " <> show msg
-                pure msg
+          let wsHandler = emaServerWsHandler opts conn
               sendRouteHtmlToClient path s = do
                 decodeUrlRoute s path & \case
                   Left err -> do
@@ -113,10 +140,11 @@ runServerWithWebSocketHotReload host mport model = do
                         liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
                     log LevelDebug $ " ~~> " <> show r
               -- @mWatchingRoute@ is the route currently being watched.
-              loop mWatchingRoute =
+              loop mWatchingRoute = do
                 -- Listen *until* either we get a new value, or the client requests
                 -- to switch to a new route.
-                race (LVar.listenNext model subId) askClientForRoute >>= \case
+                currentModel <- LVar.get model
+                race (LVar.listenNext model subId) (wsHandler currentModel) >>= \case
                   Left newModel -> do
                     -- The page the user is currently viewing has changed. Send
                     -- the new HTML to them.
@@ -130,7 +158,7 @@ runServerWithWebSocketHotReload host mport model = do
                     sendRouteHtmlToClient mNextRoute =<< LVar.get model
                     loop mNextRoute
           -- Wait for the client to send the first request with the initial route.
-          mInitialRoute <- askClientForRoute
+          mInitialRoute <- wsHandler =<< LVar.get model
           try (loop mInitialRoute) >>= \case
             Right () -> pass
             Left (connExc :: ConnectionException) -> do
@@ -150,10 +178,10 @@ runServerWithWebSocketHotReload host mport model = do
         case mr of
           Left err -> do
             logErrorNS "App" $ badRouteEncodingMsg err
-            let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> wsClientJS
+            let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> emaServerShim opts
             liftIO $ f $ Wai.responseLBS H.status500 [(H.hContentType, "text/html")] s
           Right Nothing -> do
-            let s = emaErrorHtmlResponse decodeRouteNothingMsg <> wsClientJS
+            let s = emaErrorHtmlResponse decodeRouteNothingMsg <> emaServerShim opts
             liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
           Right (Just r) -> do
             renderCatchingErrors val r >>= \case
@@ -161,7 +189,7 @@ runServerWithWebSocketHotReload host mport model = do
                 let mimeType = Static.getMimeType staticPath
                 liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
               AssetGenerated Html html -> do
-                let s = html <> toLazy wsClientHtml <> wsClientJS
+                let s = html <> toLazy wsClientHtml <> emaServerShim opts
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
               AssetGenerated Other s -> do
                 let mimeType = Static.getMimeType $ review (fromPrism_ $ enc val) r
