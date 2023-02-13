@@ -116,18 +116,19 @@ runServerWithWebSocketHotReload host mport model = do
                 loop mWatchingRoute = do
                   -- Listen *until* either we get a new value, or the client requests
                   -- to switch to a new route.
-                  race (LVar.listenNext model subId) askClientForRoute >>= \case
-                    Left newModel -> do
-                      -- The page the user is currently viewing has changed. Send
-                      -- the new HTML to them.
-                      sendRouteHtmlToClient mWatchingRoute newModel
-                      loop mWatchingRoute
-                    Right mNextRoute -> do
-                      -- The user clicked on a route link; send them the HTML for
-                      -- that route this time, ignoring what we are watching
-                      -- currently.
-                      sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                      loop mNextRoute
+                  (\x -> x) $
+                    race (LVar.listenNext model subId) askClientForRoute >>= \case
+                      Left newModel -> do
+                        -- The page the user is currently viewing has changed. Send
+                        -- the new HTML to them.
+                        sendRouteHtmlToClient mWatchingRoute newModel
+                        loop mWatchingRoute
+                      Right mNextRoute -> do
+                        -- The user clicked on a route link; send them the HTML for
+                        -- that route this time, ignoring what we are watching
+                        -- currently.
+                        sendRouteHtmlToClient mNextRoute =<< LVar.get model
+                        loop mNextRoute
             mInitialRoute <- askClientForRoute
             try (loop mInitialRoute) >>= \case
               Right () -> pass
