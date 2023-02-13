@@ -52,5 +52,16 @@
           };
         };
       };
+
+      flake.haskellFlakeProjectModules = {
+        output = { pkgs, ... }: {
+          source-overrides = {
+            ema = self + /ema;
+            ema-extra = self + /ema-extra;
+            ema-generics = self + /ema-generics;
+            ema-examples = self + /ema-examples;
+          };
+        };
+      };
     };
 }
