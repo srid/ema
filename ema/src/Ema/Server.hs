@@ -164,30 +164,22 @@ runServerWithWebSocketHotReload host mport model = do
               AssetGenerated Other s -> do
                 let mimeType = Static.getMimeType $ review (fromPrism_ $ enc val) r
                 liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
-
-renderCatchingErrors ::
-  (EmaStaticSite r, MonadUnliftIO m, MonadLoggerIO m) =>
-  RouteModel r ->
-  r ->
-  m (Asset LByteString)
-renderCatchingErrors m r =
-  catch (siteOutput (fromPrism_ $ routePrism m) m r) $ \(err :: SomeException) -> do
-    -- Log the error first.
-    logErrorNS "App" $ show @Text err
-    pure $
-      AssetGenerated Html . mkHtmlErrorMsg $
-        show @Text err
-
-{- | Decode an URL path into a route
-
- This function is used only in live server. If the route is not
- isomoprhic, this returns a Left, with the mismatched encoding.
--}
-decodeUrlRoute :: (Eq r, Show r, IsRoute r) => RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
-decodeUrlRoute m (urlToFilePath -> s) = do
-  case checkRoutePrismGivenFilePath routePrism m s of
-    Left (r, log) -> Left $ BadRouteEncoding s r log
-    Right mr -> Right mr
+    renderCatchingErrors m r =
+      catch (siteOutput (fromPrism_ $ routePrism m) m r) $ \(err :: SomeException) -> do
+        -- Log the error first.
+        logErrorNS "App" $ show @Text err
+        pure $
+          AssetGenerated Html . mkHtmlErrorMsg $
+            show @Text err
+    -- Decode an URL path into a route
+    --
+    -- This function is used only in live server. If the route is not
+    -- isomoprhic, this returns a Left, with the mismatched encoding.
+    decodeUrlRoute :: RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
+    decodeUrlRoute m (urlToFilePath -> s) = do
+      case checkRoutePrismGivenFilePath routePrism m s of
+        Left (r, log) -> Left $ BadRouteEncoding s r log
+        Right mr -> Right mr
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
