@@ -96,7 +96,7 @@ runServerWithWebSocketHotReload host mport model = do
                   log LevelDebug $ "<~~ " <> show msg
                   pure msg
                 sendRouteHtmlToClient path m =
-                  case decodeUrlRoute @r m path of
+                  case decodeUrlRoute m path of
                     Left err -> do
                       log LevelError $ badRouteEncodingMsg err
                       liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
