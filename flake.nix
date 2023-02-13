@@ -7,6 +7,8 @@
     treefmt-nix.url = "github:numtide/treefmt-nix";
     flake-root.url = "github:srid/flake-root";
     check-flake.url = "github:srid/check-flake";
+
+    nixpkgs-140774-workaround.url = "github:srid/nixpkgs-140774-workaround";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -20,21 +22,12 @@
       perSystem = { config, pkgs, ... }: {
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects.default = {
-          buildTools = hp:
-            let
-              # Workaround for https://github.com/NixOS/nixpkgs/issues/140774
-              fixCyclicReference = drv:
-                pkgs.haskell.lib.overrideCabal drv (_: {
-                  enableSeparateBinOutput = false;
-                });
-            in
-            {
-              treefmt = config.treefmt.build.wrapper;
-              ghcid = fixCyclicReference hp.ghcid;
-              haskell-language-server = hp.haskell-language-server.overrideScope (lself: lsuper: {
-                ormolu = fixCyclicReference hp.ormolu;
-              });
-            };
+          imports = [
+            inputs.nixpkgs-140774-workaround.haskellFlakeProjectModules.default
+          ];
+          devShell.tools = hp: {
+            treefmt = config.treefmt.build.wrapper;
+          } // config.treefmt.build.programs;
           overrides = self: super: with pkgs.haskell.lib; { };
         };
 
@@ -56,6 +49,17 @@
               "--ghc-opt"
               "-XTypeApplications"
             ];
+          };
+        };
+      };
+
+      flake.haskellFlakeProjectModules = {
+        output = { pkgs, ... }: {
+          source-overrides = {
+            ema = self + /ema;
+            ema-extra = self + /ema-extra;
+            ema-generics = self + /ema-generics;
+            ema-examples = self + /ema-examples;
           };
         };
       };
