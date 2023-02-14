@@ -84,64 +84,62 @@ runServerWithWebSocketHotReload host mport model = do
           Warp.runSettings (settings & Warp.setPort port) app
     wsApp logger pendingConn = do
       conn :: WS.Connection <- WS.acceptRequest pendingConn
-      (\x -> x) $
-        WS.withPingThread conn 30 pass $
-          flip runLoggingT logger $ do
-            subId <- LVar.addListener model
-            let log lvl (s :: Text) =
-                  logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
-            log LevelInfo "Connected"
-            let askClientForRoute = do
-                  msg :: Text <- liftIO $ WS.receiveData conn
-                  log LevelDebug $ "<~~ " <> show msg
-                  pure msg
-                sendRouteHtmlToClient path s = do
-                  decodeUrlRoute s path & \case
-                    Left err -> do
-                      log LevelError $ badRouteEncodingMsg err
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
-                    Right Nothing ->
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
-                    Right (Just r) -> do
-                      renderCatchingErrors s r >>= \case
-                        AssetGenerated Html html ->
-                          liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
-                        -- HACK: We expect the websocket client should check for REDIRECT prefix.
-                        -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
-                        AssetStatic _staticPath ->
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                        AssetGenerated Other _s ->
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                      log LevelDebug $ " ~~> " <> show r
-                -- @mWatchingRoute@ is the route currently being watched.
-                loop mWatchingRoute =
-                  -- Listen *until* either we get a new value, or the client requests
-                  -- to switch to a new route.
-                  (\x -> x) $
-                    race (LVar.listenNext model subId) askClientForRoute >>= \case
-                      Left newModel -> do
-                        -- The page the user is currently viewing has changed. Send
-                        -- the new HTML to them.
-                        sendRouteHtmlToClient mWatchingRoute newModel
-                        loop mWatchingRoute
-                      Right mNextRoute -> do
-                        -- The user clicked on a route link; send them the HTML for
-                        -- that route this time, ignoring what we are watching
-                        -- currently (we expect the user to initiate a watch route
-                        -- request immediately following this).
-                        sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                        loop mNextRoute
-            -- Wait for the client to send the first request with the initial route.
-            mInitialRoute <- askClientForRoute
-            try (loop mInitialRoute) >>= \case
-              Right () -> pass
-              Left (connExc :: ConnectionException) -> do
-                case connExc of
-                  WS.CloseRequest _ (decodeUtf8 -> reason) ->
-                    log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
-                  _ ->
-                    log LevelError $ "Websocket error: " <> show connExc
-                LVar.removeListener model subId
+      WS.withPingThread conn 30 pass $
+        flip runLoggingT logger $ do
+          subId <- LVar.addListener model
+          let log lvl (s :: Text) =
+                logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
+          log LevelInfo "Connected"
+          let askClientForRoute = do
+                msg :: Text <- liftIO $ WS.receiveData conn
+                log LevelDebug $ "<~~ " <> show msg
+                pure msg
+              sendRouteHtmlToClient path s = do
+                decodeUrlRoute s path & \case
+                  Left err -> do
+                    log LevelError $ badRouteEncodingMsg err
+                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
+                  Right Nothing ->
+                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
+                  Right (Just r) -> do
+                    renderCatchingErrors s r >>= \case
+                      AssetGenerated Html html ->
+                        liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
+                      -- HACK: We expect the websocket client should check for REDIRECT prefix.
+                      -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
+                      AssetStatic _staticPath ->
+                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
+                      AssetGenerated Other _s ->
+                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
+                    log LevelDebug $ " ~~> " <> show r
+              -- @mWatchingRoute@ is the route currently being watched.
+              loop mWatchingRoute =
+                -- Listen *until* either we get a new value, or the client requests
+                -- to switch to a new route.
+                race (LVar.listenNext model subId) askClientForRoute >>= \case
+                  Left newModel -> do
+                    -- The page the user is currently viewing has changed. Send
+                    -- the new HTML to them.
+                    sendRouteHtmlToClient mWatchingRoute newModel
+                    loop mWatchingRoute
+                  Right mNextRoute -> do
+                    -- The user clicked on a route link; send them the HTML for
+                    -- that route this time, ignoring what we are watching
+                    -- currently (we expect the user to initiate a watch route
+                    -- request immediately following this).
+                    sendRouteHtmlToClient mNextRoute =<< LVar.get model
+                    loop mNextRoute
+          -- Wait for the client to send the first request with the initial route.
+          mInitialRoute <- askClientForRoute
+          try (loop mInitialRoute) >>= \case
+            Right () -> pass
+            Left (connExc :: ConnectionException) -> do
+              case connExc of
+                WS.CloseRequest _ (decodeUtf8 -> reason) ->
+                  log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
+                _ ->
+                  log LevelError $ "Websocket error: " <> show connExc
+              LVar.removeListener model subId
     httpApp logger req f = do
       flip runLoggingT logger $ do
         val <- LVar.get model
