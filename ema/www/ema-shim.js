@@ -73,7 +73,7 @@ function init(reconnecting) {
     let ws = new WebSocket(wsUrl);
 
     function sendObservePath(path) {
-        const relPath = path.startsWith(basePath) ? path.slice(basePath.length - 1) : path;
+        const relPath = path.startsWith(basePath) ? path.slice(basePath.length) : path;
         console.debug(`ema: requesting ${relPath}`);
         ws.send(relPath);
     }

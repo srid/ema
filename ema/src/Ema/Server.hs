@@ -95,15 +95,13 @@ runServerWithWebSocketHotReload host mport model = do
             log LevelInfo "Connected"
             let askClientForRoute = do
                   msg :: Text <- liftIO $ WS.receiveData conn
-                  -- TODO: Let non-html routes pass through.
-                  let pathInfo = pathInfoFromWsMsg msg
-                  log LevelDebug $ "<~~ " <> show pathInfo
-                  pure pathInfo
-                decodeRouteWithCurrentModel pathInfo = do
+                  log LevelDebug $ "<~~ " <> show msg
+                  pure msg
+                decodeRouteWithCurrentModel path = do
                   val <- LVar.get model
-                  pure $ routeFromPathInfo val pathInfo
-                sendRouteHtmlToClient pathInfo s = do
-                  decodeRouteWithCurrentModel pathInfo >>= \case
+                  pure $ decodeUrlRoute val path
+                sendRouteHtmlToClient path s = do
+                  decodeRouteWithCurrentModel path >>= \case
                     Left err -> do
                       log LevelError $ badRouteEncodingMsg err
                       liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
@@ -152,9 +150,10 @@ runServerWithWebSocketHotReload host mport model = do
     httpApp logger req f = do
       flip runLoggingT logger $ do
         val <- LVar.get model
-        let path = Wai.pathInfo req
-            mr = routeFromPathInfo val path
-        logInfoNS "ema.http" $ "GET " <> ("/" <> T.intercalate "/" path) <> " as " <> show mr
+        let pathInfo = Wai.pathInfo req
+            path = T.intercalate "/" pathInfo
+            mr = decodeUrlRoute val path
+        logInfoNS "ema.http" $ "GET " <> path <> " as " <> show mr
         case mr of
           Left err -> do
             logErrorNS "App" $ badRouteEncodingMsg err
@@ -181,8 +180,6 @@ runServerWithWebSocketHotReload host mport model = do
         pure $
           AssetGenerated Html . mkHtmlErrorMsg $
             show @Text err
-    routeFromPathInfo m =
-      decodeUrlRoute m . T.intercalate "/"
     -- Decode an URL path into a route
     --
     -- This function is used only in live server. If the route is not
@@ -201,13 +198,6 @@ emaErrorHtmlResponse err =
 mkHtmlErrorMsg :: Text -> LByteString
 mkHtmlErrorMsg s =
   encodeUtf8 . T.replace "MESSAGE" s . decodeUtf8 $ $(embedFile "www/ema-error.html")
-
-{- | Return the equivalent of WAI's @pathInfo@, from the raw path string
- (`document.location.pathname`) the browser sends us.
--}
-pathInfoFromWsMsg :: Text -> [Text]
-pathInfoFromWsMsg =
-  filter (/= "") . T.splitOn "/" . T.drop 1
 
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (route decoding returned Nothing)"
