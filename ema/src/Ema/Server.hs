@@ -97,11 +97,8 @@ runServerWithWebSocketHotReload host mport model = do
                   msg :: Text <- liftIO $ WS.receiveData conn
                   log LevelDebug $ "<~~ " <> show msg
                   pure msg
-                decodeRouteWithCurrentModel path = do
-                  val <- LVar.get model
-                  pure $ decodeUrlRoute val path
                 sendRouteHtmlToClient path s = do
-                  decodeRouteWithCurrentModel path >>= \case
+                  decodeUrlRoute s path & \case
                     Left err -> do
                       log LevelError $ badRouteEncodingMsg err
                       liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
