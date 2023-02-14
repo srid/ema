@@ -5,8 +5,6 @@
 
 module Ema.Server where
 
-import Control.Concurrent.Async (race)
-import Control.Exception (try)
 import Control.Monad.Logger
 import Data.FileEmbed
 import Data.LVar (LVar)
@@ -36,8 +34,9 @@ import Network.WebSockets qualified as WS
 import Optics.Core (review)
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
+import UnliftIO.Async (race)
 import UnliftIO.Concurrent (threadDelay)
-import UnliftIO.Exception (catch)
+import UnliftIO.Exception (catch, try)
 
 runServerWithWebSocketHotReload ::
   forall r m.
@@ -62,7 +61,7 @@ runServerWithWebSocketHotReload host mport model = do
       app =
         WaiWs.websocketsOr
           WS.defaultConnectionOptions
-          (runM . wsApp)
+          (wsApp logger)
           (httpApp logger)
       banner port = do
         logInfoNS "ema" "==============================================="
@@ -83,10 +82,9 @@ runServerWithWebSocketHotReload host mport model = do
         Just port -> do
           void $ banner port
           Warp.runSettings (settings & Warp.setPort port) app
-    wsApp pendingConn = do
-      conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
-      logger <- askLoggerIO
-      lift $
+    wsApp logger pendingConn = do
+      conn :: WS.Connection <- WS.acceptRequest pendingConn
+      (\x -> x) $
         WS.withPingThread conn 30 pass $
           flip runLoggingT logger $ do
             subId <- LVar.addListener model
@@ -116,26 +114,26 @@ runServerWithWebSocketHotReload host mport model = do
                           liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
                       log LevelDebug $ " ~~> " <> show r
                 -- @mWatchingRoute@ is the route currently being watched.
-                loop mWatchingRoute = flip runLoggingT logger $ do
+                loop mWatchingRoute =
                   -- Listen *until* either we get a new value, or the client requests
                   -- to switch to a new route.
-                  liftIO $ do
-                    race (LVar.listenNext model subId) (runLoggingT askClientForRoute logger) >>= \res -> flip runLoggingT logger $ case res of
+                  (\x -> x) $
+                    race (LVar.listenNext model subId) askClientForRoute >>= \case
                       Left newModel -> do
                         -- The page the user is currently viewing has changed. Send
                         -- the new HTML to them.
                         sendRouteHtmlToClient mWatchingRoute newModel
-                        lift $ loop mWatchingRoute
+                        loop mWatchingRoute
                       Right mNextRoute -> do
                         -- The user clicked on a route link; send them the HTML for
                         -- that route this time, ignoring what we are watching
                         -- currently (we expect the user to initiate a watch route
                         -- request immediately following this).
                         sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                        lift $ loop mNextRoute
+                        loop mNextRoute
             -- Wait for the client to send the first request with the initial route.
             mInitialRoute <- askClientForRoute
-            liftIO (try $ loop mInitialRoute) >>= \case
+            try (loop mInitialRoute) >>= \case
               Right () -> pass
               Left (connExc :: ConnectionException) -> do
                 case connExc of
