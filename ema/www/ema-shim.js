@@ -167,7 +167,6 @@ function init(reconnecting) {
             if (window.location.hash) {
                 scrollToAnchor(window.location.hash);
             }
-            watchCurrentRoute();
         };
     };
     window.onbeforeunload = evt => { ws.close(); };

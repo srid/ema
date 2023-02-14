@@ -120,14 +120,8 @@ runServerWithWebSocketHotReload host mport model = do
                         AssetGenerated Other _s ->
                           liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
                       log LevelDebug $ " ~~> " <> show r
-                loop = flip runLoggingT logger $ do
-                  -- Notice that we @askClientForRoute@ in succession twice here.
-                  -- The first route will be the route the client intends to observe
-                  -- for changes on. The second route, *if* it is sent, indicates
-                  -- that the client wants to *switch* to that route. This proecess
-                  -- repeats ad infinitum: i.e., the third route is for observing
-                  -- changes, the fourth route is for switching to, and so on.
-                  mWatchingRoute <- askClientForRoute
+                -- @mWatchingRoute@ is the route currently being watched.
+                loop mWatchingRoute = flip runLoggingT logger $ do
                   -- Listen *until* either we get a new value, or the client requests
                   -- to switch to a new route.
                   liftIO $ do
@@ -136,15 +130,17 @@ runServerWithWebSocketHotReload host mport model = do
                         -- The page the user is currently viewing has changed. Send
                         -- the new HTML to them.
                         sendRouteHtmlToClient mWatchingRoute newModel
-                        lift loop
+                        lift $ loop mWatchingRoute
                       Right mNextRoute -> do
                         -- The user clicked on a route link; send them the HTML for
                         -- that route this time, ignoring what we are watching
                         -- currently (we expect the user to initiate a watch route
                         -- request immediately following this).
                         sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                        lift loop
-            liftIO (try loop) >>= \case
+                        lift $ loop mNextRoute
+            -- Wait for the client to send the first request with the initial route.
+            mInitialRoute <- askClientForRoute
+            liftIO (try $ loop mInitialRoute) >>= \case
               Right () -> pass
               Left (connExc :: ConnectionException) -> do
                 case connExc of
