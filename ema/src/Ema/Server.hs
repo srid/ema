@@ -5,8 +5,6 @@
 
 module Ema.Server where
 
-import Control.Concurrent.Async (race)
-import Control.Exception (try)
 import Control.Monad.Logger
 import Data.FileEmbed
 import Data.LVar (LVar)
@@ -36,8 +34,9 @@ import Network.WebSockets qualified as WS
 import Optics.Core (review)
 import Text.Printf (printf)
 import UnliftIO (MonadUnliftIO)
+import UnliftIO.Async (race)
 import UnliftIO.Concurrent (threadDelay)
-import UnliftIO.Exception (catch)
+import UnliftIO.Exception (catch, try)
 
 runServerWithWebSocketHotReload ::
   forall r m.
@@ -62,7 +61,7 @@ runServerWithWebSocketHotReload host mport model = do
       app =
         WaiWs.websocketsOr
           WS.defaultConnectionOptions
-          (runM . wsApp)
+          (wsApp logger)
           (httpApp logger)
       banner port = do
         logInfoNS "ema" "==============================================="
@@ -83,82 +82,71 @@ runServerWithWebSocketHotReload host mport model = do
         Just port -> do
           void $ banner port
           Warp.runSettings (settings & Warp.setPort port) app
-    wsApp pendingConn = do
-      conn :: WS.Connection <- lift $ WS.acceptRequest pendingConn
-      logger <- askLoggerIO
-      lift $
-        WS.withPingThread conn 30 pass $
-          flip runLoggingT logger $ do
-            subId <- LVar.addListener model
-            let log lvl (s :: Text) =
-                  logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
-            log LevelInfo "Connected"
-            let askClientForRoute = do
-                  msg :: Text <- liftIO $ WS.receiveData conn
-                  -- TODO: Let non-html routes pass through.
-                  let pathInfo = pathInfoFromWsMsg msg
-                  log LevelDebug $ "<~~ " <> show pathInfo
-                  pure pathInfo
-                decodeRouteWithCurrentModel pathInfo = do
-                  val <- LVar.get model
-                  pure $ routeFromPathInfo val pathInfo
-                sendRouteHtmlToClient pathInfo s = do
-                  decodeRouteWithCurrentModel pathInfo >>= \case
-                    Left err -> do
-                      log LevelError $ badRouteEncodingMsg err
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
-                    Right Nothing ->
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
-                    Right (Just r) -> do
-                      renderCatchingErrors s r >>= \case
-                        AssetGenerated Html html ->
-                          liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
-                        -- HACK: We expect the websocket client should check for REDIRECT prefix.
-                        -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
-                        AssetStatic _staticPath ->
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                        AssetGenerated Other _s ->
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                      log LevelDebug $ " ~~> " <> show r
-                loop = flip runLoggingT logger $ do
-                  -- Notice that we @askClientForRoute@ in succession twice here.
-                  -- The first route will be the route the client intends to observe
-                  -- for changes on. The second route, *if* it is sent, indicates
-                  -- that the client wants to *switch* to that route. This proecess
-                  -- repeats ad infinitum: i.e., the third route is for observing
-                  -- changes, the fourth route is for switching to, and so on.
-                  mWatchingRoute <- askClientForRoute
-                  -- Listen *until* either we get a new value, or the client requests
-                  -- to switch to a new route.
-                  liftIO $ do
-                    race (LVar.listenNext model subId) (runLoggingT askClientForRoute logger) >>= \res -> flip runLoggingT logger $ case res of
-                      Left newModel -> do
-                        -- The page the user is currently viewing has changed. Send
-                        -- the new HTML to them.
-                        sendRouteHtmlToClient mWatchingRoute newModel
-                        lift loop
-                      Right mNextRoute -> do
-                        -- The user clicked on a route link; send them the HTML for
-                        -- that route this time, ignoring what we are watching
-                        -- currently (we expect the user to initiate a watch route
-                        -- request immediately following this).
-                        sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                        lift loop
-            liftIO (try loop) >>= \case
-              Right () -> pass
-              Left (connExc :: ConnectionException) -> do
-                case connExc of
-                  WS.CloseRequest _ (decodeUtf8 -> reason) ->
-                    log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
-                  _ ->
-                    log LevelError $ "Websocket error: " <> show connExc
-                LVar.removeListener model subId
+    wsApp logger pendingConn = do
+      conn :: WS.Connection <- WS.acceptRequest pendingConn
+      WS.withPingThread conn 30 pass $
+        flip runLoggingT logger $ do
+          subId <- LVar.addListener model
+          let log lvl (s :: Text) =
+                logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
+          log LevelInfo "Connected"
+          let askClientForRoute = do
+                msg :: Text <- liftIO $ WS.receiveData conn
+                log LevelDebug $ "<~~ " <> show msg
+                pure msg
+              sendRouteHtmlToClient path s = do
+                decodeUrlRoute s path & \case
+                  Left err -> do
+                    log LevelError $ badRouteEncodingMsg err
+                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
+                  Right Nothing ->
+                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
+                  Right (Just r) -> do
+                    renderCatchingErrors s r >>= \case
+                      AssetGenerated Html html ->
+                        liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
+                      -- HACK: We expect the websocket client should check for REDIRECT prefix.
+                      -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
+                      AssetStatic _staticPath ->
+                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
+                      AssetGenerated Other _s ->
+                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
+                    log LevelDebug $ " ~~> " <> show r
+              -- @mWatchingRoute@ is the route currently being watched.
+              loop mWatchingRoute =
+                -- Listen *until* either we get a new value, or the client requests
+                -- to switch to a new route.
+                race (LVar.listenNext model subId) askClientForRoute >>= \case
+                  Left newModel -> do
+                    -- The page the user is currently viewing has changed. Send
+                    -- the new HTML to them.
+                    sendRouteHtmlToClient mWatchingRoute newModel
+                    loop mWatchingRoute
+                  Right mNextRoute -> do
+                    -- The user clicked on a route link; send them the HTML for
+                    -- that route this time, ignoring what we are watching
+                    -- currently (we expect the user to initiate a watch route
+                    -- request immediately following this).
+                    sendRouteHtmlToClient mNextRoute =<< LVar.get model
+                    loop mNextRoute
+          -- Wait for the client to send the first request with the initial route.
+          mInitialRoute <- askClientForRoute
+          try (loop mInitialRoute) >>= \case
+            Right () -> pass
+            Left (connExc :: ConnectionException) -> do
+              case connExc of
+                WS.CloseRequest _ (decodeUtf8 -> reason) ->
+                  log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
+                _ ->
+                  log LevelError $ "Websocket error: " <> show connExc
+              LVar.removeListener model subId
     httpApp logger req f = do
       flip runLoggingT logger $ do
         val <- LVar.get model
-        let path = Wai.pathInfo req
-            mr = routeFromPathInfo val path
-        logInfoNS "ema.http" $ "GET " <> ("/" <> T.intercalate "/" path) <> " as " <> show mr
+        let pathInfo = Wai.pathInfo req
+            path = T.intercalate "/" pathInfo
+            mr = decodeUrlRoute val path
+        logInfoNS "ema.http" $ "GET " <> path <> " as " <> show mr
         case mr of
           Left err -> do
             logErrorNS "App" $ badRouteEncodingMsg err
@@ -185,8 +173,6 @@ runServerWithWebSocketHotReload host mport model = do
         pure $
           AssetGenerated Html . mkHtmlErrorMsg $
             show @Text err
-    routeFromPathInfo m =
-      decodeUrlRoute m . T.intercalate "/"
     -- Decode an URL path into a route
     --
     -- This function is used only in live server. If the route is not
@@ -205,13 +191,6 @@ emaErrorHtmlResponse err =
 mkHtmlErrorMsg :: Text -> LByteString
 mkHtmlErrorMsg s =
   encodeUtf8 . T.replace "MESSAGE" s . decodeUtf8 $ $(embedFile "www/ema-error.html")
-
-{- | Return the equivalent of WAI's @pathInfo@, from the raw path string
- (`document.location.pathname`) the browser sends us.
--}
-pathInfoFromWsMsg :: Text -> [Text]
-pathInfoFromWsMsg =
-  filter (/= "") . T.splitOn "/" . T.drop 1
 
 decodeRouteNothingMsg :: Text
 decodeRouteNothingMsg = "Ema: 404 (route decoding returned Nothing)"
