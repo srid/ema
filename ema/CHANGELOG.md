@@ -1,5 +1,9 @@
 # Revision history for ema
 
+## 0.10.2.0 (Unreleased)
+
+- Simply websocket route observation logic (\#154)
+
 ## 0.10.0.0 (2022-11-20)
 
 - Split Ema into multiple packages:
