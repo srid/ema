@@ -1,2 +1,5 @@
 packages:
-    */*.cabal
+  ./ema
+  ./ema-examples
+  ./ema-extra
+  ./ema-generics
