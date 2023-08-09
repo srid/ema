@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## 0.10.2.0 (Unreleased)
+## 0.10.2.0 (2023-08-09)
 
 - Simply websocket route observation logic (\#154)
 
