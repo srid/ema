@@ -6,7 +6,6 @@
     haskell-flake.url = "github:srid/haskell-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     flake-root.url = "github:srid/flake-root";
-    check-flake.url = "github:srid/check-flake";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -15,7 +14,6 @@
         inputs.haskell-flake.flakeModule
         inputs.flake-root.flakeModule
         inputs.treefmt-nix.flakeModule
-        inputs.check-flake.flakeModule
       ];
       perSystem = { config, pkgs, ... }: {
         # This attr is provided by https://github.com/srid/haskell-flake
