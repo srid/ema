@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema-extra
-version:            0.10.0.0
+version:            0.10.0.1
 license:            AGPL-3.0-only
 copyright:          2022 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -17,7 +17,6 @@ extra-source-files:
 
 common extensions
   default-extensions:
-    NoStarIsType
     BangPatterns
     ConstraintKinds
     DataKinds
@@ -43,6 +42,7 @@ common extensions
     LambdaCase
     MultiParamTypeClasses
     MultiWayIf
+    NoStarIsType
     NumericUnderscores
     OverloadedStrings
     PolyKinds
@@ -66,7 +66,7 @@ library
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
   build-depends:
-    , base           >=4.13.0.0 && <4.17.0.0.0
+    , base           >=4.13.0.0 && <4.99
     , containers
     , data-default
     , dependent-sum

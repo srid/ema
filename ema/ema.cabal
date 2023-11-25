@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               ema
-version:            0.10.2.0
+version:            0.10.2.1
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
@@ -28,7 +28,6 @@ data-files:
 
 common extensions
   default-extensions:
-    NoStarIsType
     BangPatterns
     ConstraintKinds
     DataKinds
@@ -54,6 +53,7 @@ common extensions
     LambdaCase
     MultiParamTypeClasses
     MultiWayIf
+    NoStarIsType
     NumericUnderscores
     OverloadedStrings
     PolyKinds
@@ -79,7 +79,7 @@ library
   build-depends:
     , aeson
     , async
-    , base                    >=4.13.0.0 && <4.17.0.0.0
+    , base                    >=4.13.0.0 && <4.99
     , constraints-extras
     , data-default
     , dependent-sum
