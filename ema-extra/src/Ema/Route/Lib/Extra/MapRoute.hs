@@ -47,7 +47,7 @@ instance (IsRoute r, IsString k, ToString k, Ord k, Show r) => IsRoute (MapRoute
         )
     where
       -- Breaks a path once on the first slash.
-      breakPath :: HasCallStack => String -> (String, Maybe [Char])
+      breakPath :: (HasCallStack) => String -> (String, Maybe [Char])
       breakPath (s :: String) =
         case T.breakOn "/" (toText s) of
           (p, "") -> (toString p, Nothing)

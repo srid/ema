@@ -50,14 +50,14 @@ fromNum n = do
   pure $ fromInteger . toInteger $ n - 1
 
 -- | Enumerate list of all pages given the total number of pages.
-pageRange :: forall a. HasCallStack => Int -> NonEmpty (Page a)
+pageRange :: forall a. (HasCallStack) => Int -> NonEmpty (Page a)
 pageRange total =
   fromMaybe (error "pageRange: total must be positive and non-zero") $ do
     end <- fromNum @a total
     nonEmpty [def .. end]
 
 -- | Retrieve the given page from the list.
-lookupPage :: HasCallStack => Page a -> NonEmpty [a] -> [a]
+lookupPage :: (HasCallStack) => Page a -> NonEmpty [a] -> [a]
 lookupPage r xs =
   fromMaybe (error outOfBoundsError) $ lookupPage' r xs
   where

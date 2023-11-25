@@ -33,7 +33,7 @@ import UnliftIO (MonadUnliftIO)
   Finally, `Ema.App.runSite @r arg` (where `arg` is of type `SiteArg`) is run
   from the `main` entry point to run your Ema site.
 -}
-class IsRoute r => EmaSite r where
+class (IsRoute r) => EmaSite r where
   -- | `SiteArg` is typically settings from the environment (config file, or
   --    command-line arguments) that your Dynamic-producing `siteInput` function
   --    consumes as argument.

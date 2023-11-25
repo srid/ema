@@ -18,7 +18,7 @@ import Optics.Core (coercedTo, only, (%))
 newtype FileRoute (filename :: Symbol) = FileRoute ()
   deriving stock (Eq, Ord, Show, Generic)
 
-instance KnownSymbol fn => IsRoute (FileRoute fn) where
+instance (KnownSymbol fn) => IsRoute (FileRoute fn) where
   type RouteModel (FileRoute fn) = ()
   routePrism () =
     toPrism_ $

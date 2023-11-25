@@ -79,7 +79,7 @@ lookupPandocRoute model r = do
   let render = PandocHtml . renderHtml (argWriterOpts $ modelArg model)
   pure (pandoc, render)
   where
-    renderHtml :: HasCallStack => Pandoc.WriterOptions -> Pandoc -> Text
+    renderHtml :: (HasCallStack) => Pandoc.WriterOptions -> Pandoc -> Text
     renderHtml writerSettings pandoc =
       either (throw . PandocError_RenderError . show) id $
         Pandoc.runPure $
@@ -155,7 +155,7 @@ pandocFilesDyn baseDir formats readerOpts = do
         Right doc -> do
           pure (r, doc)
 
-log :: MonadLogger m => Text -> m ()
+log :: (MonadLogger m) => Text -> m ()
 log = logInfoNS "PandocRoute"
 
 data PandocError
