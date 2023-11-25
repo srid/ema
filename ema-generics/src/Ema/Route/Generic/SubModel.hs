@@ -16,7 +16,7 @@ import Generics.SOP (I (..), NP (Nil, (:*)))
 import Optics.Core (united, view)
 import Prelude hiding (All)
 
-class HasSubRoutes r => HasSubModels r where
+class (HasSubRoutes r) => HasSubModels r where
   -- | Break the model into a list of sub-models used correspondingly by the sub-routes.
   subModels :: RouteModel r -> NP I (MultiModel (SubRoutes r))
 
@@ -38,5 +38,5 @@ instance
 instance {-# OVERLAPPING #-} HasAny () s s () () where
   the = united
 
-instance HasAny sel s t a b => HasAny (Proxy sel) s t a b where
+instance (HasAny sel s t a b) => HasAny (Proxy sel) s t a b where
   the = the @sel

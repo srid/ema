@@ -47,7 +47,7 @@ instance IsRoute (StaticRoute baseDir) where
   routeUniverse (modelFiles -> files) =
     StaticRoute <$> Map.keys files
 
-instance KnownSymbol baseDir => EmaSite (StaticRoute baseDir) where
+instance (KnownSymbol baseDir) => EmaSite (StaticRoute baseDir) where
   siteInput cliAct _ = do
     files <- staticFilesDynamic $ symbolVal (Proxy @baseDir)
     pure $ Model cliAct <$> files

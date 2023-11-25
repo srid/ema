@@ -202,7 +202,7 @@ data BadRouteEncoding r = BadRouteEncoding
   }
   deriving stock (Show)
 
-badRouteEncodingMsg :: Show r => BadRouteEncoding r -> Text
+badRouteEncodingMsg :: (Show r) => BadRouteEncoding r -> Text
 badRouteEncodingMsg BadRouteEncoding {..} =
   toText $
     "A route Prism' is unlawful.\n\nThe URL '"

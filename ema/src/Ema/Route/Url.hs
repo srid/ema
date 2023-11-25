@@ -20,7 +20,7 @@ import Optics.Core (Prism', review)
  site's base URL or path (typically just `/`). Otherwise you must accordingly
  make these URLs absolute yourself.
 -}
-routeUrlWith :: HasCallStack => UrlStrategy -> Prism' FilePath r -> r -> Text
+routeUrlWith :: (HasCallStack) => UrlStrategy -> Prism' FilePath r -> r -> Text
 routeUrlWith urlStrategy rp =
   relUrlFromPath . review rp
   where
@@ -36,7 +36,7 @@ routeUrlWith urlStrategy rp =
         Nothing ->
           T.intercalate "/" $ filepathToUrl fp
       where
-        removeLastIfOneOf :: Eq a => [a] -> NonEmpty a -> [a]
+        removeLastIfOneOf :: (Eq a) => [a] -> NonEmpty a -> [a]
         removeLastIfOneOf x xs =
           if last xs `elem` x
             then init xs
@@ -54,7 +54,7 @@ urlToFilePath =
   toString . T.intercalate "/" . fmap (Slug.unSlug . Slug.decodeSlug) . T.splitOn "/"
 
 -- | Like `routeUrlWith` but uses @UrlDirect@ strategy
-routeUrl :: HasCallStack => Prism' FilePath r -> r -> Text
+routeUrl :: (HasCallStack) => Prism' FilePath r -> r -> Text
 routeUrl =
   routeUrlWith UrlDirect
 

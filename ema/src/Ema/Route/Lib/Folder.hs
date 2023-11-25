@@ -34,7 +34,7 @@ instance (EmaStaticSite r, KnownSymbol prefix) => EmaSite (FolderRoute prefix r)
 -- | Prefix the encoding of the given route prism.
 prefixRoutePrism ::
   forall prefix r.
-  KnownSymbol prefix =>
+  (KnownSymbol prefix) =>
   (RouteModel r -> Prism_ FilePath r) ->
   (RouteModel r -> Prism_ FilePath (FolderRoute prefix r))
 prefixRoutePrism =

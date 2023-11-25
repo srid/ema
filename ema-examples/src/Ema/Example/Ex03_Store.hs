@@ -114,7 +114,7 @@ instance EmaSite Route where
         liftIO (eitherDecodeFileStrict' $ dataDir </> "store.json") >>= \case
           Left err -> liftIO $ throwIO $ StoreFileMalformed err
           Right store -> pure store
-      log :: MonadLogger m => Text -> m ()
+      log :: (MonadLogger m) => Text -> m ()
       log = logInfoNS "Ex03_Store"
   siteOutput rp (Model storeName ps cats) r =
     pure . Ema.AssetGenerated Ema.Html $
