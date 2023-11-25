@@ -10,18 +10,10 @@ jobs:
     env:
       MAINLINE: refs/heads/master
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v17
+      - uses: actions/checkout@v3
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: yaxitech/nix-install-pkgs-action@v3
         with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      - name: Build 🔧
-        run: |
-          nix build -j4 --no-link .#ema
-          nix build -j4 --no-link .#ema-extra
-          nix build -j4 --no-link .#ema-generics
-          nix build -j4 --no-link .#ema-examples
-      - name: Flake checks 🧪
-        run: |
-          nix build -j4 --no-link .#check
+          packages: "nixpkgs#nixci"
+      - run: nixci
