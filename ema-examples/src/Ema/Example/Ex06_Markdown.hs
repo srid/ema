@@ -125,7 +125,8 @@ runWithFollow ::
   IO ()
 runWithFollow input = do
   cli <- CLI.cliAction
-  result <- snd <$> runSiteWithServerOpts @Route followServerOptions cli input
+  let cfg = SiteConfig cli followServerOptions
+  result <- snd <$> runSiteWith @Route cfg input
   case result of
     CLI.Run _ :=> Identity () ->
       flip runLoggerLoggingT (CLI.getLogger cli) $
