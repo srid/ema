@@ -20,7 +20,7 @@ import Ema
 import Ema.CLI qualified as CLI
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.PandocRoute qualified as Pandoc
-import Ema.Server (EmaServerOptions (..), EmaWsHandler, defaultEmaWsHandler, wsClientJS)
+import Ema.Server (EmaServerOptions (..), EmaWsHandler (..), wsClientJS)
 import Network.WebSockets qualified as WS
 import Optics.Core ((%))
 import System.Directory (makeAbsolute)
@@ -103,17 +103,18 @@ wsConnDyn arg = do
           conn :: WS.Connection <- WS.acceptRequest pendingConn
           log "websocket connected"
           WS.withPingThread conn 30 pass $
-            void $ infinitely do
-              msg <- liftIO $ toString @Text <$> WS.receiveData conn
-              log $ "got message: " <> show msg
-              baseDir <- makeAbsolute (Pandoc.argBaseDir $ pandocArg arg)
-              let fp = makeRelative baseDir msg
-              case Pandoc.mkPandocRoute fp of
-                Just (_, route)
-                  -- We should have received an absolute file path inside the base dir
-                  | isAbsolute msg && isRelative fp ->
-                      atomically $ writeTChan value (Route route)
-                _ -> pass
+            void $
+              infinitely do
+                msg <- liftIO $ toString @Text <$> WS.receiveData conn
+                log $ "got message: " <> show msg
+                baseDir <- makeAbsolute (Pandoc.argBaseDir $ pandocArg arg)
+                let fp = makeRelative baseDir msg
+                case Pandoc.mkPandocRoute fp of
+                  Just (_, route)
+                    -- We should have received an absolute file path inside the base dir
+                    | isAbsolute msg && isRelative fp ->
+                        atomically $ writeTChan value (Route route)
+                  _ -> pass
   return $ Dynamic (value, const manage)
 
 main :: IO ()
@@ -135,19 +136,22 @@ followServerOptions :: EmaServerOptions Route
 followServerOptions = EmaServerOptions wsClientJS followServerHandler
 
 followServerHandler :: EmaWsHandler Route
-followServerHandler conn model =
-  either id id <$> race (defaultEmaWsHandler @() conn ()) followHandler
+followServerHandler = EmaWsHandler handle
   where
-    rp = fromPrism_ $ routePrism model
-    log = logInfoNS "followServerHandler"
-    followHandler = do
-      listenerChan <- atomically $ dupTChan $ wsNextRoute model
-      route <- atomically $ readTChan listenerChan
-      let Route pRoute = route
-          path = routeUrl rp route
-      if pRoute `member` Pandoc.modelPandocs (pandocModel model)
-        then do
-          log $ "switching to " <> show pRoute
-          liftIO $ WS.sendTextData conn $ "SWITCH " <> path
-        else log $ "invalid route " <> show pRoute
-      followHandler
+    defaultHandler = unEmaWsHandler $ def @(EmaWsHandler ())
+    handle conn model = do
+      either id id <$> race (defaultHandler conn ()) followHandler
+      where
+        rp = fromPrism_ $ routePrism model
+        log = logInfoNS "followServerHandler"
+        followHandler = do
+          listenerChan <- atomically $ dupTChan $ wsNextRoute model
+          route <- atomically $ readTChan listenerChan
+          let Route pRoute = route
+              path = routeUrl rp route
+          if pRoute `member` Pandoc.modelPandocs (pandocModel model)
+            then do
+              log $ "switching to " <> show pRoute
+              liftIO $ WS.sendTextData conn $ "SWITCH " <> path
+            else log $ "invalid route " <> show pRoute
+          followHandler

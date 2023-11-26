@@ -11,6 +11,7 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race_)
 import Control.Monad.Logger (LoggingT (runLoggingT), MonadLoggerIO (askLoggerIO), logInfoNS, logWarnNS)
 import Control.Monad.Logger.Extras (runLoggerLoggingT)
+import Data.Default (def)
 import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
 import Data.Some (Some (Some))
@@ -66,7 +67,7 @@ runSiteWithCli ::
       RouteModel r
     , DSum CLI.Action Identity
     )
-runSiteWithCli = runSiteWithServerOpts @r Server.defaultEmaServerOptions
+runSiteWithCli = runSiteWithServerOpts @r def
 
 -- | Like @runSiteWithCli@ but takes Ema server options.
 runSiteWithServerOpts ::

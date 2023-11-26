@@ -6,6 +6,7 @@
 module Ema.Server where
 
 import Control.Monad.Logger
+import Data.Default (Default (def))
 import Data.FileEmbed
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
@@ -49,23 +50,26 @@ import UnliftIO.Exception (catch, try)
   Also note that whenever the model is updated, the handler action will be
   stopped and then restarted with the new model as argument.
 -}
-type EmaWsHandler r = WS.Connection -> RouteModel r -> LoggingT IO Text
+newtype EmaWsHandler r = EmaWsHandler
+  { unEmaWsHandler :: WS.Connection -> RouteModel r -> LoggingT IO Text
+  }
+
+instance Default (EmaWsHandler r) where
+  def = EmaWsHandler $ \conn _model -> do
+    msg :: Text <- liftIO $ WS.receiveData conn
+    log LevelDebug $ "<~~ " <> show msg
+    pure msg
+    where
+      log lvl (t :: Text) = logWithoutLoc "ema.ws" lvl t
 
 data EmaServerOptions r = EmaServerOptions
   { emaServerShim :: LByteString
   , emaServerWsHandler :: EmaWsHandler r
   }
 
-defaultEmaWsHandler :: forall r. EmaWsHandler r
-defaultEmaWsHandler conn _model = do
-  msg :: Text <- liftIO $ WS.receiveData conn
-  log LevelDebug $ "<~~ " <> show msg
-  pure msg
-  where
-    log lvl (t :: Text) = logWithoutLoc "ema.ws" lvl t
-
-defaultEmaServerOptions :: forall r. EmaServerOptions r
-defaultEmaServerOptions = EmaServerOptions wsClientJS (defaultEmaWsHandler @r)
+instance Default (EmaServerOptions r) where
+  def =
+    EmaServerOptions wsClientJS def
 
 runServerWithWebSocketHotReload ::
   forall r m.
@@ -115,59 +119,60 @@ runServerWithWebSocketHotReload opts host mport model = do
     wsApp logger pendingConn = do
       conn :: WS.Connection <- WS.acceptRequest pendingConn
       WS.withPingThread conn 30 pass $
-        flip runLoggingT logger $ do
-          subId <- LVar.addListener model
-          let log lvl (s :: Text) =
-                logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
-          log LevelInfo "Connected"
-          let wsHandler = emaServerWsHandler opts conn
-              sendRouteHtmlToClient path s = do
-                decodeUrlRoute s path & \case
-                  Left err -> do
-                    log LevelError $ badRouteEncodingMsg err
-                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
-                  Right Nothing ->
-                    liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
-                  Right (Just r) -> do
-                    renderCatchingErrors s r >>= \case
-                      AssetGenerated Html html ->
-                        liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
-                      -- HACK: We expect the websocket client should check for REDIRECT prefix.
-                      -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
-                      AssetStatic _staticPath ->
-                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                      AssetGenerated Other _s ->
-                        liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                    log LevelDebug $ " ~~> " <> show r
-              -- @mWatchingRoute@ is the route currently being watched.
-              loop mWatchingRoute = do
-                -- Listen *until* either we get a new value, or the client requests
-                -- to switch to a new route.
-                currentModel <- LVar.get model
-                race (LVar.listenNext model subId) (wsHandler currentModel) >>= \case
-                  Left newModel -> do
-                    -- The page the user is currently viewing has changed. Send
-                    -- the new HTML to them.
-                    sendRouteHtmlToClient mWatchingRoute newModel
-                    loop mWatchingRoute
-                  Right mNextRoute -> do
-                    -- The user clicked on a route link; send them the HTML for
-                    -- that route this time, ignoring what we are watching
-                    -- currently (we expect the user to initiate a watch route
-                    -- request immediately following this).
-                    sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                    loop mNextRoute
-          -- Wait for the client to send the first request with the initial route.
-          mInitialRoute <- wsHandler =<< LVar.get model
-          try (loop mInitialRoute) >>= \case
-            Right () -> pass
-            Left (connExc :: ConnectionException) -> do
-              case connExc of
-                WS.CloseRequest _ (decodeUtf8 -> reason) ->
-                  log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
-                _ ->
-                  log LevelError $ "Websocket error: " <> show connExc
-              LVar.removeListener model subId
+        flip runLoggingT logger $
+          do
+            subId <- LVar.addListener model
+            let log lvl (s :: Text) =
+                  logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
+            log LevelInfo "Connected"
+            let wsHandler = unEmaWsHandler (emaServerWsHandler opts) conn
+                sendRouteHtmlToClient path s = do
+                  decodeUrlRoute s path & \case
+                    Left err -> do
+                      log LevelError $ badRouteEncodingMsg err
+                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
+                    Right Nothing ->
+                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
+                    Right (Just r) -> do
+                      renderCatchingErrors s r >>= \case
+                        AssetGenerated Html html ->
+                          liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
+                        -- HACK: We expect the websocket client should check for REDIRECT prefix.
+                        -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
+                        AssetStatic _staticPath ->
+                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
+                        AssetGenerated Other _s ->
+                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
+                      log LevelDebug $ " ~~> " <> show r
+                -- @mWatchingRoute@ is the route currently being watched.
+                loop mWatchingRoute = do
+                  -- Listen *until* either we get a new value, or the client requests
+                  -- to switch to a new route.
+                  currentModel <- LVar.get model
+                  race (LVar.listenNext model subId) (wsHandler currentModel) >>= \case
+                    Left newModel -> do
+                      -- The page the user is currently viewing has changed. Send
+                      -- the new HTML to them.
+                      sendRouteHtmlToClient mWatchingRoute newModel
+                      loop mWatchingRoute
+                    Right mNextRoute -> do
+                      -- The user clicked on a route link; send them the HTML for
+                      -- that route this time, ignoring what we are watching
+                      -- currently (we expect the user to initiate a watch route
+                      -- request immediately following this).
+                      sendRouteHtmlToClient mNextRoute =<< LVar.get model
+                      loop mNextRoute
+            -- Wait for the client to send the first request with the initial route.
+            mInitialRoute <- wsHandler =<< LVar.get model
+            try (loop mInitialRoute) >>= \case
+              Right () -> pass
+              Left (connExc :: ConnectionException) -> do
+                case connExc of
+                  WS.CloseRequest _ (decodeUtf8 -> reason) ->
+                    log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
+                  _ ->
+                    log LevelError $ "Websocket error: " <> show connExc
+                LVar.removeListener model subId
     httpApp logger req f = do
       flip runLoggingT logger $ do
         val <- LVar.get model
@@ -198,9 +203,10 @@ runServerWithWebSocketHotReload opts host mport model = do
       catch (siteOutput (fromPrism_ $ enc m) m r) $ \(err :: SomeException) -> do
         -- Log the error first.
         logErrorNS "App" $ show @Text err
-        pure $
-          AssetGenerated Html . mkHtmlErrorMsg $
-            show @Text err
+        pure
+          $ AssetGenerated Html
+            . mkHtmlErrorMsg
+          $ show @Text err
     -- Decode an URL path into a route
     --
     -- This function is used only in live server. If the route is not
