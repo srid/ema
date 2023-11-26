@@ -156,6 +156,9 @@ function init(reconnecting) {
         if (evt.data.startsWith("REDIRECT ")) {
             console.log("ema: redirect");
             document.location.href = evt.data.slice("REDIRECT ".length);
+        } else if (evt.data.startsWith("SWITCH ")) {
+            console.log("ema: switch");
+            switchRoute(evt.data.slice("SWITCH ".length));
         } else {
             console.log("ema: ✍ Patching DOM");
             setHtml(document.documentElement, evt.data);
