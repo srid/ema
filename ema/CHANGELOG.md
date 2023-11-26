@@ -1,5 +1,10 @@
 # Revision history for ema
 
+## Unreleased (0.10.4.0)
+
+- Relax `base` constraint forever
+- Live server shim/websocket customization ([\#152](https://github.com/srid/ema/pull/152)) @lucasvreis
+
 ## 0.10.2.0 (2023-08-09)
 
 - Simply websocket route observation logic (\#154)
