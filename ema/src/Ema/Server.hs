@@ -22,7 +22,7 @@ import Ema.Route.Prism (
   fromPrism_,
  )
 import Ema.Route.Url (urlToFilePath)
-import Ema.Site (EmaSite (SiteOutput, siteOutput), EmaStaticSite)
+import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
 import Network.Wai qualified as Wai
@@ -95,8 +95,8 @@ runServerWithWebSocketHotReload opts host mport model = do
       app =
         WaiWs.websocketsOr
           WS.defaultConnectionOptions
-          (wsApp logger opts model)
-          (httpApp logger opts model)
+          (wsApp @r logger model $ emaServerWsHandler opts)
+          (httpApp @r logger model $ emaServerShim opts)
       banner port = do
         logInfoNS "ema" "==============================================="
         logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port
@@ -118,13 +118,13 @@ warpRunSettings settings mPort banner app = do
 
 wsApp ::
   forall r.
-  (Eq r, Show r, IsRoute r, EmaSite r, SiteOutput r ~ Asset LByteString) =>
+  (Eq r, Show r, IsRoute r, EmaStaticSite r) =>
   (Loc -> LogSource -> LogLevel -> LogStr -> IO ()) ->
-  EmaServerOptions r ->
   LVar (RouteModel r) ->
+  EmaWsHandler r ->
   WS.PendingConnection ->
   IO ()
-wsApp logger opts model pendingConn = do
+wsApp logger model emaWsHandler pendingConn = do
   conn :: WS.Connection <- WS.acceptRequest pendingConn
   WS.withPingThread conn 30 pass $
     flip runLoggingT logger $
@@ -133,7 +133,7 @@ wsApp logger opts model pendingConn = do
         let log lvl (s :: Text) =
               logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
         log LevelInfo "Connected"
-        let wsHandler = unEmaWsHandler (emaServerWsHandler opts) conn
+        let wsHandler = unEmaWsHandler emaWsHandler conn
             sendRouteHtmlToClient path s = do
               decodeUrlRoute @r s path & \case
                 Left err -> do
@@ -184,12 +184,13 @@ wsApp logger opts model pendingConn = do
 
 httpApp ::
   forall r.
-  (Eq r, Show r, IsRoute r, EmaSite r, SiteOutput r ~ Asset LByteString) =>
+  (Eq r, Show r, IsRoute r, EmaStaticSite r) =>
   (Loc -> LogSource -> LogLevel -> LogStr -> IO ()) ->
-  EmaServerOptions r ->
   LVar (RouteModel r) ->
+  -- The shim to include in every HTML response
+  LByteString ->
   Wai.Application
-httpApp logger opts model req f = do
+httpApp logger model shim req f = do
   flip runLoggingT logger $ do
     val <- LVar.get model
     let pathInfo = Wai.pathInfo req
@@ -199,10 +200,10 @@ httpApp logger opts model req f = do
     case mr of
       Left err -> do
         logErrorNS "App" $ badRouteEncodingMsg err
-        let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> emaServerShim opts
+        let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> shim
         liftIO $ f $ Wai.responseLBS H.status500 [(H.hContentType, "text/html")] s
       Right Nothing -> do
-        let s = emaErrorHtmlResponse decodeRouteNothingMsg <> emaServerShim opts
+        let s = emaErrorHtmlResponse decodeRouteNothingMsg <> shim
         liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
       Right (Just r) -> do
         renderCatchingErrors val r >>= \case
@@ -210,7 +211,7 @@ httpApp logger opts model req f = do
             let mimeType = Static.getMimeType staticPath
             liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
           AssetGenerated Html html -> do
-            let s = html <> toLazy wsClientHtml <> emaServerShim opts
+            let s = html <> toLazy wsClientHtml <> shim
             liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
           AssetGenerated Other s -> do
             let mimeType = Static.getMimeType $ review (fromPrism_ $ routePrism val) r
@@ -220,8 +221,7 @@ renderCatchingErrors ::
   forall r m.
   ( MonadLoggerIO m
   , MonadUnliftIO m
-  , EmaSite r
-  , SiteOutput r ~ Asset LByteString
+  , EmaStaticSite r
   ) =>
   RouteModel r ->
   r ->
