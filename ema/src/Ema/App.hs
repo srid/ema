@@ -24,14 +24,14 @@ import System.Directory (getCurrentDirectory)
 
 data SiteConfig r = SiteConfig
   { siteConfigCli :: CLI.Cli
-  , siteConfigServerOpts :: Server.EmaWebSocketOptions r
+  , siteConfigWebSocketOptions :: Server.EmaWebSocketOptions r
   }
 
 instance Default (SiteConfig r) where
   def =
     SiteConfig
       { siteConfigCli = def
-      , siteConfigServerOpts = def
+      , siteConfigWebSocketOptions = def
       }
 
 {- | Run the given Ema site,
@@ -75,7 +75,7 @@ runSiteWith ::
       (FilePath, [FilePath])
     )
 runSiteWith cfg siteArg = do
-  let opts = siteConfigServerOpts cfg
+  let opts = siteConfigWebSocketOptions cfg
       cli = siteConfigCli cfg
   flip runLoggerLoggingT (getLogger cli) $ do
     cwd <- liftIO getCurrentDirectory
