@@ -131,6 +131,9 @@ library
     Ema.Route.Prism.Type
     Ema.Route.Url
     Ema.Server
+    Ema.Server.Common
+    Ema.Server.HTTP
+    Ema.Server.WebSocket
     Ema.Site
 
   hs-source-dirs:   src

@@ -18,7 +18,8 @@ import Ema
 import Ema.CLI qualified as CLI
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.PandocRoute qualified as Pandoc
-import Ema.Server (EmaServerOptions (..), EmaWsHandler (..), wsClientJS)
+import Ema.Server (EmaServerOptions (..))
+import Ema.Server.WebSocket (EmaWsHandler (..), wsClientJS)
 import Network.WebSockets qualified as WS
 import Optics.Core ((%))
 import System.Directory (makeAbsolute)

@@ -12,7 +12,4 @@ import Ema.Route.Url as X (
   routeUrl,
   routeUrlWith,
  )
-import Ema.Server as X (
-  emaErrorHtmlResponse,
- )
 import Ema.Site as X
