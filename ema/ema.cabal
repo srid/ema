@@ -79,11 +79,8 @@ library
   build-depends:
     , aeson
     , async
-    , base                    >=4.13.0.0 && <4.99
-    , constraints-extras
+    , base                   >=4.13.0.0 && <4.99
     , data-default
-    , dependent-sum
-    , dependent-sum-template
     , directory
     , file-embed
     , filepath
@@ -96,7 +93,7 @@ library
     , neat-interpolation
     , optics-core
     , optparse-applicative
-    , relude                  >=1.0
+    , relude                 >=1.0
     , sop-core
     , text
     , unliftio

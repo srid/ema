@@ -12,9 +12,7 @@ import Control.Concurrent.Async (race_)
 import Control.Monad.Logger (LoggingT (runLoggingT), MonadLoggerIO (askLoggerIO), logInfoNS, logWarnNS)
 import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Default (Default, def)
-import Data.Dependent.Sum (DSum ((:=>)))
 import Data.LVar qualified as LVar
-import Data.Some (Some (Some))
 import Ema.CLI (getLogger)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic (Dynamic))
@@ -52,13 +50,7 @@ runSite ::
 runSite input = do
   cli <- CLI.cliAction
   let cfg = SiteConfig cli def
-  result <- snd <$> runSiteWith @r cfg input
-  case result of
-    CLI.Run _ :=> Identity () ->
-      flip runLoggerLoggingT (getLogger cli) $
-        CLI.crash "ema" "Live server unexpectedly stopped"
-    CLI.Generate _ :=> Identity fs ->
-      pure fs
+  snd <$> runSiteWith @r cfg input
 
 -- | Like @runSite@ but discards the result
 runSite_ :: forall r. (Show r, Eq r, EmaStaticSite r) => SiteArg r -> IO ()
@@ -79,7 +71,8 @@ runSiteWith ::
   IO
     ( -- The initial model value.
       RouteModel r
-    , DSum CLI.Action Identity
+    , -- List of statically generated files
+      [FilePath]
     )
 runSiteWith cfg siteArg = do
   let opts = siteConfigServerOpts cfg
@@ -89,10 +82,10 @@ runSiteWith cfg siteArg = do
     logInfoNS "ema" $ "Launching Ema under: " <> toText cwd
     Dynamic (model0 :: RouteModel r, cont) <- siteInput @r (CLI.action cli) siteArg
     case CLI.action cli of
-      Some act@(CLI.Generate dest) -> do
+      CLI.Generate dest -> do
         fs <- generateSiteFromModel @r dest model0
-        pure (model0, act :=> Identity fs)
-      Some act@(CLI.Run (host, mport)) -> do
+        pure (model0, fs)
+      CLI.Run (host, mport) -> do
         model <- LVar.empty
         LVar.set model model0
         logger <- askLoggerIO
@@ -108,4 +101,4 @@ runSiteWith cfg siteArg = do
             ( flip runLoggingT logger $ do
                 Server.runServerWithWebSocketHotReload @r opts host mport model
             )
-        pure (model0, act :=> Identity ())
+        CLI.crash "ema" "Live server unexpectedly stopped"
