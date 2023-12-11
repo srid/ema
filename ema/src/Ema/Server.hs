@@ -22,7 +22,7 @@ import Ema.Route.Prism (
   fromPrism_,
  )
 import Ema.Route.Url (urlToFilePath)
-import Ema.Site (EmaSite (siteOutput), EmaStaticSite)
+import Ema.Site (EmaSite (SiteOutput, siteOutput), EmaStaticSite)
 import NeatInterpolation (text)
 import Network.HTTP.Types qualified as H
 import Network.Wai qualified as Wai
@@ -95,127 +95,160 @@ runServerWithWebSocketHotReload opts host mport model = do
       app =
         WaiWs.websocketsOr
           WS.defaultConnectionOptions
-          (wsApp logger)
-          (httpApp logger)
+          (wsApp logger opts model)
+          (httpApp logger opts model)
       banner port = do
         logInfoNS "ema" "==============================================="
         logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port
         logInfoNS "ema" "==============================================="
   liftIO $ warpRunSettings settings mport (runM . banner) app
-  where
-    enc = routePrism @r
-    -- Like Warp.runSettings but takes *optional* port. When no port is set, a
-    -- free (random) port is used.
-    warpRunSettings :: Warp.Settings -> Maybe Port -> (Port -> IO a) -> Wai.Application -> IO ()
-    warpRunSettings settings mPort banner app = do
-      case mPort of
-        Nothing ->
-          Warp.withApplicationSettings settings (pure app) $ \port -> do
-            void $ banner port
-            threadDelay maxBound
-        Just port -> do
-          void $ banner port
-          Warp.runSettings (settings & Warp.setPort port) app
-    wsApp logger pendingConn = do
-      conn :: WS.Connection <- WS.acceptRequest pendingConn
-      WS.withPingThread conn 30 pass $
-        flip runLoggingT logger $
-          do
-            subId <- LVar.addListener model
-            let log lvl (s :: Text) =
-                  logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
-            log LevelInfo "Connected"
-            let wsHandler = unEmaWsHandler (emaServerWsHandler opts) conn
-                sendRouteHtmlToClient path s = do
-                  decodeUrlRoute s path & \case
-                    Left err -> do
-                      log LevelError $ badRouteEncodingMsg err
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
-                    Right Nothing ->
-                      liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
-                    Right (Just r) -> do
-                      renderCatchingErrors s r >>= \case
-                        AssetGenerated Html html ->
-                          liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
-                        -- HACK: We expect the websocket client should check for REDIRECT prefix.
-                        -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
-                        AssetStatic _staticPath ->
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                        AssetGenerated Other _s ->
-                          liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ enc s) r)
-                      log LevelDebug $ " ~~> " <> show r
-                -- @mWatchingRoute@ is the route currently being watched.
-                loop mWatchingRoute = do
-                  -- Listen *until* either we get a new value, or the client requests
-                  -- to switch to a new route.
-                  currentModel <- LVar.get model
-                  race (LVar.listenNext model subId) (wsHandler currentModel) >>= \case
-                    Left newModel -> do
-                      -- The page the user is currently viewing has changed. Send
-                      -- the new HTML to them.
-                      sendRouteHtmlToClient mWatchingRoute newModel
-                      loop mWatchingRoute
-                    Right mNextRoute -> do
-                      -- The user clicked on a route link; send them the HTML for
-                      -- that route this time, ignoring what we are watching
-                      -- currently (we expect the user to initiate a watch route
-                      -- request immediately following this).
-                      sendRouteHtmlToClient mNextRoute =<< LVar.get model
-                      loop mNextRoute
-            -- Wait for the client to send the first request with the initial route.
-            mInitialRoute <- wsHandler =<< LVar.get model
-            try (loop mInitialRoute) >>= \case
-              Right () -> pass
-              Left (connExc :: ConnectionException) -> do
-                case connExc of
-                  WS.CloseRequest _ (decodeUtf8 -> reason) ->
-                    log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
-                  _ ->
-                    log LevelError $ "Websocket error: " <> show connExc
-                LVar.removeListener model subId
-    httpApp logger req f = do
-      flip runLoggingT logger $ do
-        val <- LVar.get model
-        let pathInfo = Wai.pathInfo req
-            path = T.intercalate "/" pathInfo
-            mr = decodeUrlRoute val path
-        logInfoNS "ema.http" $ "GET " <> path <> " as " <> show mr
-        case mr of
-          Left err -> do
-            logErrorNS "App" $ badRouteEncodingMsg err
-            let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> emaServerShim opts
-            liftIO $ f $ Wai.responseLBS H.status500 [(H.hContentType, "text/html")] s
-          Right Nothing -> do
-            let s = emaErrorHtmlResponse decodeRouteNothingMsg <> emaServerShim opts
-            liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
-          Right (Just r) -> do
-            renderCatchingErrors val r >>= \case
-              AssetStatic staticPath -> do
-                let mimeType = Static.getMimeType staticPath
-                liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
-              AssetGenerated Html html -> do
-                let s = html <> toLazy wsClientHtml <> emaServerShim opts
-                liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
-              AssetGenerated Other s -> do
-                let mimeType = Static.getMimeType $ review (fromPrism_ $ enc val) r
-                liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
-    renderCatchingErrors m r =
-      catch (siteOutput (fromPrism_ $ enc m) m r) $ \(err :: SomeException) -> do
-        -- Log the error first.
-        logErrorNS "App" $ show @Text err
-        pure
-          $ AssetGenerated Html
-            . mkHtmlErrorMsg
-          $ show @Text err
-    -- Decode an URL path into a route
-    --
-    -- This function is used only in live server. If the route is not
-    -- isomoprhic, this returns a Left, with the mismatched encoding.
-    decodeUrlRoute :: RouteModel r -> Text -> Either (BadRouteEncoding r) (Maybe r)
-    decodeUrlRoute m (urlToFilePath -> s) = do
-      case checkRoutePrismGivenFilePath enc m s of
-        Left (r, log) -> Left $ BadRouteEncoding s r log
-        Right mr -> Right mr
+
+-- Like Warp.runSettings but takes *optional* port. When no port is set, a
+-- free (random) port is used.
+warpRunSettings :: Warp.Settings -> Maybe Port -> (Port -> IO a) -> Wai.Application -> IO ()
+warpRunSettings settings mPort banner app = do
+  case mPort of
+    Nothing ->
+      Warp.withApplicationSettings settings (pure app) $ \port -> do
+        void $ banner port
+        threadDelay maxBound
+    Just port -> do
+      void $ banner port
+      Warp.runSettings (settings & Warp.setPort port) app
+
+wsApp ::
+  forall r.
+  (Eq r, Show r, IsRoute r, EmaSite r, SiteOutput r ~ Asset LByteString) =>
+  (Loc -> LogSource -> LogLevel -> LogStr -> IO ()) ->
+  EmaServerOptions r ->
+  LVar (RouteModel r) ->
+  WS.PendingConnection ->
+  IO ()
+wsApp logger opts model pendingConn = do
+  conn :: WS.Connection <- WS.acceptRequest pendingConn
+  WS.withPingThread conn 30 pass $
+    flip runLoggingT logger $
+      do
+        subId <- LVar.addListener model
+        let log lvl (s :: Text) =
+              logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
+        log LevelInfo "Connected"
+        let wsHandler = unEmaWsHandler (emaServerWsHandler opts) conn
+            sendRouteHtmlToClient path s = do
+              decodeUrlRoute @r s path & \case
+                Left err -> do
+                  log LevelError $ badRouteEncodingMsg err
+                  liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse $ badRouteEncodingMsg err
+                Right Nothing ->
+                  liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
+                Right (Just r) -> do
+                  renderCatchingErrors s r >>= \case
+                    AssetGenerated Html html ->
+                      liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
+                    -- HACK: We expect the websocket client should check for REDIRECT prefix.
+                    -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
+                    AssetStatic _staticPath ->
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ routePrism s) r)
+                    AssetGenerated Other _s ->
+                      liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ routePrism s) r)
+                  log LevelDebug $ " ~~> " <> show r
+            -- @mWatchingRoute@ is the route currently being watched.
+            loop mWatchingRoute = do
+              -- Listen *until* either we get a new value, or the client requests
+              -- to switch to a new route.
+              currentModel <- LVar.get model
+              race (LVar.listenNext model subId) (wsHandler currentModel) >>= \case
+                Left newModel -> do
+                  -- The page the user is currently viewing has changed. Send
+                  -- the new HTML to them.
+                  sendRouteHtmlToClient mWatchingRoute newModel
+                  loop mWatchingRoute
+                Right mNextRoute -> do
+                  -- The user clicked on a route link; send them the HTML for
+                  -- that route this time, ignoring what we are watching
+                  -- currently (we expect the user to initiate a watch route
+                  -- request immediately following this).
+                  sendRouteHtmlToClient mNextRoute =<< LVar.get model
+                  loop mNextRoute
+        -- Wait for the client to send the first request with the initial route.
+        mInitialRoute <- wsHandler =<< LVar.get model
+        try (loop mInitialRoute) >>= \case
+          Right () -> pass
+          Left (connExc :: ConnectionException) -> do
+            case connExc of
+              WS.CloseRequest _ (decodeUtf8 -> reason) ->
+                log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
+              _ ->
+                log LevelError $ "Websocket error: " <> show connExc
+            LVar.removeListener model subId
+
+httpApp ::
+  forall r.
+  (Eq r, Show r, IsRoute r, EmaSite r, SiteOutput r ~ Asset LByteString) =>
+  (Loc -> LogSource -> LogLevel -> LogStr -> IO ()) ->
+  EmaServerOptions r ->
+  LVar (RouteModel r) ->
+  Wai.Application
+httpApp logger opts model req f = do
+  flip runLoggingT logger $ do
+    val <- LVar.get model
+    let pathInfo = Wai.pathInfo req
+        path = T.intercalate "/" pathInfo
+        mr = decodeUrlRoute @r val path
+    logInfoNS "ema.http" $ "GET " <> path <> " as " <> show mr
+    case mr of
+      Left err -> do
+        logErrorNS "App" $ badRouteEncodingMsg err
+        let s = emaErrorHtmlResponse (badRouteEncodingMsg err) <> emaServerShim opts
+        liftIO $ f $ Wai.responseLBS H.status500 [(H.hContentType, "text/html")] s
+      Right Nothing -> do
+        let s = emaErrorHtmlResponse decodeRouteNothingMsg <> emaServerShim opts
+        liftIO $ f $ Wai.responseLBS H.status404 [(H.hContentType, "text/html")] s
+      Right (Just r) -> do
+        renderCatchingErrors val r >>= \case
+          AssetStatic staticPath -> do
+            let mimeType = Static.getMimeType staticPath
+            liftIO $ f $ Wai.responseFile H.status200 [(H.hContentType, mimeType)] staticPath Nothing
+          AssetGenerated Html html -> do
+            let s = html <> toLazy wsClientHtml <> emaServerShim opts
+            liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, "text/html")] s
+          AssetGenerated Other s -> do
+            let mimeType = Static.getMimeType $ review (fromPrism_ $ routePrism val) r
+            liftIO $ f $ Wai.responseLBS H.status200 [(H.hContentType, mimeType)] s
+
+renderCatchingErrors ::
+  forall r m.
+  ( MonadLoggerIO m
+  , MonadUnliftIO m
+  , EmaSite r
+  , SiteOutput r ~ Asset LByteString
+  ) =>
+  RouteModel r ->
+  r ->
+  m (Asset LByteString)
+renderCatchingErrors m r =
+  catch (siteOutput (fromPrism_ $ routePrism m) m r) $ \(err :: SomeException) -> do
+    -- Log the error first.
+    logErrorNS "App" $ show @Text err
+    pure
+      $ AssetGenerated Html
+        . mkHtmlErrorMsg
+      $ show @Text err
+
+-- Decode an URL path into a route
+--
+-- This function is used only in live server. If the route is not
+-- isomoprhic, this returns a Left, with the mismatched encoding.
+decodeUrlRoute ::
+  forall r.
+  (Eq r, Show r, IsRoute r) =>
+  RouteModel r ->
+  Text ->
+  Either (BadRouteEncoding r) (Maybe r)
+decodeUrlRoute m (urlToFilePath -> s) = do
+  case checkRoutePrismGivenFilePath routePrism m s of
+    Left (r, log) -> Left $ BadRouteEncoding s r log
+    Right mr -> Right mr
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
