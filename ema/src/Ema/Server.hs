@@ -8,7 +8,8 @@ import Data.LVar (LVar)
 import Ema.CLI (Host (unHost))
 import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Server.HTTP (httpApp)
-import Ema.Server.WebSocket as X
+import Ema.Server.WebSocket (wsApp)
+import Ema.Server.WebSocket.Options (EmaServerOptions (..))
 import Ema.Site (EmaStaticSite)
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp (Port)

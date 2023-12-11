@@ -134,6 +134,7 @@ library
     Ema.Server.Common
     Ema.Server.HTTP
     Ema.Server.WebSocket
+    Ema.Server.WebSocket.Options
     Ema.Site
 
   hs-source-dirs:   src
