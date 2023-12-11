@@ -1,5 +1,5 @@
 module Ema.Server (
-  EmaServerOptions (..),
+  EmaWebSocketOptions (..),
   runServerWithWebSocketHotReload,
 ) where
 
@@ -9,7 +9,7 @@ import Ema.CLI (Host (unHost))
 import Ema.Route.Class (IsRoute (RouteModel))
 import Ema.Server.HTTP (httpApp)
 import Ema.Server.WebSocket (wsApp)
-import Ema.Server.WebSocket.Options (EmaServerOptions (..))
+import Ema.Server.WebSocket.Options (EmaWebSocketOptions (..))
 import Ema.Site (EmaStaticSite)
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp (Port)
@@ -29,7 +29,7 @@ runServerWithWebSocketHotReload ::
   , IsRoute r
   , EmaStaticSite r
   ) =>
-  EmaServerOptions r ->
+  EmaWebSocketOptions r ->
   Host ->
   Maybe Port ->
   LVar (RouteModel r) ->
@@ -43,8 +43,8 @@ runServerWithWebSocketHotReload opts host mport model = do
       app =
         WaiWs.websocketsOr
           WS.defaultConnectionOptions
-          (wsApp @r logger model $ emaServerWsHandler opts)
-          (httpApp @r logger model $ emaServerShim opts)
+          (wsApp @r logger model $ emaWebSocketServerHandler opts)
+          (httpApp @r logger model $ emaWebSocketClientShim opts)
       banner port = do
         logInfoNS "ema" "==============================================="
         logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port

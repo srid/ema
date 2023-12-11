@@ -36,14 +36,14 @@ instance Default (EmaWsHandler r) where
     where
       log lvl (t :: Text) = logWithoutLoc "ema.ws" lvl t
 
-data EmaServerOptions r = EmaServerOptions
-  { emaServerShim :: LByteString
-  , emaServerWsHandler :: EmaWsHandler r
+data EmaWebSocketOptions r = EmaWebSocketOptions
+  { emaWebSocketClientShim :: LByteString
+  , emaWebSocketServerHandler :: EmaWsHandler r
   }
 
-instance Default (EmaServerOptions r) where
+instance Default (EmaWebSocketOptions r) where
   def =
-    EmaServerOptions wsClientJS def
+    EmaWebSocketOptions wsClientJS def
 
 -- Browser-side JavaScript code for interacting with the Haskell server
 wsClientJS :: LByteString

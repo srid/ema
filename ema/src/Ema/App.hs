@@ -24,7 +24,7 @@ import System.Directory (getCurrentDirectory)
 
 data SiteConfig r = SiteConfig
   { siteConfigCli :: CLI.Cli
-  , siteConfigServerOpts :: Server.EmaServerOptions r
+  , siteConfigServerOpts :: Server.EmaWebSocketOptions r
   }
 
 instance Default (SiteConfig r) where

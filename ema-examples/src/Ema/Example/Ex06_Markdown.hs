@@ -18,7 +18,7 @@ import Ema
 import Ema.CLI qualified as CLI
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.PandocRoute qualified as Pandoc
-import Ema.Server (EmaServerOptions (..))
+import Ema.Server (EmaWebSocketOptions (..))
 import Ema.Server.WebSocket.Options (EmaWsHandler (..), wsClientJS)
 import Network.WebSockets qualified as WS
 import Optics.Core ((%))
@@ -127,8 +127,8 @@ runWithFollow input = do
   let cfg = SiteConfig cli followServerOptions
   void $ snd <$> runSiteWith @Route cfg input
 
-followServerOptions :: EmaServerOptions Route
-followServerOptions = EmaServerOptions wsClientJS followServerHandler
+followServerOptions :: EmaWebSocketOptions Route
+followServerOptions = EmaWebSocketOptions wsClientJS followServerHandler
 
 followServerHandler :: EmaWsHandler Route
 followServerHandler = EmaWsHandler handle
