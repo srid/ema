@@ -46,7 +46,7 @@ runSite ::
   (Show r, Eq r, EmaStaticSite r) =>
   -- | The input required to create the `Dynamic` of the `RouteModel`
   SiteArg r ->
-  IO [FilePath]
+  IO (FilePath, [FilePath])
 runSite input = do
   cli <- CLI.cliAction
   let cfg = SiteConfig cli def
@@ -71,8 +71,8 @@ runSiteWith ::
   IO
     ( -- The initial model value.
       RouteModel r
-    , -- List of statically generated files
-      [FilePath]
+    , -- Out path, and the list of statically generated files
+      (FilePath, [FilePath])
     )
 runSiteWith cfg siteArg = do
   let opts = siteConfigServerOpts cfg
@@ -84,7 +84,7 @@ runSiteWith cfg siteArg = do
     case CLI.action cli of
       CLI.Generate dest -> do
         fs <- generateSiteFromModel @r dest model0
-        pure (model0, fs)
+        pure (model0, (dest, fs))
       CLI.Run (host, mport) -> do
         model <- LVar.empty
         LVar.set model model0
