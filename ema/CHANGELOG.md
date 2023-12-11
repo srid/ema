@@ -4,6 +4,7 @@
 
 - Relax `base` constraint forever
 - Live server shim/websocket customization ([\#152](https://github.com/srid/ema/pull/152)) @lucasvreis
+- `Ema.CLI`: The `Action` type is no longer a GADT.
 
 ## 0.10.2.0 (2023-08-09)
 

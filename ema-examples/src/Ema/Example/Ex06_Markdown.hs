@@ -11,9 +11,7 @@
 module Ema.Example.Ex06_Markdown where
 
 import Control.Monad.Logger (LogLevel (..), MonadLoggerIO (..), defaultLoc, logInfoNS)
-import Control.Monad.Logger.Extras (runLoggerLoggingT)
 import Data.Default (Default (..))
-import Data.Dependent.Sum (DSum (..))
 import Data.Generics.Sum.Any
 import Data.Map (member)
 import Ema
@@ -126,12 +124,7 @@ runWithFollow ::
 runWithFollow input = do
   cli <- CLI.cliAction
   let cfg = SiteConfig cli followServerOptions
-  result <- snd <$> runSiteWith @Route cfg input
-  case result of
-    CLI.Run _ :=> Identity () ->
-      flip runLoggerLoggingT (CLI.getLogger cli) $
-        CLI.crash "ema" "Live server unexpectedly stopped"
-    CLI.Generate _ :=> Identity _ -> pass
+  void $ snd <$> runSiteWith @Route cfg input
 
 followServerOptions :: EmaServerOptions Route
 followServerOptions = EmaServerOptions wsClientJS followServerHandler

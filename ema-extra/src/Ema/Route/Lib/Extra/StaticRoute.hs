@@ -15,7 +15,6 @@ import Control.Exception (throw)
 import Control.Monad.Logger (MonadLogger, MonadLoggerIO)
 import Data.List qualified as List
 import Data.Map.Strict qualified as Map
-import Data.Some (Some)
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.CLI qualified
@@ -31,7 +30,7 @@ newtype StaticRoute (baseDir :: Symbol) = StaticRoute {unStaticRoute :: FilePath
   deriving stock (Generic)
 
 data Model = Model
-  { modelCliAction :: Some Ema.CLI.Action
+  { modelCliAction :: Ema.CLI.Action
   , modelFiles :: Map FilePath UTCTime
   }
   deriving stock (Eq, Show, Generic)
@@ -97,7 +96,8 @@ staticRouteUrl rp model fp =
         -- In statically generated site, do it only for CSS and JS files.
         guard $
           Ema.CLI.isLiveServer (modelCliAction model)
-            || takeExtension fp `List.elem` [".css", ".js"]
+            || takeExtension fp
+              `List.elem` [".css", ".js"]
         pure $ "?" <> tag
 
 lookupMust :: FilePath -> Model -> UTCTime

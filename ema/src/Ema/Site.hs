@@ -6,7 +6,6 @@ module Ema.Site (
 ) where
 
 import Control.Monad.Logger (MonadLoggerIO)
-import Data.Some (Some)
 import Ema.Asset (Asset)
 import Ema.CLI qualified as CLI
 import Ema.Dynamic (Dynamic)
@@ -54,7 +53,7 @@ class (IsRoute r) => EmaSite r where
   siteInput ::
     forall m.
     (MonadIO m, MonadUnliftIO m, MonadLoggerIO m) =>
-    Some CLI.Action ->
+    CLI.Action ->
     -- | The value passed by the programmer to `Ema.App.runSite`
     SiteArg r ->
     -- | Time-varying value of the model. If your model is not time-varying, use
