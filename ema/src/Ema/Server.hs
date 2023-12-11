@@ -29,25 +29,29 @@ runServerWithWebSocketHotReload ::
   , IsRoute r
   , EmaStaticSite r
   ) =>
-  EmaWebSocketOptions r ->
+  Maybe (EmaWebSocketOptions r) ->
   Host ->
   Maybe Port ->
   LVar (RouteModel r) ->
   m ()
-runServerWithWebSocketHotReload opts host mport model = do
+runServerWithWebSocketHotReload mWsOpts host mport model = do
   logger <- askLoggerIO
   let runM = flip runLoggingT logger
       settings =
         Warp.defaultSettings
           & Warp.setHost (fromString . toString . unHost $ host)
       app =
-        WaiWs.websocketsOr
-          WS.defaultConnectionOptions
-          (wsApp @r logger model $ emaWebSocketServerHandler opts)
-          (httpApp @r logger model $ emaWebSocketClientShim opts)
+        case mWsOpts of
+          Nothing ->
+            httpApp @r logger model Nothing
+          Just opts ->
+            WaiWs.websocketsOr
+              WS.defaultConnectionOptions
+              (wsApp @r logger model $ emaWebSocketServerHandler opts)
+              (httpApp @r logger model $ Just $ emaWebSocketClientShim opts)
       banner port = do
         logInfoNS "ema" "==============================================="
-        logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port
+        logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port <> " (" <> maybe "no ws" (const "ws") mWsOpts <> ")"
         logInfoNS "ema" "==============================================="
   liftIO $ warpRunSettings settings mport (runM . banner) app
 

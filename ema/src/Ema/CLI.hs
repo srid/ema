@@ -26,8 +26,16 @@ data Action
     -- of generated files.
     Generate FilePath
   | -- | Run the live server
-    Run (Host, Maybe Port)
+    Run (Host, Maybe Port, NoWebSocket)
   deriving stock (Eq, Show, Generic)
+
+-- | Whether to disable websocket-based refresh and page loads.
+newtype NoWebSocket = NoWebSocket {unNoWebSocket :: Bool}
+  deriving newtype (Eq, Show)
+  deriving stock (Generic)
+
+instance Default NoWebSocket where
+  def = NoWebSocket False
 
 isLiveServer :: Action -> Bool
 isLiveServer (Run _) = True
@@ -59,7 +67,7 @@ cliParser = do
   where
     run :: Parser Action
     run =
-      fmap Run $ (,) <$> hostParser <*> optional portParser
+      fmap Run $ (,,) <$> hostParser <*> optional portParser <*> noWebSocketParser
     generate :: Parser Action
     generate =
       Generate <$> argument str (metavar "DEST")
@@ -71,6 +79,10 @@ hostParser =
 portParser :: Parser Port
 portParser =
   option auto (long "port" <> short 'p' <> metavar "PORT" <> help "Port to bind to")
+
+noWebSocketParser :: Parser NoWebSocket
+noWebSocketParser =
+  NoWebSocket <$> switch (long "no-ws" <> help "Disable websocket")
 
 -- | Parse Ema CLI arguments passed by the user.
 cliAction :: IO Cli
