@@ -25,5 +25,5 @@ These are apps that use Ema to generate or serve websites pertaining to their sp
 | Note-taking             | [Emanote](https://emanote.srid.ca/)                            | [Emanote examples](https://emanote.srid.ca/examples) |
 | Journaling              | [Banyan](https://github.com/srid/banyan)                       |                                                      |
 | Time tracking (hledger) | [timedot-invoice](https://github.com/EmaApps/timedot-invoice)  |                                                      |
-| Org-mode website        | [organon](https://github.com/lucasvreis/organon)         | https://lucasvreis.github.io/organon-dev-notes.html                        |
+| Org-mode website        | [organon](https://github.com/lucasvreis/organon)         | https://lucasvreis.github.io/                        |
 | Subreddit dashboard     | [TheMotteDashboard](https://github.com/srid/TheMotteDashboard) | https://themotte.srid.ca/                            |
