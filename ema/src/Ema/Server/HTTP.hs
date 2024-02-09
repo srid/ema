@@ -5,6 +5,7 @@ module Ema.Server.HTTP where
 import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
+import Data.Maybe (fromMaybe)
 import Data.Text qualified as T
 import Ema.Asset (
   Asset (AssetGenerated, AssetStatic),
@@ -27,9 +28,10 @@ httpApp ::
   (Loc -> LogSource -> LogLevel -> LogStr -> IO ()) ->
   LVar (RouteModel r) ->
   -- The shim to include in every HTML response
-  LByteString ->
+  Maybe LByteString ->
   Wai.Application
-httpApp logger model shim req f = flip runLoggingT logger $ do
+httpApp logger model mShim req f = flip runLoggingT logger $ do
+  let shim = fromMaybe "" mShim
   val <- LVar.get model
   let pathInfo = Wai.pathInfo req
       path = T.intercalate "/" pathInfo
