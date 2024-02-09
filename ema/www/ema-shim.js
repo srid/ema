@@ -103,7 +103,7 @@ function init(reconnecting) {
         const origin = e.target.closest("a");
         if (origin) {
             if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
-                if (origin.getAttribute("href").startsWith("#")) {
+                if (window.Location.pathname == origin.pathname && origin.href.startsWith("#")) {
                     // Switching to local anchor
                     window.history.pushState({}, "", window.location.pathname + origin.hash);
                     scrollToAnchor(window.location.hash);
