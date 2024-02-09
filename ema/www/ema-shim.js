@@ -111,7 +111,7 @@ function init(reconnecting) {
         if (origin) {
             if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
                 let anchor = getAnchorIfOnPage(origin);
-                if (anchor /= null) {
+                if (anchor !== null) {
                     // Switching to local anchor
                     window.history.pushState({}, "", origin.href);
                     scrollToAnchor(window.location.hash);
