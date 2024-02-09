@@ -99,13 +99,21 @@ function init(reconnecting) {
         }
     };
 
+    function getAnchorIfOnPage(linkElement) {
+        const url = new URL(linkElement.href); // Use URL API for parsing
+        return (url.host === window.location.host && url.pathname === window.location.pathname && url.hash)
+            ? url.hash.slice(1)  // Return anchor name (slice off '#')
+            : null;  // Not an anchor on the current page
+    }
+
     function handleRouteClicks(e) {
         const origin = e.target.closest("a");
         if (origin) {
             if (window.location.host === origin.host && origin.getAttribute("target") != "_blank") {
-                if (origin.getAttribute("href").startsWith("#")) {
+                let anchor = getAnchorIfOnPage(origin);
+                if (anchor !== null) {
                     // Switching to local anchor
-                    window.history.pushState({}, "", window.location.pathname + origin.hash);
+                    window.history.pushState({}, "", origin.href);
                     scrollToAnchor(window.location.hash);
                     e.preventDefault();
                 } else {
