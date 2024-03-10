@@ -50,7 +50,7 @@ wsClientJS :: LByteString
 wsClientJS =
   encodeUtf8
     [text|
-        <script type="module" src="https://cdn.jsdelivr.net/npm/morphdom@2.6.1/dist/morphdom-umd.min.js"></script>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/morphdom@2.7.2/dist/morphdom-umd.min.js"></script>
 
         <script type="module">
         ${wsClientJSShim}
