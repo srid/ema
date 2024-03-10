@@ -69,6 +69,6 @@ In the case of our mood tracker, we will use the [fsnotify](https://hackage.hask
 
 Now if you run the app and modify the `data/mood.csv` file (e.g., change "Neutral" to "Bad"), your app's web view will update in real-time. Your Ema app updates instantly on code *or* data change.
 
-This concludes the tutorial series, and hopefully, you have gained an introductory understanding of what is entailed behind the "*just about any app that creates a browser view of arbitrarily changing data" claim on the [[index|index]] page. You can view the source code for the mood tracker tutorial at  https://github.com/srid/MoodTracker-Tutorial.
+This concludes the tutorial series, and hopefully, you have gained an introductory understanding of what is entailed behind the *"just about any app that creates a browser view of arbitrarily changing data"* claim on the [[index|index]] page. You can view the source code for the mood tracker tutorial at  https://github.com/srid/MoodTracker-Tutorial.
 
 You may visit [[guide]] or [[topics]] to further your understanding.
