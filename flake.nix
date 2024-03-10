@@ -6,6 +6,7 @@
     haskell-flake.url = "github:srid/haskell-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     flake-root.url = "github:srid/flake-root";
+    emanote.url = "github:srid/emanote";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -14,6 +15,7 @@
         inputs.haskell-flake.flakeModule
         inputs.flake-root.flakeModule
         inputs.treefmt-nix.flakeModule
+        inputs.emanote.flakeModule
       ];
       perSystem = { config, pkgs, ... }: {
         # This attr is provided by https://github.com/srid/haskell-flake
@@ -41,6 +43,16 @@
               "--ghc-opt"
               "-XTypeApplications"
             ];
+          };
+        };
+
+        emanote = {
+          sites = {
+            "docs" = {
+              layers = [ ./docs ];
+              layersString = [ "./docs" ];
+              prettyUrls = true;
+            };
           };
         };
       };

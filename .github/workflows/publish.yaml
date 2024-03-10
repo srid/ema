@@ -1,4 +1,3 @@
-
 name: "Publish"
 on:
   # Run only when pushing to master branch
@@ -7,20 +6,14 @@ on:
       - master
 jobs:
   emanote:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v2
-    - name: Build emanote site 🔧
-      run: |
-        mkdir -p output.docker 
-        docker run \
-          -v $PWD:/data \
-          --tmpfs /tmp \
-          sridca/emanote emanote --layers /data/docs gen /data/output.docker
-        cp -r output.docker output  # Ditch docker created root-owned files
-    - name: Deploy to gh-pages 🚀
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./output/
-        cname: ema.srid.ca
+      - uses: actions/checkout@v4
+      - name: Build emanote site 🔧
+        run: nix build .#docs
+      - name: Deploy to gh-pages 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./result/
+          cname: ema.srid.ca
