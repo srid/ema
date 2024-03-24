@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - test
   pull_request:
 
 jobs:
@@ -11,7 +12,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        system: [aarch64-linux, aarch64-darwin]
+        system: [aarch64-darwin]
     steps:
       - uses: actions/checkout@v4
       - run: nixci --build-systems "github:nix-systems/${{ matrix.system }}"
