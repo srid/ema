@@ -47,14 +47,15 @@ In the case of our mood tracker, we will use the [fsnotify](https://hackage.hask
             logInfoNS "fsnotify" "Waiting for fs event ..."
             evt <- liftIO $ readChan ch
             logInfoNS "fsnotify" $ "Got fs event: " <> show evt
-            setModel =<< readModel (FSNotify.eventPath evt)
+            handle (\(e :: IOException) -> logErrorNS "fsnotify" (show e)) $
+              setModel =<< readModel (FSNotify.eventPath evt)
             loop
       loop
     where
       readModel fp = do
         s <- readFileLBS fp
         case toList <$> Csv.decode Csv.NoHeader s of
-          Left err -> throw $ userError err
+          Left err -> logErrorNS "csv" (toText err) >> pure (Model mempty)
           Right moods -> pure $ Model $ Map.fromList moods
       -- Observe changes to a directory path, and return the `Chan` of its events.
       watchDirForked :: FilePath -> IO (Chan FSNotify.Event)
