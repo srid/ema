@@ -9,6 +9,7 @@ data Model = Model
   }
 
 data Mood = Bad | Neutral | Good
+  deriving stock (Show, Read)
 ```
 
 Now we want to *associate* our `Route` type from [[01-routes]] with this `Model`. This can be done as follows:
