@@ -8,10 +8,11 @@ on:
 
 jobs:
   nix:
-    runs-on: self-hosted
+    runs-on: ${{ matrix.system }}
     strategy:
       matrix:
-        system: [aarch64-linux, aarch64-darwin]
+        system: [aarch64-darwin, x86_64-linux]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - run: om ci run --systems "${{ matrix.system }}"
