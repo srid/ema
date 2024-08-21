@@ -47,8 +47,8 @@ instance IsRoute Date where
   routeUniverse () = [] -- need model for this
 ```
 
-1. We don't need any special [[model]] to encode a `Day` route, thus `RouteModel` is a unit. But we'll modify this in next step (to implement `routeUniverse`).
-2. `toPrism_` is an Ema function that converts the optics-core `Prism'` into a coercible `Prism_` type that Ema internally uses. A route prism knows how to encode and decode the `Day` route. Our route `Prism'` is built using `formatTime` and `parseTimeM`.
+1. We don't need any special [[model]] to encode a `Date` route, thus `RouteModel` is a unit. But we'll modify this in next step (to implement `routeUniverse`).
+2. `toPrism_` is an Ema function that converts the optics-core `Prism'` into a coercible `Prism_` type that Ema internally uses. A route prism knows how to encode and decode the `Date` route. Our route `Prism'` is built using `formatTime` and `parseTimeM`.
 3. We will implement `routeUniverse` in the next step of the tutorial
 
 The result is that we can use the function `routeUrl` to get the URL to our routes. Let's see this in action in GHCi (run `bin/repl` in the template repository):
@@ -58,7 +58,7 @@ ghci> -- First get hold of the route Prism, which is passed to `siteOutput`
 ghci> let rp = fromPrism_ $ routePrism @Route ()
 ghci> Ema.routeUrl rp Route_Index
 "" -- The 'index.html' is dropped as it is redundant in HTML.
-ghci> Ema.routeUrl rp $ Route_Day $ Date (2022, 04, 23)
+ghci> Ema.routeUrl rp $ Route_Date $ Date (2022, 04, 23)
 "date/2022-04-23.html" 
 ```
 
@@ -78,4 +78,4 @@ Just (Route_Date (Date (2022,4,23)))
 See [[route]] for details.
 
 {.last}
-[Next]{.next}, [[02-model|we will explain]] how to define our `moods.csv` model and render it .
+[Next]{.next}, [[02-model|we will explain]] how to define our `moods.csv` model and render it.
