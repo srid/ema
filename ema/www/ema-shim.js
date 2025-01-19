@@ -1,15 +1,7 @@
-function htmlToElem(html) {
-    let temp = document.createElement('template');
-    html = html.trim(); // Never return a space text node as a result
-    temp.innerHTML = html;
-    return temp.content.firstChild;
-};
-
 // Unlike setInnerHtml, this patches the Dom in place
 function setHtml(elm, html) {
-    var htmlElem = htmlToElem(html);
     window.dispatchEvent(new Event('EMABeforeMorphDOM'));
-    morphdom(elm, html);
+    Idiomorph.morph(elm, html);
     window.dispatchEvent(new Event('EMABeforeScriptReload'));
     // Re-add <script> tags, because just DOM diff applying is not enough.
     reloadScripts(elm);

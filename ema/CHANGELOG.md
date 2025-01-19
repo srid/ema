@@ -10,6 +10,7 @@
   - Shim/websocket customization ([\#152](https://github.com/srid/ema/pull/152)) @lucasvreis
   - Fix scrolling to page end when using pathname in anchor links (\#162)
   - Add `--no-ws` to disable websocket handling in live server (\#161)
+  - Switch from `morphdom` to `idiomorph`
 
 ## 0.10.2.0 (2023-08-09)
 
