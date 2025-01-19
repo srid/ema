@@ -28,6 +28,10 @@
           name = "ema-shell";
           inputsFrom = [
             config.pre-commit.devShell
+            config.haskellProjects.default.outputs.devShell
+          ];
+          packages = with pkgs; [
+            nixd
           ];
         };
 
