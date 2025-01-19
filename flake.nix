@@ -4,8 +4,9 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    flake-root.url = "github:srid/flake-root";
+    fourmolu-nix.url = "github:jedimahdi/fourmolu-nix";
+    git-hooks.url = "github:cachix/git-hooks.nix";
+    git-hooks.flake = false;
     emanote.url = "github:srid/emanote";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
@@ -13,44 +14,55 @@
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
-        inputs.flake-root.flakeModule
-        inputs.treefmt-nix.flakeModule
+        inputs.fourmolu-nix.flakeModule
+        (inputs.git-hooks + /flake-module.nix)
         inputs.emanote.flakeModule
       ];
       perSystem = { config, pkgs, ... }: {
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects.default = {
-          devShell.tools = hp: {
-            treefmt = config.treefmt.build.wrapper;
-          } // config.treefmt.build.programs;
+          autoWire = [ "packages" "checks" ];
         };
 
-        # treefmt-nix configuration
-        treefmt.config = {
-          inherit (config.flake-root) projectRootFile;
-          package = pkgs.treefmt;
+        devShells.default = pkgs.mkShell {
+          name = "ema-shell";
+          inputsFrom = [
+            config.pre-commit.devShell
+          ];
+        };
 
-          programs.ormolu.enable = true;
-          programs.nixpkgs-fmt.enable = true;
-          programs.cabal-fmt.enable = true;
-
-          # We use fourmolu
-          programs.ormolu.package = pkgs.haskellPackages.fourmolu;
-          settings.formatter.ormolu = {
-            options = [
-              "--ghc-opt"
-              "-XImportQualifiedPost"
-              "--ghc-opt"
-              "-XTypeApplications"
-            ];
+        pre-commit.settings = {
+          hooks = {
+            nixpkgs-fmt.enable = true;
+            cabal-fmt.enable = true;
+            fourmolu = {
+              enable = true;
+              package = config.fourmolu.wrapper;
+            };
           };
+        };
+
+        fourmolu.settings = {
+          indentation = 2;
+          comma-style = "leading";
+          record-brace-space = true;
+          indent-wheres = true;
+          import-export-style = "diff-friendly";
+          respectful = true;
+          haddock-style = "multi-line";
+          newlines-between-decls = 1;
+          extensions = [ "ImportQualifiedPost" ];
         };
 
         emanote = {
           sites = {
             "docs" = {
-              layers = [ ./docs ];
-              layersString = [ "./docs" ];
+              layers = [
+                {
+                  path = ./docs;
+                  pathString = "./docs";
+                }
+              ];
               prettyUrls = true;
             };
           };
