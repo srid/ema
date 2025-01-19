@@ -32,6 +32,7 @@
           ];
           packages = with pkgs; [
             nixd
+            just
           ];
         };
 

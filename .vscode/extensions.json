@@ -6,6 +6,7 @@
 		"bbenoist.nix",
 		"jnoortheen.nix-ide",
 		"tamasfe.even-better-toml",
-		"mkhl.direnv"
+		"mkhl.direnv",
+		"skellock.just"
 	]
 }

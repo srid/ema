@@ -11,9 +11,9 @@ https://user-images.githubusercontent.com/3998/116333460-789c1400-a7a1-11eb-8d28
 
 ## Hacking
 
-Run `bin/run`. This runs the Ex04_Multi example.
+Run `just run` in the devShell. This runs the Ex04_Multi example.
 
-To run the docs, run `nix run github:srid/emanote -- -L ./docs`.
+To run the docs, run `nix run .#docs`.
 
 ## Getting Started
 
@@ -21,7 +21,6 @@ https://ema.srid.ca/start
 
 ## Discussion
 
-To discuss the Ema project, [join Matrix][matrix] or post in [GitHub Discussions][ghdiscuss].
+To discuss the Ema project, post in [GitHub Discussions][ghdiscuss].
 
-[matrix]: https://matrix.to/#/#ema:matrix.org
-[ghdiscuss]: https://github.com/EmaApps/ema/discussions
+[ghdiscuss]: https://github.com/srid/ema/discussions
