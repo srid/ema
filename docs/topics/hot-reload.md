@@ -13,7 +13,7 @@ The Ema dev server uses websockets to keep a bi-directional connection open betw
 
 ### DOM patching
 
-When switching to a new route or when receiving the new HTML, Ema uses [morphdom](https://github.com/patrick-steele-idem/morphdom) to _patch_ the existing DOM tree rather than replace it in its entirety. This, in addition to use of websockets, makes it possible to support **instant** hot reload with nary a delay. 
+When switching to a new route or when receiving the new HTML, Ema uses [idiomorph](https://github.com/bigskysoftware/idiomorph) to _patch_ the existing DOM tree rather than replace it in its entirety. This, in addition to use of websockets, makes it possible to support **instant** hot reload with nary a delay.
 
 ### Haskell reload
 
