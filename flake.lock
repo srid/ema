@@ -19,11 +19,11 @@
     "commonmark-wikilink": {
       "flake": false,
       "locked": {
-        "lastModified": 1711394028,
-        "narHash": "sha256-eu5gMmgRz6Y51TBCaB26uJKNN3z1LRfUcTV4+PMy5Gw=",
+        "lastModified": 1738248145,
+        "narHash": "sha256-UN2Nh+uf+DzM336Ojzr6YZV4RJy8BPx9Q5GZpax3wt0=",
         "owner": "srid",
         "repo": "commonmark-wikilink",
-        "rev": "57dcf665082ffc1b6f35a427e203ed115821b15c",
+        "rev": "1d7aa327fb33b41f3c4899d5b29aa122780c900f",
         "type": "github"
       },
       "original": {
@@ -35,15 +35,16 @@
     "ema": {
       "flake": false,
       "locked": {
-        "lastModified": 1724260267,
-        "narHash": "sha256-pxTlvpK0l7pek43FIz6KYAazK0BWbnuBJSFrcShVoWE=",
+        "lastModified": 1737321961,
+        "narHash": "sha256-+iLtdzwVv0wyTdFfk4XFJAZPmA9Of7stYbo2sTBzN7M=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "16e2752267cd49027e281409daa25b6ecba68fd3",
+        "rev": "74b619f9865748a690fc7cf1b865fec801daaa97",
         "type": "github"
       },
       "original": {
         "owner": "srid",
+        "ref": "idiomorph",
         "repo": "ema",
         "type": "github"
       }
@@ -64,11 +65,11 @@
         "unionmount": "unionmount"
       },
       "locked": {
-        "lastModified": 1737314005,
-        "narHash": "sha256-xLbDOXMw/yzeBoatl7CHKckj0P/w5uRbJPkxDwBSoTY=",
+        "lastModified": 1738285064,
+        "narHash": "sha256-3O7Xu/pYjD24A4YikN47G+9ROkOidtpe7pe8Z2axSgM=",
         "owner": "srid",
         "repo": "emanote",
-        "rev": "c0c00664f396d51e529f84a929bbaf119fd28db2",
+        "rev": "ea63b0402008b19a0c85f6fbcbc7eeae3d4c22d6",
         "type": "github"
       },
       "original": {
