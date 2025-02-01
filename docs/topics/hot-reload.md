@@ -15,6 +15,10 @@ The Ema dev server uses websockets to keep a bi-directional connection open betw
 
 When switching to a new route or when receiving the new HTML, Ema uses [idiomorph](https://github.com/bigskysoftware/idiomorph) to _patch_ the existing DOM tree rather than replace it in its entirety. This, in addition to use of websockets, makes it possible to support **instant** hot reload with nary a delay.
 
+In addition to the patching the DOM, all `<script>` tags are recreated, making it possible to re-run any JavaScript code (e.g.: for [syntax highlighting][syn]) that was present in the new HTML. You can skip this behaviour on a per-`<script>`-tag basis by using the `data-ema-skip=true` custom attribute (Emanote does this for Tailwind, to prevent it from inserting [duplicate](https://github.com/srid/emanote/issues/411) `<style>` tags).
+
+[syn]: https://emanote.srid.ca/tips/js/syntax-highlighting
+
 ### Haskell reload
 
 Finally, hot reload on _code_ changes are supported via [ghcid](https://github.com/ndmitchell/ghcid). The [template repo](https://github.com/srid/ema-template)'s `bin/run` script uses ghcid underneath. Any HTML DSL (like `blaze-html`) or CSS DSL automatically gets supported for hot-reload. If you choose to use a file-based HTML template language, you can enable hot-reload on template change using the [[unionmount]] library.
