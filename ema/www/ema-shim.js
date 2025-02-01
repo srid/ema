@@ -12,6 +12,11 @@ function setHtml(elm, html) {
 // See also the HACK below in one of the invocations.
 function reloadScripts(elm) {
   Array.from(elm.querySelectorAll("script")).forEach((oldScript) => {
+    // Some scripts, like Tailwind, should not be reloaded (they are not idempotent)
+    // Allow the user to skip such scripts with a data-* attribute
+    if (oldScript.getAttribute("data-ema-skip") === "true") {
+      return;
+    }
     const newScript = document.createElement("script");
     Array.from(oldScript.attributes).forEach((attr) =>
       newScript.setAttribute(attr.name, attr.value),
