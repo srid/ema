@@ -228,11 +228,11 @@
     "lvar": {
       "flake": false,
       "locked": {
-        "lastModified": 1745042607,
-        "narHash": "sha256-ERjOrxCGb9g8fcl1luAu9oxnvdKr8No3sd7D5ACo4As=",
+        "lastModified": 1745122737,
+        "narHash": "sha256-ZnYXkkPmnNvt4tA45JgSC7dpttmqhUo4AHfEjB1r1gE=",
         "owner": "srid",
         "repo": "lvar",
-        "rev": "1758059f06be2fd0f231e32d9206b8d94dfa3741",
+        "rev": "047a24c4dcd7f85f9c18058f6be991cea531870e",
         "type": "github"
       },
       "original": {
