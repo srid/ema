@@ -17,7 +17,6 @@ import Ema.Site (EmaStaticSite)
 import Network.WebSockets (ConnectionException)
 import Network.WebSockets qualified as WS
 import Optics.Core (review)
-import Text.Printf (printf)
 import UnliftIO.Async (race)
 import UnliftIO.Exception (try)
 
@@ -32,9 +31,8 @@ wsApp ::
 wsApp logger model emaWsHandler pendingConn = do
   conn :: WS.Connection <- WS.acceptRequest pendingConn
   WS.withPingThread conn 30 pass . flip runLoggingT logger $ do
-    subId <- LVar.addListener model
     let log lvl (s :: Text) =
-          logWithoutLoc (toText @String $ printf "ema.ws.%.2d" subId) lvl s
+          logWithoutLoc "ema.ws" lvl s
     log LevelInfo "Connected"
     let wsHandler = unEmaWsHandler emaWsHandler conn
         sendRouteHtmlToClient path s = do
@@ -60,7 +58,7 @@ wsApp logger model emaWsHandler pendingConn = do
           -- Listen *until* either we get a new value, or the client requests
           -- to switch to a new route.
           currentModel <- LVar.get model
-          race (LVar.listenNext model subId) (wsHandler currentModel) >>= \case
+          race (LVar.listenNext model) (wsHandler currentModel) >>= \case
             Left newModel -> do
               -- The page the user is currently viewing has changed. Send
               -- the new HTML to them.
@@ -83,4 +81,3 @@ wsApp logger model emaWsHandler pendingConn = do
             log LevelInfo $ "Closing websocket connection (reason: " <> reason <> ")"
           _ ->
             log LevelError $ "Websocket error: " <> show connExc
-        LVar.removeListener model subId

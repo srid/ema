@@ -225,6 +225,22 @@
         "type": "github"
       }
     },
+    "lvar": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1745122737,
+        "narHash": "sha256-ZnYXkkPmnNvt4tA45JgSC7dpttmqhUo4AHfEjB1r1gE=",
+        "owner": "srid",
+        "repo": "lvar",
+        "rev": "047a24c4dcd7f85f9c18058f6be991cea531870e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "lvar",
+        "type": "github"
+      }
+    },
     "nixos-unified": {
       "locked": {
         "lastModified": 1729697921,
@@ -291,6 +307,7 @@
         "fourmolu-nix": "fourmolu-nix",
         "git-hooks": "git-hooks",
         "haskell-flake": "haskell-flake_2",
+        "lvar": "lvar",
         "nixpkgs": "nixpkgs_2"
       }
     },

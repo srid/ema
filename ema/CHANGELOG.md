@@ -3,6 +3,7 @@
 ## Unreleased (0.10.4.0)
 
 - Relax `base` constraint forever
+- Require `lvar` 0.2 or later ([simplified API](https://github.com/srid/lvar/pull/8))
 - API changes
   - `Ema.CLI`: The `Action` type is no longer a GADT.
   - `Ema.Server`: This module has be split into several smaller modules

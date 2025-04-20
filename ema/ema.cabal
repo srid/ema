@@ -86,7 +86,7 @@ library
     , filepath
     , filepattern
     , http-types
-    , lvar
+    , lvar                   >=0.2
     , monad-logger
     , monad-logger-extras
     , mtl
