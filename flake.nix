@@ -8,6 +8,9 @@
     git-hooks.url = "github:cachix/git-hooks.nix";
     git-hooks.flake = false;
     emanote.url = "github:srid/emanote";
+
+    lvar.url = "github:srid/lvar/simplify";
+    lvar.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -22,6 +25,7 @@
         # This attr is provided by https://github.com/srid/haskell-flake
         haskellProjects.default = {
           autoWire = [ "packages" "checks" ];
+          packages.lvar.source = inputs.lvar;
         };
 
         devShells.default = pkgs.mkShell {
