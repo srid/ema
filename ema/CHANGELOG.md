@@ -1,6 +1,6 @@
 # Revision history for ema
 
-## Unreleased (0.10.4.0)
+## 0.12.0.0 (2025-07-22)
 
 - Relax `base` constraint forever
 - Require `lvar` 0.2 or later ([simplified API](https://github.com/srid/lvar/pull/8))
