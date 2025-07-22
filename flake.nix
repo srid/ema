@@ -9,7 +9,7 @@
     git-hooks.flake = false;
     emanote.url = "github:srid/emanote";
 
-    lvar.url = "github:srid/lvar";
+    lvar.url = "github:srid/lvar/0.2.0.0";
     lvar.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
