@@ -47,6 +47,9 @@
             fourmolu = {
               enable = true;
               package = config.fourmolu.wrapper;
+              excludes = [
+                "vira\.hs"
+              ];
             };
           };
         };
