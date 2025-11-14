@@ -69,13 +69,14 @@
         emanote = {
           sites = {
             "docs" = {
+              check = false;
               layers = [
                 {
                   path = ./docs;
                   pathString = "./docs";
                 }
               ];
-              prettyUrls = true;
+              extraConfig.template.prettyUrls = true;
             };
           };
         };
