@@ -90,16 +90,16 @@ runSiteWith cfg siteArg = do
         LVar.set model model0
         logger <- askLoggerIO
         let mWsOpts = if noWebSocket then Nothing else Just opts
+            runM = flip runLoggingT logger
         liftIO $
           race_
-            ( flip runLoggingT logger $ do
+            ( runM $ do
                 cont $ LVar.set model
                 logWarnNS "ema" "modelPatcher exited; no more model updates!"
-                -- We want to keep this thread alive, so that the server thread
-                -- doesn't exit.
+                -- Keep this thread alive so that race_ doesn't cancel the
+                -- server thread.
                 liftIO $ threadDelay maxBound
             )
-            ( flip runLoggingT logger $ do
-                Server.runServerWithWebSocketHotReload @r mWsOpts host mport model
+            ( runM $ Server.runServerWithWebSocketHotReload @r mWsOpts host mport model
             )
         CLI.crash "ema" "Live server unexpectedly stopped"

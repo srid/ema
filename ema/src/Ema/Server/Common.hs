@@ -32,27 +32,23 @@ renderCatchingErrors ::
   m (Asset LByteString)
 renderCatchingErrors m r =
   catch (siteOutput (fromPrism_ $ routePrism m) m r) $ \(err :: SomeException) -> do
-    -- Log the error first.
-    logErrorNS "App" $ show @Text err
-    pure
-      $ AssetGenerated Html
-        . mkHtmlErrorMsg
-      $ show @Text err
+    let errMsg = show @Text err
+    logErrorNS "App" errMsg
+    pure $ AssetGenerated Html $ mkHtmlErrorMsg errMsg
 
 -- Decode an URL path into a route
 --
 -- This function is used only in live server. If the route is not
--- isomoprhic, this returns a Left, with the mismatched encoding.
+-- isomorphic, this returns a Left, with the mismatched encoding.
 decodeUrlRoute ::
   forall r.
   (Eq r, Show r, IsRoute r) =>
   RouteModel r ->
   Text ->
   Either (BadRouteEncoding r) (Maybe r)
-decodeUrlRoute m (urlToFilePath -> s) = do
-  case checkRoutePrismGivenFilePath routePrism m s of
-    Left (r, log) -> Left $ BadRouteEncoding s r log
-    Right mr -> Right mr
+decodeUrlRoute m (urlToFilePath -> s) =
+  first (\(r, log) -> BadRouteEncoding s r log) $
+    checkRoutePrismGivenFilePath routePrism m s
 
 -- | A basic error response for displaying in the browser
 emaErrorHtmlResponse :: Text -> LByteString
@@ -80,7 +76,7 @@ badRouteEncodingMsg BadRouteEncoding {..} =
       <> toText _bre_urlFilePath
       <> "' decodes to route '"
       <> show _bre_decodedRoute
-      <> "', but it is not isomporphic on any of the allowed candidates: \n\n"
+      <> "', but it is not isomorphic on any of the allowed candidates: \n\n"
       <> T.intercalate
         "\n\n"
         ( _bre_checkLog <&> \(candidate, log) ->

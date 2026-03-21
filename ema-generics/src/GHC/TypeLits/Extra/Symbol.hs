@@ -3,6 +3,7 @@
 module GHC.TypeLits.Extra.Symbol (
   StripPrefix,
   ToLower,
+  FromMaybe,
 ) where
 
 import GHC.TypeLits (ConsSymbol, Symbol, UnconsSymbol)

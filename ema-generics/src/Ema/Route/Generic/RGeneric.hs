@@ -74,7 +74,7 @@ type family GetConstructorNames (infos :: [SOPM.ConstructorInfo]) :: [SOPM.Const
   GetConstructorNames '[] = '[]
   GetConstructorNames (x ': xs) = GetConstructorName x ': GetConstructorNames xs
 
-{- | Class of `NP` that can be used in a route tyupe.
+{- | Class of `NP` that can be used in a route type.
 
     Ensures that the constructor can have 0 or 1 products only.
 -}

@@ -5,7 +5,6 @@ module Ema.Server.HTTP where
 import Control.Monad.Logger
 import Data.LVar (LVar)
 import Data.LVar qualified as LVar
-import Data.Maybe (fromMaybe)
 import Data.Text qualified as T
 import Ema.Asset (
   Asset (AssetGenerated, AssetStatic),

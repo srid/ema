@@ -46,11 +46,10 @@ checkRoutePrismGivenFilePath enc a s = do
 
 checkRoutePrism :: (Eq r, Show r) => (a -> Prism_ FilePath r) -> a -> r -> FilePath -> Either Text ()
 checkRoutePrism p a r s =
-  let (valid, checkLog) =
-        runWriter $ routePrismIsLawfulFor p a r s
-   in if valid
-        then Right ()
-        else Left $ "Unlawful route prism for route value '" <> show r <> "'\n- " <> T.intercalate "\n- " checkLog
+  let (valid, checkLog) = runWriter $ routePrismIsLawfulFor p a r s
+   in unless valid $
+        Left $
+          "Unlawful route prism for route value '" <> show r <> "'\n- " <> T.intercalate "\n- " checkLog
 
 {- | Check if the route @Prism_@ is lawful.
 
@@ -78,12 +77,8 @@ prismIsLawfulFor ::
   s ->
   Writer [Text] Bool
 prismIsLawfulFor p a s = do
-  -- TODO: The logging here could be improved.
-  -- log $ "Testing Partial ISO law for " <> show a <> " and " <> toText s
   let s' :: s = review p a
-  -- log $ "Prism actual encoding: " <> toText s'
-  let ma' :: Maybe a = preview p s'
-  -- log $ "Decoding of that encoding: " <> show ma'
+      ma' :: Maybe a = preview p s'
   unless (s == s') $
     log $
       toText s <> " /= " <> toText s' <> " (encoding of '" <> show a <> "')"

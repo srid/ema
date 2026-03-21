@@ -105,9 +105,7 @@ getLogger cli =
   where
     allowLogLevelFrom :: LogLevel -> Logger -> Logger
     allowLogLevelFrom minLevel (Logger f) = Logger $ \loc src level msg ->
-      if level >= minLevel
-        then f loc src level msg
-        else pass
+      when (level >= minLevel) $ f loc src level msg
 
 {- | Crash the program with the given error message
 

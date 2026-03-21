@@ -36,8 +36,7 @@ runServerWithWebSocketHotReload ::
   m ()
 runServerWithWebSocketHotReload mWsOpts host mport model = do
   logger <- askLoggerIO
-  let runM = flip runLoggingT logger
-      settings =
+  let settings =
         Warp.defaultSettings
           & Warp.setHost (fromString . toString . unHost $ host)
       app =
@@ -49,11 +48,11 @@ runServerWithWebSocketHotReload mWsOpts host mport model = do
               WS.defaultConnectionOptions
               (wsApp @r logger model $ emaWebSocketServerHandler opts)
               (httpApp @r logger model $ Just $ emaWebSocketClientShim opts)
-      banner port = do
+      banner port = flip runLoggingT logger $ do
         logInfoNS "ema" "==============================================="
         logInfoNS "ema" $ "Ema live server RUNNING: http://" <> unHost host <> ":" <> show port <> " (" <> maybe "no ws" (const "ws") mWsOpts <> ")"
         logInfoNS "ema" "==============================================="
-  liftIO $ warpRunSettings settings mport (runM . banner) app
+  liftIO $ warpRunSettings settings mport banner app
 
 -- Like Warp.runSettings but takes *optional* port. When no port is set, a
 -- free (random) port is used.

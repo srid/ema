@@ -32,6 +32,7 @@ import Ema.Route.Lib.Folder (FolderRoute (FolderRoute))
 import Ema.Route.Lib.Multi (MultiModel, MultiRoute)
 import Ema.Route.Prism.Type (mapRoutePrism)
 import GHC.Generics qualified as GHC
+import GHC.TypeLits.Extra.Symbol (FromMaybe)
 import Generics.SOP (All, I (..), NP)
 import Optics.Core (ReversibleOptic (re), coercedTo, equality, review, (%))
 import Prelude hiding (All, Generic)
@@ -106,10 +107,6 @@ type family OptSubRoutes r (opts :: [Type]) :: [Type] where
 type family OptSubModels r (opts :: [Type]) :: [Type] where
   OptSubModels r '[] = MultiModel (SubRoutes r)
   OptSubModels r (opt ': opts) = FromMaybe (OptSubModels r opts) (OptSubModelsM r opt)
-
-type family FromMaybe (def :: a) (maybe :: Maybe a) :: a where
-  FromMaybe def 'Nothing = def
-  FromMaybe def ('Just a) = a
 
 type GenericRouteOpts r opts = All (GenericRouteOpt r) opts
 

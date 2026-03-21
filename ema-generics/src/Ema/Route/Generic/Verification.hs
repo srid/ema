@@ -47,7 +47,7 @@ type family VerifyRoutes (rcode :: [Type]) (subRoutes :: [Type]) :: Constraint w
           ':$$: 'Text ""
           ':$$: ('Text "\t" ':<>: 'ShowType t)
       )
-  -- Subroute rep is unit (REVIEW: this case not strictly necessary anymore; should it be removed?)
+  -- Terminal route: both sides are unit, no Coercible check needed.
   VerifyRoutes (() ': rs) (() : rs') = VerifyRoutes rs rs'
   VerifyRoutes (r' ': rs) (() : rs') =
     TypeError

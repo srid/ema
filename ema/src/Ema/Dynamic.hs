@@ -36,27 +36,30 @@ instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
       , \send -> do
           var <- newTVarIO (x0, y0)
           sendLock :: TMVar () <- newEmptyTMVarIO
+          let
+            -- Serialize updates through the lock, applying the STM action and
+            -- sending the result. This prevents interleaved updates from
+            -- producing inconsistent views.
+            lockedUpdate label stmAction = do
+              atomically $ putTMVar sendLock ()
+              logDebugNS "ema.dyn.app" label
+              send =<< atomically stmAction
+              atomically $ takeTMVar sendLock
+            -- Keep a thread alive after its updater exits, so race_ doesn't
+            -- cancel the other side.
+            keepAlive updater = do
+              updater
+              logDebugNS "ema.dyn.app" "updater exited; keeping thread alive"
+              threadDelay maxBound
           race_
-            ( do
-                xf $ \x -> do
-                  atomically $ putTMVar sendLock ()
-                  logDebugNS "ema.dyn.app" "left update"
-                  send <=< atomically $ do
-                    modifyTVar' var $ first (const x)
-                    f x . snd <$> readTVar var
-                  atomically $ takeTMVar sendLock
-                logDebugNS "ema.dyn.app" "updater exited; keeping thread alive"
-                threadDelay maxBound
+            ( keepAlive $ xf $ \x ->
+                lockedUpdate "left update" $ do
+                  modifyTVar' var $ first (const x)
+                  f x . snd <$> readTVar var
             )
-            ( do
-                yf $ \y -> do
-                  atomically $ putTMVar sendLock ()
-                  logDebugNS "ema.dyn.app" "right update"
-                  send <=< atomically $ do
-                    modifyTVar' var $ second (const y)
-                    (`f` y) . fst <$> readTVar var
-                  atomically $ takeTMVar sendLock
-                logDebugNS "ema.dyn.app" "updater exited; keeping thread alive"
-                threadDelay maxBound
+            ( keepAlive $ yf $ \y ->
+                lockedUpdate "right update" $ do
+                  modifyTVar' var $ second (const y)
+                  (`f` y) . fst <$> readTVar var
             )
       )

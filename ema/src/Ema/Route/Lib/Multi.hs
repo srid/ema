@@ -77,10 +77,8 @@ instance
         (siteOutput @r (rp % headRoute) m)
         (siteOutput @(MultiRoute rs) (rp % tailRoute) ms)
     where
-      tailRoute =
-        (prism' (toNS . Right) (fromNS >>> rightToMaybe))
-      headRoute =
-        (prism' (toNS . Left) (fromNS >>> leftToMaybe))
+      tailRoute = prism' (toNS . Right) (fromNS >>> rightToMaybe)
+      headRoute = prism' (toNS . Left) (fromNS >>> leftToMaybe)
 
 -- | Like `eitherRoutePrism` but uses sop-core types instead of Either/Product.
 nsRoutePrism ::

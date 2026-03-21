@@ -8,8 +8,7 @@ module Ema.Route.Url (
   urlToFilePath,
 ) where
 
-import Data.Aeson (FromJSON (parseJSON), Value)
-import Data.Aeson.Types (Parser)
+import Data.Aeson (FromJSON (parseJSON))
 import Data.Text qualified as T
 import Network.URI.Slug qualified as Slug
 import Optics.Core (Prism', review)
@@ -67,11 +66,9 @@ data UrlStrategy
   deriving stock (Eq, Show, Ord, Generic)
 
 instance FromJSON UrlStrategy where
-  parseJSON val =
-    f UrlPretty "pretty" val <|> f UrlDirect "direct" val
-    where
-      f :: UrlStrategy -> Text -> Value -> Parser UrlStrategy
-      f c s v = do
-        x <- parseJSON v
-        guard $ x == s
-        pure c
+  parseJSON v = do
+    x :: Text <- parseJSON v
+    case x of
+      "pretty" -> pure UrlPretty
+      "direct" -> pure UrlDirect
+      _ -> fail $ "Unknown URL strategy: " <> toString x

@@ -104,11 +104,9 @@ generateSiteFromModel' dest model = do
 noBirdbrainedJekyll :: (MonadIO m, MonadLoggerIO m) => FilePath -> m ()
 noBirdbrainedJekyll dest = do
   let nojekyll = dest </> ".nojekyll"
-  liftIO (doesFileExist nojekyll) >>= \case
-    True -> pass
-    False -> do
-      log LevelInfo $ "Disabling Jekyll by writing " <> toText nojekyll
-      writeFileLBS nojekyll ""
+  unlessM (liftIO $ doesFileExist nojekyll) $ do
+    log LevelInfo $ "Disabling Jekyll by writing " <> toText nojekyll
+    writeFileLBS nojekyll ""
 
 newtype StaticAssetMissing = StaticAssetMissing FilePath
   deriving stock (Show)

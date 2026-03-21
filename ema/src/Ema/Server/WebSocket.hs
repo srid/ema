@@ -43,15 +43,15 @@ wsApp logger model emaWsHandler pendingConn = do
             Right Nothing ->
               liftIO $ WS.sendTextData conn $ emaErrorHtmlResponse decodeRouteNothingMsg
             Right (Just r) -> do
+              let redirectTo = "REDIRECT " <> toText (review (fromPrism_ $ routePrism s) r)
               renderCatchingErrors s r >>= \case
                 AssetGenerated Html html ->
                   liftIO $ WS.sendTextData conn $ html <> toLazy wsClientHtml
-                -- HACK: We expect the websocket client should check for REDIRECT prefix.
-                -- Not bothering with JSON response to avoid having to JSON parse every HTML dump.
-                AssetStatic _staticPath ->
-                  liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ routePrism s) r)
-                AssetGenerated Other _s ->
-                  liftIO $ WS.sendTextData conn $ "REDIRECT " <> toText (review (fromPrism_ $ routePrism s) r)
+                -- Non-HTML assets: tell the client to navigate via HTTP instead.
+                AssetStatic _ ->
+                  liftIO $ WS.sendTextData conn redirectTo
+                AssetGenerated Other _ ->
+                  liftIO $ WS.sendTextData conn redirectTo
               log LevelDebug $ " ~~> " <> show r
         -- @mWatchingRoute@ is the route currently being watched.
         loop mWatchingRoute = do
