@@ -2,7 +2,7 @@
 
 ## 0.13.0.0 (Unreleased)
 
-- `Ema.CLI`
+- `Ema.CLI` ([#176](https://github.com/srid/ema/pull/176))
   - **Breaking**: `Action.Run` now carries a named record `RunArgs` instead of a bare `(Host, Maybe Port, NoWebSocket)` tuple. Migration: replace `Run (h, p, ws)` with `Run RunArgs { host = h, port = p, noWebSocket = ws }`.
   - New export `runArgsParser :: Parser RunArgs`. Downstream applications can compose it inside their own `run` subcommand to add custom flags without reconstructing Ema's host/port/no-ws parsers by hand.
 
