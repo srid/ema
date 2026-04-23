@@ -5,7 +5,7 @@
 - `Ema.CLI` ([#176](https://github.com/srid/ema/pull/176))
   - **Breaking**: `Action.Run` now carries a named record `RunArgs` instead of a bare `(Host, Maybe Port, NoWebSocket)` tuple. Migration: replace `Run (h, p, ws)` with `Run RunArgs { host = h, port = p, noWebSocket = ws }`.
   - New export `runArgsParser :: Parser RunArgs`. Downstream applications can compose it inside their own `run` subcommand to add custom flags without reconstructing Ema's host/port/no-ws parsers by hand.
-- `Ema.Dynamic`: new export `currentValue :: MonadIO m => Dynamic m a -> m (IO a, Dynamic m a)`. Tees a Dynamic so its latest value is readable synchronously from outside the consumer — useful when a second component (e.g. an HTTP handler) runs alongside a render loop and needs pull access to the current model. The returned Dynamic must be used in place of the input.
+- `Ema.Dynamic`: new export `currentValue` ([#177](https://github.com/srid/ema/pull/177)), a pull-side tee for consumers that need synchronous access to the current value.
 
 ## 0.12.0.0 (2025-07-22)
 
