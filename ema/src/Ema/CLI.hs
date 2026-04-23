@@ -20,13 +20,24 @@ newtype Host = Host {unHost :: Text}
 instance Default Host where
   def = "127.0.0.1"
 
+-- | Arguments that belong to the live-server ('Run') subcommand.
+data RunArgs = RunArgs
+  { host :: Host
+  , port :: Maybe Port
+  , noWebSocket :: NoWebSocket
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance Default RunArgs where
+  def = RunArgs {host = def, port = Nothing, noWebSocket = def}
+
 -- | CLI subcommand
 data Action
   = -- | Generate static files at the given output directory, returning the list
     -- of generated files.
     Generate FilePath
   | -- | Run the live server
-    Run (Host, Maybe Port, NoWebSocket)
+    Run RunArgs
   deriving stock (Eq, Show, Generic)
 
 -- | Whether to disable websocket-based refresh and page loads.
@@ -59,18 +70,25 @@ cliParser = do
   action <-
     hsubparser
       ( command "gen" (info generate (progDesc "Generate static site"))
-          <> command "run" (info run (progDesc "Run the live server"))
+          <> command "run" (info (Run <$> runArgsParser) (progDesc "Run the live server"))
       )
       <|> pure (Run def)
   verbose <- switch (long "verbose" <> short 'v' <> help "Enable verbose logging")
   pure Cli {..}
   where
-    run :: Parser Action
-    run =
-      fmap Run $ (,,) <$> hostParser <*> optional portParser <*> noWebSocketParser
     generate :: Parser Action
     generate =
       Generate <$> argument str (metavar "DEST")
+
+{- | Parser for the live-server subcommand's arguments.
+
+Exposed so downstream applications can compose @--host@, @--port@, and
+@--no-ws@ into their own @run@ subcommand alongside custom flags,
+without having to reconstruct the parser by hand. If Ema adds a new
+field to 'RunArgs', downstream composers pick it up automatically.
+-}
+runArgsParser :: Parser RunArgs
+runArgsParser = RunArgs <$> hostParser <*> optional portParser <*> noWebSocketParser
 
 hostParser :: Parser Host
 hostParser =

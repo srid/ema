@@ -1,5 +1,11 @@
 # Revision history for ema
 
+## 0.13.0.0 (Unreleased)
+
+- `Ema.CLI`
+  - **Breaking**: `Action.Run` now carries a named record `RunArgs` instead of a bare `(Host, Maybe Port, NoWebSocket)` tuple. Migration: replace `Run (h, p, ws)` with `Run RunArgs { host = h, port = p, noWebSocket = ws }`.
+  - New export `runArgsParser :: Parser RunArgs`. Downstream applications can compose it inside their own `run` subcommand to add custom flags without reconstructing Ema's host/port/no-ws parsers by hand.
+
 ## 0.12.0.0 (2025-07-22)
 
 - Relax `base` constraint forever

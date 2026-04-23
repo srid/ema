@@ -85,7 +85,10 @@ runSiteWith cfg siteArg = do
       CLI.Generate dest -> do
         fs <- generateSiteFromModel @r dest model0
         pure (model0, (dest, fs))
-      CLI.Run (host, mport, CLI.unNoWebSocket -> noWebSocket) -> do
+      CLI.Run runArgs -> do
+        let host = CLI.host runArgs
+            mport = CLI.port runArgs
+            noWebSocket = CLI.unNoWebSocket (CLI.noWebSocket runArgs)
         model <- LVar.empty
         LVar.set model model0
         logger <- askLoggerIO
