@@ -50,12 +50,11 @@ Only one producer runs — the pass-through intercepts the send callback, it doe
 
 ```haskell
 flip runLoggerLoggingT logger $ do
-  rawDyn          <- siteInput @r action arg       -- your EmaSite.siteInput runs
+  rawDyn            <- siteInput @r action arg     -- your EmaSite.siteInput runs
   (readModel, dyn') <- currentValue rawDyn         -- tee for out-of-band reads
-  liftIO $ publishReader readModel                 -- hand the reader to an observer
-  withRunInIO $ \runIO -> race_
+  race_
     (myObserver readModel)                          -- whatever needs the live model
-    (runIO $ runSiteWithInput cfg dyn')            -- Ema drives the wrapped Dynamic
+    (runSiteWithInput cfg dyn')                     -- Ema drives the wrapped Dynamic
 ```
 
-`runSiteWith` itself becomes a one-liner wrapper around `siteInput` + `runSiteWithInput`, so callers that don't need the tee are unaffected.
+`UnliftIO.Async.race_` handles both branches in `m` directly — no `withRunInIO`/`liftIO` dance needed. `runSiteWith` itself becomes a one-liner wrapper around `siteInput` + `runSiteWithInput`, so callers that don't need the tee are unaffected.
