@@ -102,7 +102,9 @@ they need, and hands it here.
 -}
 runSiteWithInput ::
   forall r m.
-  (MonadUnliftIO m, MonadLoggerIO m, MonadFail m, Show r, Eq r, EmaStaticSite r) =>
+  -- MonadUnliftIO for the race_ between updater and server; MonadLoggerIO for
+  -- Ema's own startup / patch / error logs.
+  (MonadUnliftIO m, MonadLoggerIO m, Show r, Eq r, EmaStaticSite r) =>
   SiteConfig r ->
   Dynamic m (RouteModel r) ->
   m

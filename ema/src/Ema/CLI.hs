@@ -12,6 +12,8 @@ import Control.Monad.Logger.Extras (
 import Data.Default (Default (def))
 import Network.Wai.Handler.Warp (Port)
 import Options.Applicative hiding (action)
+import System.IO.Error (userError)
+import UnliftIO.Exception (throwIO)
 
 -- | Host string to start the server on.
 newtype Host = Host {unHost :: Text}
@@ -131,7 +133,7 @@ getLogger cli =
 
  First log the message using Error level, and then exit using `fail`.
 -}
-crash :: (MonadLoggerIO m, MonadFail m) => LogSource -> Text -> m a
+crash :: (MonadLoggerIO m) => LogSource -> Text -> m a
 crash source msg = do
   logErrorNS source msg
-  fail $ toString msg
+  liftIO $ throwIO $ userError $ toString msg
