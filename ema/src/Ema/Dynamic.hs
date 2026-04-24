@@ -1,5 +1,6 @@
 module Ema.Dynamic (
   Dynamic (Dynamic),
+  currentValue,
 ) where
 
 import Control.Monad.Logger (MonadLogger, logDebugNS)
@@ -27,6 +28,42 @@ instance Functor (Dynamic m) where
       ( f x0
       , \send -> xf $ send . f
       )
+
+{- | Tee a 'Dynamic' so its latest value is readable out-of-band.
+
+Returns @(reader, wrapped)@:
+
+* @reader :: IO a@ yields the most recently pushed value, or the initial
+  value before any update.
+* @wrapped@ is a pass-through 'Dynamic' that must be used in place of the
+  input. Its updater calls the input's updater and additionally stores
+  each value for the reader.
+
+'Dynamic' is push-only: the updater takes a send callback and runs
+forever, producing values via that callback. That shape is a poor fit
+for consumers that need synchronous pull access to the current value
+(e.g. an HTTP handler running alongside a render loop). This helper
+bridges the gap without forking a second producer.
+
+Usage:
+
+> (readModel, dyn') <- currentValue dyn
+> race_
+>   (runSiteWith siteConfig siteArg dyn')   -- consumes dyn'
+>   (serveHttp $ \req -> readModel)         -- reads current model per request
+-}
+currentValue :: (MonadIO m) => Dynamic m a -> m (IO a, Dynamic m a)
+currentValue (Dynamic (x0, xf)) = do
+  ref <- liftIO $ newIORef x0
+  pure
+    ( readIORef ref
+    , Dynamic
+        ( x0
+        , \send -> xf $ \x -> do
+            liftIO $ writeIORef ref x
+            send x
+        )
+    )
 
 instance (MonadUnliftIO m, MonadLogger m) => Applicative (Dynamic m) where
   pure x = Dynamic (x, const pass)
