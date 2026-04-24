@@ -152,7 +152,9 @@ test-suite test
     , base
     , ema
     , hspec
-    , relude  >=1.0
+    , monad-logger
+    , relude        >=1.0
+    , unliftio
 
   mixins:
     base hiding (Prelude),
