@@ -78,7 +78,6 @@ library
   -- other-extensions:
   build-depends:
     , aeson
-    , async
     , base                   >=4.13.0.0 && <4.99
     , data-default
     , directory

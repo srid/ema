@@ -35,13 +35,17 @@ The use of a time-varying `Dynamic` is what enables [[hot-reload]]. See [here](h
 currentValue :: MonadIO m => Dynamic m a -> m (IO a, Dynamic m a)
 ```
 
-It returns a reader (`IO a`, yielding the most recently pushed value, or the initial value before any update) and a pass-through `Dynamic` that must be used in place of the input — the pass-through's updater is wired to feed the reader on each update.
+It returns a reader (`IO a`, yielding the most recently pushed value, or the initial value before any update) and a pass-through `Dynamic` that must be used in place of the input — the pass-through's updater is wired to feed the reader on each update. Only one producer runs; the pass-through intercepts the send callback, it does not duplicate the underlying updater.
+
+To compose this with Ema's own render loop, use `Ema.App.runSiteWithInput`, which takes a pre-built `Dynamic` instead of calling `siteInput` for you:
 
 ```haskell
-(readModel, dyn') <- currentValue dyn
-race_
-  (runSiteWith cfg arg dyn')          -- consumes dyn'
-  (serve $ \_req -> readModel)        -- reads the live model per request
+flip runLoggerLoggingT logger $ do
+  rawDyn            <- siteInput @r action arg     -- your EmaSite.siteInput runs
+  (readModel, dyn') <- currentValue rawDyn         -- tee for out-of-band reads
+  race_
+    (myObserver readModel)                          -- whatever needs the live model
+    (runSiteWithInput cfg dyn')                     -- Ema drives the wrapped Dynamic
 ```
 
-Only one producer runs — the pass-through intercepts the send callback, it does not duplicate the underlying updater.
+`UnliftIO.Async.race_` handles both branches in `m` directly — no `withRunInIO`/`liftIO` dance needed. `runSiteWith` itself becomes a one-liner wrapper around `siteInput` + `runSiteWithInput`, so callers that don't need the tee are unaffected.

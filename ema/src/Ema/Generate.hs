@@ -37,7 +37,7 @@ log = logWithoutLoc "ema.generate"
 -}
 generateSiteFromModel ::
   forall r m.
-  (MonadIO m, MonadLoggerIO m, MonadFail m, Eq r, Show r, IsRoute r, EmaStaticSite r) =>
+  (MonadIO m, MonadLoggerIO m, Eq r, Show r, IsRoute r, EmaStaticSite r) =>
   -- | Target directory to write files to. Must exist.
   FilePath ->
   -- | The model data used to generate assets.
