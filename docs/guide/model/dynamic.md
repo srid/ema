@@ -35,18 +35,9 @@ The use of a time-varying `Dynamic` is what enables [[hot-reload]]. See [here](h
 currentValue :: MonadIO m => Dynamic m a -> m (IO a, Dynamic m a)
 ```
 
-It returns a reader (`IO a`, yielding the most recently pushed value, or the initial value before any update) and a pass-through `Dynamic` that must be used in place of the input — the pass-through's updater is wired to feed the reader on each update.
+It returns a reader (`IO a`, yielding the most recently pushed value, or the initial value before any update) and a pass-through `Dynamic` that must be used in place of the input — the pass-through's updater is wired to feed the reader on each update. Only one producer runs; the pass-through intercepts the send callback, it does not duplicate the underlying updater.
 
-```haskell
-(readModel, dyn') <- currentValue dyn
-race_
-  (runSiteWith cfg arg dyn')          -- consumes dyn'
-  (serve $ \_req -> readModel)        -- reads the live model per request
-```
-
-Only one producer runs — the pass-through intercepts the send callback, it does not duplicate the underlying updater.
-
-`Ema.App.runSiteWithInput` takes a pre-built `Dynamic` instead of calling `siteInput` for you, which is what makes the `race_ (…) (runSiteWith …)` shape workable:
+To compose this with Ema's own render loop, use `Ema.App.runSiteWithInput`, which takes a pre-built `Dynamic` instead of calling `siteInput` for you:
 
 ```haskell
 flip runLoggerLoggingT logger $ do
