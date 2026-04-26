@@ -60,6 +60,17 @@ const basePath = baseHref ? new URL(baseHref).pathname : "/";
 const wsProto = window.location.protocol === "https:" ? "wss://" : "ws://";
 const wsUrl = wsProto + window.location.host + basePath;
 
+// `window.ema.ready` resolves the first time the WS opens. Reconnects
+// don't reset it — it's a one-shot \"client is past first handshake\"
+// gate, intended for callers (test harnesses, external scripts) that
+// want to invoke `window.ema.switchRoute` without racing the WS open.
+// Set up at module load so listeners attached before init() runs still
+// hook the same promise.
+let _resolveReady;
+const _readyPromise = new Promise((resolve) => {
+  _resolveReady = resolve;
+});
+
 // WebSocket logic: watching for server changes & route switching
 function init(reconnecting) {
   // The route current DOM is displaying
@@ -146,6 +157,7 @@ function init(reconnecting) {
       reloadScripts(document.documentElement);
     }
     watchCurrentRoute();
+    _resolveReady();
   };
 
   ws.onclose = () => {
@@ -201,5 +213,6 @@ function init(reconnecting) {
   // API for user invocations
   window.ema = {
     switchRoute: switchRoute,
+    ready: _readyPromise,
   };
 }
