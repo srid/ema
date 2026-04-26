@@ -7,6 +7,7 @@
   - New export `runArgsParser :: Parser RunArgs`. Downstream applications can compose it inside their own `run` subcommand to add custom flags without reconstructing Ema's host/port/no-ws parsers by hand.
 - `Ema.Dynamic`: new export `currentValue` ([#177](https://github.com/srid/ema/pull/177)), a pull-side tee for consumers that need synchronous access to the current value.
 - `Ema.App`: new export `runSiteWithInput` ([#179](https://github.com/srid/ema/pull/179)) — `runSiteWith` factored into `siteInput` + Dynamic consumption, letting callers insert logic between the two (e.g. `currentValue`-tee for out-of-band consumers).
+- `ema-shim.js`: expose `window.ema.ready`, a Promise that resolves on first WS handshake. Lets external scripts (test harnesses, IDE integrations) call `window.ema.switchRoute` without racing the open. Reconnects don't reset it — it's a one-shot \"client is past first handshake\" gate.
 
 ## 0.12.0.0 (2025-07-22)
 
